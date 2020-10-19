@@ -8,4 +8,4 @@ Main :
 	ghc -dynamic Main
 
 run : Main
-	./Main
+	./Main test.txt
