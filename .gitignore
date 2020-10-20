@@ -1,3 +1,15 @@
-Main
+dist/
+.hsenv/
+docs
+wiki
+TAGS
+tags
+wip
+.*.swp
+.*.swo
 *.hi
 *.o
+*~
+*#
+.cabal-sandbox/
+cabal.sandbox.config
