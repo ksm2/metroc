@@ -1,9 +1,6 @@
 module Main where
 
 import System.Environment
-import Data.Map
-
-import MetroLang.WebAssembly.AST
 import MetroLang.WebAssembly.Parser
 
 -- | main, do nothing
