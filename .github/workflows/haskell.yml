@@ -42,4 +42,4 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: metroc
-        path: dist-newstyle/build/*/ghc-*/metroc-*/x/metroc/build/metroc/metroc
+        path: dist-newstyle/build/x86_64-linux/ghc-8.10.2/metroc-0.1.0.0/x/metroc/build/metroc/metroc
