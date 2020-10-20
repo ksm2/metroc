@@ -1,10 +1,12 @@
 module MetroLang.WebAssembly.Parser (parseString, parseFile) where
 
+import Data.Functor.Identity
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
 import MetroLang.WebAssembly.AST
 
+languageDef :: GenLanguageDef String u Identity
 languageDef =
   emptyDef { Token.commentStart    = "(;"
            , Token.commentEnd      = ";)"
@@ -27,6 +29,7 @@ languageDef =
            , Token.reservedOpNames = ["(", ")", "$", "\"", "i32", "i64", "f32", "f64"]
            }
 
+lexer :: Token.GenTokenParser String u Identity
 lexer = Token.makeTokenParser languageDef
 
 strIdentifier :: Parser String
