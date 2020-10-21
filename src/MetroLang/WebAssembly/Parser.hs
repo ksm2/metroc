@@ -1,5 +1,6 @@
 module MetroLang.WebAssembly.Parser (parseString, parseFile) where
 
+import Data.List (intercalate)
 import Data.Functor.Identity
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
@@ -12,7 +13,7 @@ languageDef =
            , Token.commentEnd      = ";)"
            , Token.commentLine     = ";;"
            , Token.identStart      = letter <|> oneOf "_"
-           , Token.identLetter     = alphaNum <|> oneOf "_."
+           , Token.identLetter     = alphaNum <|> oneOf "_"
            , Token.reservedNames   = [ "(block"
                                      , "(data"
                                      , "(export"
@@ -25,8 +26,12 @@ languageDef =
                                      , "(param"
                                      , "(result"
                                      , "(start"
+                                     , "i32"
+                                     , "i64"
+                                     , "f32"
+                                     , "f64"
                                      ]
-           , Token.reservedOpNames = ["(", ")", "$", "\"", "i32", "i64", "f32", "f64"]
+           , Token.reservedOpNames = ["(", ")", "$", "\"", "."]
            }
 
 lexer :: Token.GenTokenParser String u Identity
@@ -36,7 +41,14 @@ strIdentifier :: Parser String
 strIdentifier = Token.identifier lexer
 
 identifier :: Parser Identifier
-identifier = (reservedOp "$") >> strIdentifier
+identifier =
+  do  reservedOp "$"
+      h <- strIdentifier
+      t <- many dotIdentifier
+      return $ intercalate "." $ h:t
+
+dotIdentifier :: Parser String
+dotIdentifier = (reservedOp ".") >> strIdentifier
 
 reserved :: String -> Parser ()
 reserved   = Token.reserved   lexer -- parses a reserved name
@@ -169,26 +181,35 @@ exprs :: Parser [Expr]
 exprs = many expr
 
 expr :: Parser Expr
-expr =   instrExpr
-     <|> methodExpr
-     <|> litExpr
+expr =   litExpr
      <|> varExpr
+     <|> noParensExpr
+     <|> parensExpr
+
+noParensExpr :: Parser Expr
+noParensExpr =
+    do  fn <- strIdentifier
+        return $ Instr fn []
+
+parensExpr :: Parser Expr
+parensExpr =
+    do  lparen
+        e <- (methodExpr <|> instrExpr)
+        rparen
+        return e
 
 instrExpr :: Parser Expr
 instrExpr =
-    do  lparen
-        fn <- strIdentifier
+    do  fn <- strIdentifier
         e <- exprs
-        rparen
         return $ Instr fn e
 
 methodExpr :: Parser Expr
 methodExpr =
-    do  lparen
+    do  vt <- valtype
+        reservedOp "."
         fn <- strIdentifier
-        vt <- valtype
         e <- exprs
-        rparen
         return $ Method fn vt e
 
 litExpr :: Parser Expr
@@ -238,10 +259,10 @@ stringLiteral =
         return stringValue
 
 valtype :: Parser Valtype
-valtype =   (reservedOp "i32" >> return I32)
-        <|> (reservedOp "i64" >> return I64)
-        <|> (reservedOp "f32" >> return F32)
-        <|> (reservedOp "f64" >> return F64)
+valtype =   (reserved "i32" >> return I32)
+        <|> (reserved "i64" >> return I64)
+        <|> (reserved "f32" >> return F32)
+        <|> (reserved "f64" >> return F64)
 
 lparen :: Parser ()
 lparen = reservedOp "("

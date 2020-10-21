@@ -1,13 +1,13 @@
 module MetroLang.WebAssembly.Generator (generateString, generateFile) where
 
-import Data.List
+import Data.Char (isSpace)
 import MetroLang.WebAssembly.AST
 
 generateModule :: Module -> String
 generateModule (Mod d) = wrap "module" [declarations d]
 
 declarations :: [Declaration] -> String
-declarations = spaces . map declaration
+declarations = indent2 . map declaration
 
 declaration :: Declaration -> String
 declaration (Import m i s) = wrap "import" [stringLiteral m, stringLiteral i, importSpecifier s]
@@ -27,16 +27,16 @@ stmt :: Stmt -> String
 stmt (Local iden vt) = wrap "local" [identifier iden, valtype vt]
 stmt (Block iden s) = wrap "block" [identifier iden, stmt s]
 stmt (Exp e) = expr e
-stmt (Seq s) = (spaces . map stmt) s
+stmt (Seq s) = (indent2 . map stmt) s
 
 expr :: Expr -> String
 expr (Instr s e) = wrap s $ map expr e
-expr (Method s o e) = wrap (s ++ "." ++ (valtype o)) $ map expr e
+expr (Method s o e) = wrap ((valtype o) ++ "." ++ s) $ map expr e
 expr (Lit i) = show i
 expr (Var iden) = identifier iden
 
 params :: [Param] -> String
-params = spaces . map param
+params = unwords . map param
 
 param :: Param -> String
 param (Par iden vt) = wrap "param" [identifier iden, valtype vt]
@@ -57,14 +57,29 @@ identifier i = "$" ++ i
 stringLiteral :: StringLiteral -> String
 stringLiteral i = "\"" ++ i ++ "\""
 
-spaces :: [String] -> String
-spaces = intercalate " "
+indent2 :: [String] -> String
+indent2 = (prefix "\n") . (indent "  ") . unlines
+
+prefix :: String -> String -> String
+prefix pref str = pref ++ str
+
+indent :: String -> String -> String
+indent identWith str = unlines $ map (prefix identWith) $ lines str
 
 wrap :: String -> [String] -> String
-wrap str content = "(" ++ str ++ " " ++ (spaces content) ++ ")"
+wrap str content = parens $ str:content
+
+parens :: [String] -> String
+parens s = if length s == 1 then head s else "(" ++ (unwords (filter (/= "") s)) ++ ")"
+
+trim :: String -> String
+trim = reverse . (dropWhile isSpace) . reverse
+
+trimLines :: String -> String
+trimLines = unlines . (map trim) . lines
 
 generateString :: Module -> String
-generateString = generateModule
+generateString = trimLines . generateModule
 
 generateFile :: String -> Module -> IO ()
 generateFile file ast =
