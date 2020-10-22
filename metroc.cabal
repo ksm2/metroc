@@ -26,6 +26,7 @@ library
   hs-source-dirs: src
   exposed-modules:
     MetroLang.AST
+    MetroLang.Parser
     MetroLang.WebAssembly.AST
     MetroLang.WebAssembly.Generator
     MetroLang.WebAssembly.Parser
