@@ -21,23 +21,37 @@ data Else = ElseStmt Block
           | ElseIfStmt If
             deriving (Show)
 
-data BinOp = LogicalOr
+data BinOp = Assignment
+           | Definition
+           | Is
+           | Unequal
+           | Equal
+           | LogicalOr
            | LogicalAnd
            | Subtract
            | Add
            | Modulo
            | Divide
            | Multiply
+           | OptChain
+           | Chain
              deriving (Show)
+
+data UnaryOp = Neg
+             | LogicalNot
+              deriving (Show)
 
 data Expression = VariableExpr Identifier
                 | BooleanLiteral Bool
                 | NumberLiteral Integer
                 | StringLiteral String
                 | NullLiteral
-                | Neg Expression
+                | Unary UnaryOp Expression
                 | Binary BinOp Expression Expression
+                | Call Identifier Arguments
                   deriving (Show)
+
+data Arguments = Args [Expression] deriving (Show)
 
 type Identifier = String
 

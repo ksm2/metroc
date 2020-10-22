@@ -24,12 +24,15 @@ languageDef =
                                      ]
            , Token.reservedOpNames = [ ","
                                      , "."
+                                     , "?."
                                      , "("
                                      , ")"
                                      , "{"
                                      , "}"
                                      , "or"
                                      , "and"
+                                     , "not"
+                                     , "is"
                                      , "+"
                                      , "-"
                                      , "*"
@@ -134,7 +137,10 @@ expr :: Parser Expression
 expr = buildExpressionParser operators term
 
 operators :: [[Operator Char () Expression]]
-operators = [ [Prefix (reservedOp "-"   >> return (Neg              ))          ]
+operators = [ [Infix  (reservedOp "."   >> return (Binary Chain     )) AssocLeft,
+               Infix  (reservedOp "?."  >> return (Binary OptChain  )) AssocLeft]
+            , [Prefix (reservedOp "-"   >> return (Unary  Neg       ))          ]
+            , [Prefix (reservedOp "not" >> return (Unary  LogicalNot))          ]
             , [Infix  (reservedOp "*"   >> return (Binary Multiply  )) AssocLeft,
                Infix  (reservedOp "/"   >> return (Binary Divide    )) AssocLeft,
                Infix  (reservedOp "%"   >> return (Binary Modulo    )) AssocLeft]
@@ -142,20 +148,34 @@ operators = [ [Prefix (reservedOp "-"   >> return (Neg              ))          
                Infix  (reservedOp "-"   >> return (Binary Subtract  )) AssocLeft]
             , [Infix  (reservedOp "and" >> return (Binary LogicalAnd)) AssocLeft,
                Infix  (reservedOp "or"  >> return (Binary LogicalOr )) AssocLeft]
+            , [Infix  (reservedOp "=="  >> return (Binary Equal     )) AssocLeft,
+               Infix  (reservedOp "!="  >> return (Binary Unequal   )) AssocLeft,
+               Infix  (reservedOp "is"  >> return (Binary Is        )) AssocLeft]
+            , [Infix  (reservedOp ":="  >> return (Binary Definition)) AssocLeft,
+               Infix  (reservedOp "="   >> return (Binary Assignment)) AssocLeft]
             ]
 
 term :: Parser Expression
 term =   parens expr
      <|> nullLiteral
      <|> liftM BooleanLiteral booleanLiteral
+     <|> try callExpr
      <|> liftM VariableExpr identifier
      <|> liftM NumberLiteral integer
      <|> liftM StringLiteral stringLiteral
 
+callExpr :: Parser Expression
+callExpr =
+  do  callee <- identifier
+      arg <- arguments
+      return $ Call callee arg
+
+arguments :: Parser Arguments
+arguments = liftM Args $ parens (sepEndBy expr comma)
+
 booleanLiteral :: Parser Bool
 booleanLiteral =   (reserved "true" >> (return True))
                <|> (reserved "false" >> (return False))
-
 
 stringLiteral :: Parser String
 stringLiteral =
