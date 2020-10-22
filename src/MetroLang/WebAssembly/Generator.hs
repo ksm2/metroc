@@ -25,7 +25,7 @@ exportSpecifier (EMemory iden) = wrap "memory" [identifier iden]
 
 stmt :: Stmt -> String
 stmt (Local iden vt) = wrap "local" [identifier iden, valtype vt]
-stmt (Block iden s) = wrap "block" [identifier iden, stmt s]
+stmt (Block iden s) = wrap "block" $ [(identifier iden), (indent2 $ map stmt s)]
 stmt (Exp e) = expr e
 stmt (Seq s) = (indent2 . map stmt) s
 

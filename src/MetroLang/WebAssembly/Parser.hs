@@ -168,7 +168,7 @@ blockStmt :: Parser Stmt
 blockStmt =
     do  reserved "(block"
         iden <- identifier
-        s <- statement
+        s <- many1 statement
         rparen
         return $ Block iden s
 
