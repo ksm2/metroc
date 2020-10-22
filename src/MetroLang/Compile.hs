@@ -4,7 +4,7 @@ import qualified MetroLang.AST as Metro
 import qualified MetroLang.WebAssembly.AST as WASM
 
 declaration :: Metro.Declaration -> WASM.Declaration
-declaration (Metro.Func name pars b) = WASM.Func name (map param pars) (stmtSeq (block b))
+declaration (Metro.Func name pars b) = WASM.Func name (map param pars) (stmtSeq ((findLocals b) ++ (block b)))
 
 -- Statements
 stmtSeq :: [WASM.Stmt] -> WASM.Stmt
@@ -100,6 +100,21 @@ valtype t = case t of
               "Float" -> WASM.F32
               "Double" -> WASM.F64
               _ -> WASM.I32
+
+findLocals :: Metro.Block -> [WASM.Stmt]
+findLocals (Metro.Block b) = makeLocalStmts (filterDefs (flatMapStmtsToExprs b))
+
+flatMapStmtsToExprs :: [Metro.Stmt] -> [Metro.Expression]
+flatMapStmtsToExprs xs = xs >>= (\xs -> case xs of Metro.ExprStmt x -> [x]; _ -> [])
+
+filterDefs :: [Metro.Expression] -> [Metro.Identifier]
+filterDefs xs = xs >>= (\xs -> case xs of Metro.Binary Metro.Definition (Metro.VariableExpr x) _ -> [x]; _ -> [])
+
+makeLocalStmts :: [Metro.Identifier] -> [WASM.Stmt]
+makeLocalStmts = map makeLocalStmt
+
+makeLocalStmt :: Metro.Identifier -> WASM.Stmt
+makeLocalStmt i = WASM.Local i WASM.I32
 
 compile :: Metro.Module -> WASM.Module
 compile (Metro.Mod d) = WASM.Mod $ map declaration d
