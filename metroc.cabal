@@ -34,6 +34,7 @@ library
   build-depends:
     base          >= 4.14   && < 5,
     parsec        >= 3.1.14 && < 3.2,
+    mtl           >= 2.2.2  && < 3,
     containers    >= 0.6
 
 executable metroc
