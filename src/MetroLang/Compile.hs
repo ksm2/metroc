@@ -2,10 +2,16 @@ module MetroLang.Compile(compile) where
 
 import Control.Monad (liftM)
 import Control.Monad.State (get, put, runState, State)
+import Data.Map ((!), empty, insert, member, toAscList, Map)
 import qualified MetroLang.AST as Metro
 import qualified MetroLang.WebAssembly.AST as WASM
+import MetroLang.WebAssembly.Utils
 
-data CompileState = CompileState Int deriving Show
+data CompileState = CompileState {
+  blockCtr :: Int,
+  stringOffset :: Int,
+  strings :: Map String Int
+} deriving Show
 
 type Compiler = State CompileState
 
@@ -75,7 +81,15 @@ expr (Metro.VariableExpr i) = return $ getLocal i
 expr (Metro.BooleanLiteral True) = return $ i32Const 1
 expr (Metro.BooleanLiteral False) = return $ i32Const 0
 expr (Metro.NumberLiteral n) = return $ i32Const n
-expr (Metro.StringLiteral _) = return $ i32Const 1024 -- TODO!
+expr (Metro.StringLiteral l) =
+  do  cs@CompileState { stringOffset, strings } <- get
+      if member l strings then
+        return $ i32Const $ toInteger $ strings ! l
+      else
+        do  nextOffset <- return $ stringOffset + (length l) + 4
+            inserted <- return $ insert l stringOffset strings
+            put $ cs { stringOffset = nextOffset, strings = inserted }
+            return $ i32Const (toInteger stringOffset)
 expr (Metro.NullLiteral) = return $ i32Const 0
 expr (Metro.Unary op e) = unaryExpr op e
 expr (Metro.Binary op e1 e2) = binaryExpr op e1 e2
@@ -148,8 +162,8 @@ i32Sub n1 n2 = WASM.Method "sub" WASM.I32 [n1, n2]
 valtype :: Metro.Type -> WASM.Valtype
 valtype t = case t of
               "Bool" -> WASM.I32
-              "Int" -> WASM.I32
-              "UInt" -> WASM.I32
+              "Integer" -> WASM.I32
+              "UInteger" -> WASM.I32
               "Long" -> WASM.I64
               "ULong" -> WASM.I64
               "Float" -> WASM.F32
@@ -180,15 +194,20 @@ many singleCompiler (x:xs) =
 
 incrCtr :: Compiler Int
 incrCtr =
-  do (CompileState v) <- get
-     put $ CompileState (v + 1)
-     return v
+  do cs@CompileState { blockCtr } <- get
+     put $ cs { blockCtr = blockCtr + 1 }
+     return blockCtr
 
-compiling :: (a -> Compiler b) -> a -> b
+compiling :: (a -> Compiler WASM.Module) -> a -> WASM.Module
 compiling cab a =
-  let initialState = CompileState 0 in
-  let cb = cab a in
-  let (b, _) = runState cb initialState in b
+  let initialState = CompileState 0 2056 empty
+      cb = cab a
+      (b, cs) = runState cb initialState
+  in  injectStrings (toAscList (strings cs)) b
+
+injectStrings :: [(String, Int)] -> WASM.Module -> WASM.Module
+injectStrings [] m = m
+injectStrings ((str, pos):xs) m = injectStrings xs $ injectData pos str m
 
 compile :: Metro.Module -> WASM.Module
 compile = compiling compileModule

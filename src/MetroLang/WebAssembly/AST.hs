@@ -1,11 +1,13 @@
 module MetroLang.WebAssembly.AST where
 
+import MetroLang.Bytes
+
 data Module = Mod [Declaration] deriving (Show)
 
 data Declaration = Import StringLiteral StringLiteral ImportSpecifier
                  | Memory Identifier Integer
                  | Export StringLiteral ExportSpecifier
-                 | Data Expr StringLiteral
+                 | Data Expr Bytes
                  | Func Identifier [Param] Stmt
                  | Start Identifier
                    deriving (Show)

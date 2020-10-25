@@ -1,6 +1,7 @@
 module MetroLang.WebAssembly.Generator (generateString, generateFile) where
 
 import Data.Char (isSpace)
+import MetroLang.Bytes (toString)
 import MetroLang.WebAssembly.AST
 
 generateModule :: Module -> String
@@ -13,7 +14,7 @@ declaration :: Declaration -> String
 declaration (Import m i s) = wrap "import" [stringLiteral m, stringLiteral i, importSpecifier s]
 declaration (Memory iden i) = wrap "memory" [identifier iden, show i]
 declaration (Export e s) = wrap "export" [stringLiteral e, exportSpecifier s]
-declaration (Data e s) = wrap "data" [expr e, stringLiteral s]
+declaration (Data e s) = wrap "data" [expr e, toString s]
 declaration (Func iden p s) = wrap "func" [identifier iden, params p, stmt s]
 declaration (Start iden) = wrap "start" [identifier iden]
 

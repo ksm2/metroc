@@ -5,6 +5,7 @@ import Data.Functor.Identity
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Language
 import qualified Text.ParserCombinators.Parsec.Token as Token
+import MetroLang.Bytes
 import MetroLang.WebAssembly.AST
 
 languageDef :: GenLanguageDef String u Identity
@@ -109,7 +110,7 @@ dataDecl :: Parser Declaration
 dataDecl =
     do  reserved "(data"
         idx <- expr
-        dat <- stringLiteral
+        dat <- bytes
         rparen
         return $ Data idx dat
 
@@ -249,6 +250,11 @@ result =
         vt <- valtype
         rparen
         return $ Res vt
+
+bytes :: Parser Bytes
+bytes =
+    do  stringValue <- stringLiteral
+        return $ fromString stringValue
 
 stringLiteral :: Parser StringLiteral
 stringLiteral =
