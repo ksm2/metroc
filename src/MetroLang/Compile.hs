@@ -89,6 +89,8 @@ unaryExpr Metro.LogicalNot e = do f <- expr e; return $ i32Eqz f
 binaryExpr :: Metro.BinOp -> Metro.Expression -> Metro.Expression -> Compiler WASM.Expr
 binaryExpr Metro.Assignment e1 e2 = assignment e1 e2
 binaryExpr Metro.Definition e1 e2 = assignment e1 e2
+binaryExpr Metro.Chain (Metro.VariableExpr i1) (Metro.VariableExpr i2) = expr $ Metro.VariableExpr (i1 ++ "." ++ i2)
+binaryExpr Metro.Chain (Metro.VariableExpr i1) (Metro.Call i2 args) = expr $ Metro.Call (i1 ++ "." ++ i2) args
 binaryExpr op e1 e2 =
   do  f1 <- expr e1
       f2 <- expr e2
