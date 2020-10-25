@@ -41,19 +41,17 @@ stmt (Metro.ExprStmt e) = liftM WASM.Exp $ expr e
 ifStmt :: Metro.If -> Compiler WASM.Stmt
 ifStmt (Metro.If cond thenBlock Nothing) = thenStmt cond thenBlock []
 ifStmt (Metro.If cond thenBlock (Just e)) =
-  do  ctr <- incrCtr
-      label <- return $ "___else_" ++ (show ctr)
-      t <- thenStmt cond thenBlock [WASM.Exp $ br label]
+  do  l <- label "else"
+      t <- thenStmt cond thenBlock [WASM.Exp $ br l]
       f <- elseStmt e
-      return $ WASM.Block label $ t : f
+      return $ WASM.Block l $ t : f
 
 thenStmt :: Metro.Expression -> Metro.Block -> [WASM.Stmt] -> Compiler WASM.Stmt
 thenStmt cond thenBlock elseCond =
-  do  ctr <- incrCtr
-      label <- return $ "___if_" ++ (show ctr)
-      c <- ifCond label cond
+  do  l <- label "if"
+      c <- ifCond l cond
       b <- block thenBlock
-      return $ WASM.Block label $ (c : b) ++ elseCond
+      return $ WASM.Block l $ (c : b) ++ elseCond
 
 elseStmt :: Metro.Else -> Compiler [WASM.Stmt]
 elseStmt (Metro.ElseStmt b) = block b
@@ -63,6 +61,9 @@ ifCond :: String -> Metro.Expression -> Compiler WASM.Stmt
 ifCond i cond =
   do  wasmCond <- expr cond
       return $ WASM.Exp $ brIf i wasmCond
+
+label :: String -> Compiler String
+label s = incrCtr >>= \ctr -> return $ "___" ++ s ++ "_" ++ (show ctr)
 
 
 -- Expressions
