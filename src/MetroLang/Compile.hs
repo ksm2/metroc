@@ -143,8 +143,8 @@ arguments (Metro.Args e) = exprs e
 valtype :: Metro.Type -> WASM.Valtype
 valtype t = case t of
               "Bool" -> WASM.I32
-              "Integer" -> WASM.I32
-              "UInteger" -> WASM.I32
+              "Int" -> WASM.I32
+              "UInt" -> WASM.I32
               "Long" -> WASM.I64
               "ULong" -> WASM.I64
               "Float" -> WASM.F32
