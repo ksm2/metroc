@@ -138,25 +138,6 @@ param (Metro.Par i t) = return $ WASM.Par i (valtype t)
 arguments :: Metro.Arguments -> Compiler [WASM.Expr]
 arguments (Metro.Args e) = exprs e
 
--- Helpers
-br :: WASM.Identifier -> WASM.Expr
-br i = WASM.Instr "br" [WASM.Var i]
-brIf :: WASM.Identifier -> WASM.Expr -> WASM.Expr
-brIf i cond = WASM.Instr "br_if" [WASM.Var i, i32Eqz cond]
-call :: WASM.Identifier -> [WASM.Expr] -> WASM.Expr
-call i args = WASM.Instr "call" $ (WASM.Var i):args
-getLocal :: WASM.Identifier -> WASM.Expr
-getLocal i = WASM.Instr "get_local" [WASM.Var i]
-setLocal :: WASM.Identifier -> WASM.Expr -> WASM.Expr
-setLocal i v = WASM.Instr "set_local" [WASM.Var i, v]
-i32Const :: Integer -> WASM.Expr
-i32Const num = WASM.Method "const" WASM.I32 [WASM.Lit num]
-i32Eqz :: WASM.Expr -> WASM.Expr
-i32Eqz cond = WASM.Method "eqz" WASM.I32 [cond]
-i32Eq :: WASM.Expr -> WASM.Expr -> WASM.Expr
-i32Eq n1 n2 = WASM.Method "eq" WASM.I32 [n1, n2]
-i32Sub :: WASM.Expr -> WASM.Expr -> WASM.Expr
-i32Sub n1 n2 = WASM.Method "sub" WASM.I32 [n1, n2]
 
 -- Type conversion
 valtype :: Metro.Type -> WASM.Valtype

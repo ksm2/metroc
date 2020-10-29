@@ -1,4 +1,16 @@
-module MetroLang.WebAssembly.Utils (injectData, merge) where
+module MetroLang.WebAssembly.Utils (
+  injectData,
+  merge,
+  br,
+  brIf,
+  call,
+  getLocal,
+  setLocal,
+  i32Const,
+  i32Eqz,
+  i32Eq,
+  i32Sub,
+) where
 
 import MetroLang.Bytes
 import MetroLang.WebAssembly.AST
@@ -14,3 +26,23 @@ injectData i str m =
   let e = Method "const" I32 [Lit (toInteger i)]
       len = length str
   in  injectDeclaration (Data e (addString str (addInt32 (fromIntegral len) []))) m
+
+-- Helpers
+br :: Identifier -> Expr
+br i = Instr "br" [Var i]
+brIf :: Identifier -> Expr -> Expr
+brIf i cond = Instr "br_if" [Var i, i32Eqz cond]
+call :: Identifier -> [Expr] -> Expr
+call i args = Instr "call" $ (Var i):args
+getLocal :: Identifier -> Expr
+getLocal i = Instr "get_local" [Var i]
+setLocal :: Identifier -> Expr -> Expr
+setLocal i v = Instr "set_local" [Var i, v]
+i32Const :: Integer -> Expr
+i32Const num = Method "const" I32 [Lit num]
+i32Eqz :: Expr -> Expr
+i32Eqz cond = Method "eqz" I32 [cond]
+i32Eq :: Expr -> Expr -> Expr
+i32Eq n1 n2 = Method "eq" I32 [n1, n2]
+i32Sub :: Expr -> Expr -> Expr
+i32Sub n1 n2 = Method "sub" I32 [n1, n2]
