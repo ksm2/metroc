@@ -119,9 +119,10 @@ funcDecl =
     do  reserved "(func"
         iden <- identifier
         parsedParams <- params
+        res <- optionMaybe result
         body <- statement
         rparen
-        return $ Func iden parsedParams body
+        return $ Func iden parsedParams res body
 
 startDecl :: Parser Declaration
 startDecl =

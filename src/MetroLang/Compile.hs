@@ -26,7 +26,7 @@ declaration (Metro.Func name pars b) =
   do  p <- many param pars
       bb <- block b
       s <- stmtSeq $ (findLocals b) ++ bb
-      return $ WASM.Func name p s
+      return $ WASM.Func name p Nothing s
 
 -- Statements
 stmtSeq :: [WASM.Stmt] -> Compiler WASM.Stmt

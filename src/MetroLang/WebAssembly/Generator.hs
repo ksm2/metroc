@@ -15,7 +15,8 @@ declaration (Import m i s) = wrap "import" [stringLiteral m, stringLiteral i, im
 declaration (Memory iden i) = wrap "memory" [identifier iden, show i]
 declaration (Export e s) = wrap "export" [stringLiteral e, exportSpecifier s]
 declaration (Data e s) = wrap "data" [expr e, toString s]
-declaration (Func iden p s) = wrap "func" [identifier iden, params p, stmt s]
+declaration (Func iden p (Just r) s) = wrap "func" [identifier iden, params p, result r, stmt s]
+declaration (Func iden p Nothing s) = wrap "func" [identifier iden, params p,  stmt s]
 declaration (Start iden) = wrap "start" [identifier iden]
 
 importSpecifier :: ImportSpecifier -> String

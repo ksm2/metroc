@@ -8,7 +8,7 @@ data Declaration = Import StringLiteral StringLiteral ImportSpecifier
                  | Memory Identifier Integer
                  | Export StringLiteral ExportSpecifier
                  | Data Expr Bytes
-                 | Func Identifier [Param] Stmt
+                 | Func Identifier [Param] (Maybe Result) Stmt
                  | Start Identifier
                    deriving (Show)
 
