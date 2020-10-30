@@ -8,6 +8,7 @@ import MetroLang.WebAssembly.Utils
 import MetroLang.Compilation.Context
 import MetroLang.Compilation.Combinators
 import MetroLang.Compilation.Expressions
+import MetroLang.Compilation.Values
 import MetroLang.Types
 
 compileModule :: Metro.Module -> Compiler WASM.Module
@@ -72,7 +73,9 @@ stmts = many stmt
 
 stmt :: Metro.Stmt -> Compiler WASM.Stmt
 stmt (Metro.IfStmt i) = ifStmt i
-stmt (Metro.ExprStmt e) = liftM WASM.Exp $ expr e
+stmt (Metro.ExprStmt e) =
+  do  value <- expr e
+      return $ WASM.Exp $ wasmExpr value
 
 
 -- If
@@ -97,8 +100,10 @@ elseStmt (Metro.ElseIfStmt i) = (ifStmt i) >>= \x -> return [x]
 
 ifCond :: String -> Metro.Expression -> Compiler WASM.Stmt
 ifCond i cond =
-  do  wasmCond <- expr cond
-      return $ WASM.Exp $ brIf i wasmCond
+  do  value <- expr cond
+      case value of
+        Value TBool wasmCond  -> return $ WASM.Exp $ brIf i wasmCond
+        _                     -> error "The if condition must be of type Bool."
 
 label :: String -> Compiler String
 label s = incrCtr >>= \ctr -> return $ "___" ++ s ++ "_" ++ (show ctr)

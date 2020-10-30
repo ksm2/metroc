@@ -37,6 +37,7 @@ library
     MetroLang.Compilation.Compile
     MetroLang.Compilation.Context
     MetroLang.Compilation.Expressions
+    MetroLang.Compilation.Values
     MetroLang.Types
   build-depends:
     base          >= 4.14   && < 5,
