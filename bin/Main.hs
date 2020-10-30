@@ -4,7 +4,7 @@ module Main where
 import Data.FileEmbed
 import System.Environment
 
-import MetroLang.Compile
+import MetroLang.Compilation.Compile
 import MetroLang.Parser as Metro
 import MetroLang.WebAssembly.Generator
 import MetroLang.WebAssembly.Parser as WASM

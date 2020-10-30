@@ -1,4 +1,4 @@
-module MetroLang.Compile(compile) where
+module MetroLang.Compilation.Compile(compile) where
 
 import Control.Monad (liftM)
 import Control.Monad.State (get, put, runState, State)
