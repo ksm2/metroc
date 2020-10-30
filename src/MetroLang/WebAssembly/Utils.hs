@@ -10,7 +10,10 @@ module MetroLang.WebAssembly.Utils (
   i32Const,
   i32Eqz,
   i32Eq,
+  i32Add,
   i32Sub,
+  i32Load,
+  i32Store,
 ) where
 
 import MetroLang.Bytes
@@ -47,5 +50,11 @@ i32Eqz :: Expr -> Expr
 i32Eqz cond = Method "eqz" I32 [cond]
 i32Eq :: Expr -> Expr -> Expr
 i32Eq n1 n2 = Method "eq" I32 [n1, n2]
+i32Add :: Expr -> Expr -> Expr
+i32Add n1 n2 = Method "add" I32 [n1, n2]
 i32Sub :: Expr -> Expr -> Expr
 i32Sub n1 n2 = Method "sub" I32 [n1, n2]
+i32Load :: Expr -> Expr
+i32Load n1 = Method "load" I32 [n1]
+i32Store :: Expr -> Expr -> Expr
+i32Store n1 n2 = Method "store" I32 [n1, n2]

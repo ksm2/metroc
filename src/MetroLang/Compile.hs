@@ -6,12 +6,7 @@ import Data.Map ((!), empty, insert, member, toAscList, Map)
 import qualified MetroLang.AST as Metro
 import qualified MetroLang.WebAssembly.AST as WASM
 import MetroLang.WebAssembly.Utils
-
-data CompileState = CompileState {
-  blockCtr :: Int,
-  stringOffset :: Int,
-  strings :: Map String Int
-} deriving Show
+import MetroLang.Types
 
 type Compiler = State CompileState
 
@@ -19,14 +14,51 @@ compileModule :: Metro.Module -> Compiler WASM.Module
 compileModule (Metro.Mod d) = liftM WASM.Mod $ declarations d
 
 declarations :: [Metro.Declaration] -> Compiler [WASM.Declaration]
-declarations = many declaration
+declarations = flatMany declaration
 
-declaration :: Metro.Declaration -> Compiler WASM.Declaration
+declaration :: Metro.Declaration -> Compiler [WASM.Declaration]
+declaration (Metro.Class name pars b) =
+  do  setThisContext (Just name)
+      declareClass name (createClassInfo pars)
+      classBlockDeclarations <- classBlock b
+      constr <- constructor name pars
+      return $ constr:classBlockDeclarations
 declaration (Metro.Func name pars b) =
   do  p <- many param pars
       bb <- block b
       s <- stmtSeq $ (findLocals b) ++ bb
-      return $ WASM.Func name p Nothing s
+      return [WASM.Func name p Nothing s]
+
+constructor :: WASM.Identifier -> [Metro.Param] -> Compiler WASM.Declaration
+constructor name pars =
+  do  p <- many param pars
+      sizeOfClass <- return $ i32Const $ toInteger $ calculateSizeOfClass pars
+      allocation <- return $ WASM.Exp $ setLocal "___ptr" $ call "__metro_alloc" [sizeOfClass]
+      fieldAssigns <- many assignField pars
+      body <- return $ [WASM.Local "___ptr" WASM.I32, allocation] ++ fieldAssigns ++ [WASM.Exp $ getLocal "___ptr"]
+      return $ WASM.Func name p (Just (WASM.Res WASM.I32)) $ WASM.Seq body
+
+assignField :: Metro.Param -> Compiler WASM.Stmt
+assignField (Metro.Par fieldName _) =
+  do  className <- requireThisContext
+      fieldOffset <- getFieldOffset className fieldName
+      return $ WASM.Exp $ i32Store (i32Add (getLocal "___ptr") (i32Const $ toInteger fieldOffset)) (getLocal fieldName)
+
+-- Classes
+classBlock :: Metro.ClassBlock -> Compiler [WASM.Declaration]
+classBlock (Metro.ClassBlock ms) = methods ms
+
+methods :: [Metro.Method] -> Compiler [WASM.Declaration]
+methods = many method
+
+method :: Metro.Method -> Compiler WASM.Declaration
+method (Metro.Method name pars b) =
+  do  className <- requireThisContext
+      thisParam <- return $ WASM.Par "this" WASM.I32
+      pp <- many param pars
+      bb <- block b
+      s <- stmtSeq $ (findLocals b) ++ bb
+      return $ WASM.Func (className ++ "." ++ name) (thisParam:pp) Nothing s
 
 -- Statements
 stmtSeq :: [WASM.Stmt] -> Compiler WASM.Stmt
@@ -91,6 +123,7 @@ expr (Metro.StringLiteral l) =
             put $ cs { stringOffset = nextOffset, strings = inserted }
             return $ i32Const (toInteger stringOffset)
 expr (Metro.NullLiteral) = return $ i32Const 0
+expr (Metro.ThisKeyword) = return $ i32Const 0
 expr (Metro.Unary op e) = unaryExpr op e
 expr (Metro.Binary op e1 e2) = binaryExpr op e1 e2
 expr (Metro.Call i args) =
@@ -106,6 +139,14 @@ binaryExpr Metro.Assignment e1 e2 = assignment e1 e2
 binaryExpr Metro.Definition e1 e2 = assignment e1 e2
 binaryExpr Metro.Chain (Metro.VariableExpr i1) (Metro.VariableExpr i2) = expr $ Metro.VariableExpr (i1 ++ "." ++ i2)
 binaryExpr Metro.Chain (Metro.VariableExpr i1) (Metro.Call i2 args) = expr $ Metro.Call (i1 ++ "." ++ i2) args
+binaryExpr Metro.Chain Metro.ThisKeyword (Metro.VariableExpr fieldName) =
+  do  className <- requireThisContext
+      fieldOffset <- getFieldOffset className fieldName
+      return $ i32Load $ i32Add (getLocal "this") (i32Const $ toInteger fieldOffset)
+binaryExpr Metro.Chain Metro.ThisKeyword (Metro.Call i2 args) =
+  do  className <- requireThisContext
+      thisAccess <- return $ Metro.VariableExpr "this"
+      expr $ Metro.Call (className ++ "." ++ i2) (prependArg thisAccess args)
 binaryExpr op e1 e2 =
   do  f1 <- expr e1
       f2 <- expr e2
@@ -138,6 +179,8 @@ param (Metro.Par i t) = return $ WASM.Par i (valtype t)
 arguments :: Metro.Arguments -> Compiler [WASM.Expr]
 arguments (Metro.Args e) = exprs e
 
+prependArg :: Metro.Expression -> Metro.Arguments -> Metro.Arguments
+prependArg item (Metro.Args e) = Metro.Args (item:e)
 
 -- Type conversion
 valtype :: Metro.Type -> WASM.Valtype
@@ -173,15 +216,66 @@ many singleCompiler (x:xs) =
       rest <- many singleCompiler xs
       return $ compiled:rest
 
+flatMany :: (b -> Compiler [a]) -> [b] -> Compiler [a]
+flatMany _ [] = return []
+flatMany singleCompiler (x:xs) =
+  do  compiled <- singleCompiler x
+      rest <- flatMany singleCompiler xs
+      return $ compiled ++ rest
+
+data CompileState = CompileState {
+  blockCtr :: Int,
+  stringOffset :: Int,
+  strings :: Map String Int,
+  thisContext :: Maybe String,
+  classes :: Map String ClassInfo
+} deriving Show
+
+data ClassInfo = ClassInfo {
+  fields :: Map String Int
+} deriving Show
+
 incrCtr :: Compiler Int
 incrCtr =
   do cs@CompileState { blockCtr } <- get
      put $ cs { blockCtr = blockCtr + 1 }
      return blockCtr
 
+setThisContext :: Maybe String -> Compiler ()
+setThisContext thisContext =
+  do cs <- get
+     put $ cs { thisContext }
+
+requireThisContext :: Compiler String
+requireThisContext =
+  do  CompileState { thisContext } <- get
+      case thisContext of Just f  -> return f
+                          _       -> error "You cannot use this in this context"
+
+declareClass :: String -> ClassInfo -> Compiler ()
+declareClass className classInfo =
+  do  cs@CompileState { classes } <- get
+      put $ cs { classes = insert className classInfo classes }
+
+createClassInfo :: [Metro.Param] -> ClassInfo
+createClassInfo pars = ClassInfo $ snd $ createClassFields $ reverse pars
+
+createClassFields :: [Metro.Param] -> (Int, Map String Int)
+createClassFields [] = (0, empty)
+createClassFields ((Metro.Par fieldName t):params) =
+  let (offset, existingMap) = createClassFields params
+      newOffset = (sizeOf t) + offset
+  in (newOffset, insert fieldName offset existingMap)
+
+getFieldOffset :: String -> String -> Compiler Int
+getFieldOffset className fieldName =
+  do  CompileState { classes } <- get
+      classInfo <- return (classes ! className)
+      return $ (fields classInfo) ! fieldName
+
 compiling :: (a -> Compiler WASM.Module) -> a -> WASM.Module
 compiling cab a =
-  let initialState = CompileState 0 2056 empty
+  let initialState = CompileState 0 2056 empty Nothing empty
       cb = cab a
       (b, cs) = runState cb initialState
   in  injectStrings (toAscList (strings cs)) b

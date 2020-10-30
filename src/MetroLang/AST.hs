@@ -2,12 +2,17 @@ module MetroLang.AST where
 
 data Module = Mod [Declaration] deriving (Show)
 
-data Declaration = Func Identifier Params Block
+data Declaration = Class Identifier Params ClassBlock
+                 | Func Identifier Params Block
                    deriving (Show)
 
 type Params = [Param]
 
 data Param = Par Identifier Type deriving (Show)
+
+data ClassBlock = ClassBlock [Method] deriving (Show)
+
+data Method = Method Identifier Params Block deriving (Show)
 
 data Block = Block [Stmt] deriving (Show)
 
@@ -46,6 +51,7 @@ data Expression = VariableExpr Identifier
                 | NumberLiteral Integer
                 | StringLiteral String
                 | NullLiteral
+                | ThisKeyword
                 | Unary UnaryOp Expression
                 | Binary BinOp Expression Expression
                 | Call Identifier Arguments

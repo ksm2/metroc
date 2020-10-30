@@ -15,12 +15,14 @@ languageDef =
            , Token.commentLine     = "//"
            , Token.identStart      = letter <|> oneOf "_"
            , Token.identLetter     = alphaNum <|> oneOf "_"
-           , Token.reservedNames   = [ "if"
+           , Token.reservedNames   = [ "class"
                                      , "else"
-                                     , "fn"
-                                     , "true"
                                      , "false"
+                                     , "fn"
+                                     , "if"
                                      , "null"
+                                     , "this"
+                                     , "true"
                                      ]
            , Token.reservedOpNames = [ ","
                                      , "."
@@ -65,6 +67,10 @@ reservedOp  = Token.reservedOp lexer
 parens      :: Parser a -> Parser a
 parens      = Token.parens     lexer
 
+-- | parens parses parentheses around an expression
+braces      :: Parser a -> Parser a
+braces      = Token.braces     lexer
+
 -- | integer parses an integer
 integer     :: Parser Integer
 integer     = Token.integer lexer
@@ -85,7 +91,16 @@ moduleParser =
       return $ Mod values
 
 declaration :: Parser Declaration
-declaration = funcDeclaration
+declaration =   classDeclaration
+            <|> funcDeclaration
+
+classDeclaration :: Parser Declaration
+classDeclaration =
+  do  reserved "class"
+      iden <- identifier
+      pars <- params
+      body <- classBlock
+      return $ Class iden pars body
 
 funcDeclaration :: Parser Declaration
 funcDeclaration =
@@ -109,12 +124,18 @@ param =
       typ <- identifier
       return $ Par iden typ
 
+classBlock :: Parser ClassBlock
+classBlock = liftM ClassBlock $ braces (many method)
+
+method :: Parser Method
+method =
+  do  iden <- identifier
+      pars <- params
+      body <- block
+      return $ Method iden pars body
+
 block :: Parser Block
-block =
-  do  reservedOp "{"
-      s <- many stmt
-      reservedOp "}"
-      return $ Block s
+block = liftM Block $ braces (many stmt)
 
 stmt :: Parser Stmt
 stmt =   liftM IfStmt ifParser
@@ -158,6 +179,7 @@ operators = [ [Infix  (reservedOp "."   >> return (Binary Chain     )) AssocLeft
 term :: Parser Expression
 term =   parens expr
      <|> nullLiteral
+     <|> thisKeyword
      <|> liftM BooleanLiteral booleanLiteral
      <|> try callExpr
      <|> liftM VariableExpr identifier
@@ -187,6 +209,9 @@ stringLiteral =
 
 nullLiteral :: Parser Expression
 nullLiteral = reserved "null" >> (return NullLiteral)
+
+thisKeyword :: Parser Expression
+thisKeyword = reserved "this" >> (return ThisKeyword)
 
 parseString :: String -> Module
 parseString str =
