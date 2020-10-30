@@ -1,14 +1,12 @@
 module MetroLang.Compilation.Compile(compile) where
 
 import Control.Monad (liftM)
-import Control.Monad.State (get, put, runState, State)
-import Data.Map ((!), empty, insert, member, toAscList, Map)
+import Data.Map (toAscList)
 import qualified MetroLang.AST as Metro
 import qualified MetroLang.WebAssembly.AST as WASM
 import MetroLang.WebAssembly.Utils
+import MetroLang.Compilation.Context
 import MetroLang.Types
-
-type Compiler = State CompileState
 
 compileModule :: Metro.Module -> Compiler WASM.Module
 compileModule (Metro.Mod d) = liftM WASM.Mod $ declarations d
@@ -114,14 +112,8 @@ expr (Metro.BooleanLiteral True) = return $ i32Const 1
 expr (Metro.BooleanLiteral False) = return $ i32Const 0
 expr (Metro.NumberLiteral n) = return $ i32Const n
 expr (Metro.StringLiteral l) =
-  do  cs@CompileState { stringOffset, strings } <- get
-      if member l strings then
-        return $ i32Const $ toInteger $ strings ! l
-      else
-        do  nextOffset <- return $ stringOffset + (length l) + 4
-            inserted <- return $ insert l stringOffset strings
-            put $ cs { stringOffset = nextOffset, strings = inserted }
-            return $ i32Const (toInteger stringOffset)
+  do  ptr <- registerString l
+      return $ i32Const (toInteger ptr)
 expr (Metro.NullLiteral) = return $ i32Const 0
 expr (Metro.ThisKeyword) = return $ i32Const 0
 expr (Metro.Unary op e) = unaryExpr op e
@@ -223,61 +215,11 @@ flatMany singleCompiler (x:xs) =
       rest <- flatMany singleCompiler xs
       return $ compiled ++ rest
 
-data CompileState = CompileState {
-  blockCtr :: Int,
-  stringOffset :: Int,
-  strings :: Map String Int,
-  thisContext :: Maybe String,
-  classes :: Map String ClassInfo
-} deriving Show
-
-data ClassInfo = ClassInfo {
-  fields :: Map String Int
-} deriving Show
-
-incrCtr :: Compiler Int
-incrCtr =
-  do cs@CompileState { blockCtr } <- get
-     put $ cs { blockCtr = blockCtr + 1 }
-     return blockCtr
-
-setThisContext :: Maybe String -> Compiler ()
-setThisContext thisContext =
-  do cs <- get
-     put $ cs { thisContext }
-
-requireThisContext :: Compiler String
-requireThisContext =
-  do  CompileState { thisContext } <- get
-      case thisContext of Just f  -> return f
-                          _       -> error "You cannot use this in this context"
-
-declareClass :: String -> ClassInfo -> Compiler ()
-declareClass className classInfo =
-  do  cs@CompileState { classes } <- get
-      put $ cs { classes = insert className classInfo classes }
-
-createClassInfo :: [Metro.Param] -> ClassInfo
-createClassInfo pars = ClassInfo $ snd $ createClassFields $ reverse pars
-
-createClassFields :: [Metro.Param] -> (Int, Map String Int)
-createClassFields [] = (0, empty)
-createClassFields ((Metro.Par fieldName t):params) =
-  let (offset, existingMap) = createClassFields params
-      newOffset = (sizeOf t) + offset
-  in (newOffset, insert fieldName offset existingMap)
-
-getFieldOffset :: String -> String -> Compiler Int
-getFieldOffset className fieldName =
-  do  CompileState { classes } <- get
-      classInfo <- return (classes ! className)
-      return $ (fields classInfo) ! fieldName
 
 compiling :: (a -> Compiler WASM.Module) -> a -> WASM.Module
 compiling cab a =
-  let initialState = CompileState 0 2056 empty Nothing empty
-      cb = cab a
-      (b, cs) = runState cb initialState
+  let cb = cab a
+      (b, cs) = runCompiler cb
   in  injectStrings (toAscList (strings cs)) b
 
 injectStrings :: [(String, Int)] -> WASM.Module -> WASM.Module
