@@ -66,7 +66,11 @@ stmtSeq :: [WASM.Stmt] -> Compiler WASM.Stmt
 stmtSeq s = return $ WASM.Seq s
 
 block :: Metro.Block -> Compiler [WASM.Stmt]
-block (Metro.Block b) = stmts b
+block (Metro.Block b) =
+  do  pushScope
+      x <- stmts b
+      popScope
+      return x
 
 stmts :: [Metro.Stmt] -> Compiler [WASM.Stmt]
 stmts = many stmt

@@ -17,7 +17,9 @@ falseValue :: Value
 falseValue = Value TBool $ i32Const 0
 
 expr :: Metro.Expression -> Compiler Value
-expr (Metro.VariableExpr i) = return $ Value TInt $ getLocal i -- TODO: determine correct variable type
+expr (Metro.VariableExpr varName) =
+  do  varType <- lookupVariableType varName
+      return $ Value varType $ getLocal varName
 expr (Metro.BooleanLiteral True) = return trueValue
 expr (Metro.BooleanLiteral False) = return falseValue
 expr (Metro.NumberLiteral n) = return $ Value TInt $ i32Const n
@@ -30,9 +32,12 @@ expr (Metro.ThisKeyword) =
       return $ Value (TRef className) $ i32Const 0
 expr (Metro.Unary op e) = unaryExpr op e
 expr (Metro.Binary op e1 e2) = binaryExpr op e1 e2
-expr (Metro.Call i args) =
+expr (Metro.Call callee args) =
   do  a <- arguments args
-      return $ Value TInt $ call i (map wasmExpr a) -- TODO: call can only return Int atm
+      isConstructorCall <- classExists callee
+      if isConstructorCall
+      then return $ Value (TRef callee) $ call callee (map wasmExpr a)
+      else return $ Value TInt $ call callee (map wasmExpr a) -- TODO: call can only return Int atm
 
 unaryExpr :: Metro.UnaryOp -> Metro.Expression -> Compiler Value
 unaryExpr op e = expr e >>= \value -> return $ unaryExprWasm op value
@@ -44,29 +49,42 @@ unaryExprWasm Metro.LogicalNot (Value TBool e) = Value TBool $ i32Eqz e
 unaryExprWasm Metro.LogicalNot _ = error "Can only apply 'not' on a Bool."
 
 binaryExpr :: Metro.BinOp -> Metro.Expression -> Metro.Expression -> Compiler Value
+binaryExpr Metro.Definition e1 e2 = definitionExpr e1 e2
 binaryExpr Metro.Assignment e1 e2 = assignment e1 e2
-binaryExpr Metro.Definition e1 e2 = assignment e1 e2
 binaryExpr Metro.Chain (Metro.VariableExpr i1) (Metro.VariableExpr i2) = expr $ Metro.VariableExpr (i1 ++ "." ++ i2)
-binaryExpr Metro.Chain (Metro.VariableExpr i1) (Metro.Call i2 args) = expr $ Metro.Call (i1 ++ "." ++ i2) args
+binaryExpr Metro.Chain Metro.ThisKeyword (Metro.Call i2 args) =
+  do  className <- requireThisContext
+      thisAccess <- return $ Metro.VariableExpr "this"
+      expr $ Metro.Call (className ++ "." ++ i2) (prependArg thisAccess args)
+binaryExpr Metro.Chain obj (Metro.Call methodName args) =
+  do  Value objType objExpr <- expr obj
+      argValues <- arguments args
+      wasmArgs <- return $ map wasmExpr argValues
+      case objType of
+        TRef className -> return $ Value TVoid $ call (className ++ "." ++ methodName) $ objExpr:wasmArgs
+        _              -> error $ "Cannot call method " ++ methodName ++ " on primitive type " ++ show objType
 binaryExpr Metro.Chain Metro.ThisKeyword (Metro.VariableExpr fieldName) =
   do  className <- requireThisContext
       fieldOffset <- getFieldOffset className fieldName
       return $ Value TInt $ i32Load $ i32Add (getLocal "this") (i32Const $ toInteger fieldOffset)
       -- TODO: can only load Int
-binaryExpr Metro.Chain Metro.ThisKeyword (Metro.Call i2 args) =
-  do  className <- requireThisContext
-      thisAccess <- return $ Metro.VariableExpr "this"
-      expr $ Metro.Call (className ++ "." ++ i2) (prependArg thisAccess args)
 binaryExpr op e1 e2 =
   do  f1 <- expr e1
       f2 <- expr e2
       return $ binaryExprWasm op f1 f2
 
+definitionExpr :: Metro.Expression -> Metro.Expression -> Compiler Value
+definitionExpr (Metro.VariableExpr varName) ex =
+  do  varValue <- expr ex
+      declareVariable varName (dataType varValue)
+      return $ Value TVoid $ setLocal varName (wasmExpr varValue)
+definitionExpr _ _ = error "Bad variable declaration"
+
 assignment :: Metro.Expression -> Metro.Expression -> Compiler Value
 assignment (Metro.VariableExpr i) e2 =
   do  f2 <- expr e2
       return $ Value TVoid $ setLocal i (wasmExpr f2)
-assignment _ _ = error "Wrong assignment"
+assignment _ _ = error "Bad variable assignment"
 
 binaryExprWasm :: Metro.BinOp -> Value -> Value -> Value
 binaryExprWasm Metro.Is _e1 _e2 = falseValue -- TODO!
