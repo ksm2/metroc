@@ -1,11 +1,12 @@
 module Main(main) where
 
-import Data.Version
+import Data.Version (versionBranch)
 import Paths_metroc (version)
 import System.Environment
 import System.Posix.Terminal (queryTerminal)
 import System.Posix.IO (stdOutput)
 
+import Commands
 import Commands.Build
 
 joinDot :: (Show a) => [a] -> String
@@ -23,8 +24,8 @@ boldLn text =
   do  isTty <- queryTerminal stdOutput
       putStrLn $ if isTty then "\x1b[1m" ++ text ++ "\x1b[0m" else text
 
-printInfo :: IO ()
-printInfo =
+printHelp :: IO ()
+printHelp =
   do  progName <- getProgName
       primaryLn $ "Metro Compiler " ++ joinDot (versionBranch version)
       putStrLn ""
@@ -35,27 +36,45 @@ printInfo =
       putStrLn $ "  " ++ progName ++ " [-v|--version]"
       putStrLn ""
 
-      boldLn "META COMMANDS"
-      putStrLn $ "  " ++ progName ++ " help       Print this help text and exit."
-      putStrLn $ "  " ++ progName ++ " version    Display the version number and exit."
+      boldLn "COMPILER COMMANDS"
+      explainCommands [Build]
+      putStrLn ""
 
-printHelp :: IO ()
-printHelp =
-  do  printInfo
+      boldLn "META COMMANDS"
+      explainCommands [Help, Version]
 
 printVersion :: IO ()
 printVersion = putStr "v" >> (putStrLn . joinDot . versionBranch) version
 
+startsWith :: (Eq a) => a -> [a] -> Bool
+startsWith _ [] = False
+startsWith y (x:_) = x == y
+
+parseArgs :: [String] -> ([String], String, [String])
+parseArgs [] = ([], "", [])
+parseArgs (arg:args) =
+  if startsWith '-' arg then
+    let (options, command, rest) = parseArgs args
+    in  (arg:options, command, rest)
+  else ([], arg, args)
+
 -- | main, do nothing
 main :: IO ()
 main =
-  do  args <- getArgs
-      case args of
-        ("version":_)   -> printVersion
+  do  rawArgs <- getArgs
+      let (options, command, rest) = parseArgs rawArgs
+      case options of
         ("--version":_) -> printVersion
         ("-v":_)        -> printVersion
-        ("help":_)      -> printHelp
-        ("--help":_)    -> printHelp
-        ("-h":_)        -> printHelp
-        []              -> printHelp
-        _ -> build args
+        _               -> (
+          case command of
+            "version" -> printVersion
+            "help"    -> printHelp
+            ""        -> printHelp
+            "build"   -> build rest
+            _         -> (
+              do  putStrLn $ "Invalid command: " ++ command
+                  putStrLn ""
+                  printHelp
+              )
+          )

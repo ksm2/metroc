@@ -18,7 +18,8 @@ watToWasm inFile outFile = callProcess "wat2wasm" [inFile, "-o", outFile]
 
 build :: [String] -> IO ()
 build args =
-  do  let inputFile:outDir:_ = args
+  do  let outDir = "target"
+          inputFile:_ = args
           baseName = takeBaseName inputFile
           outWatFile = outDir </> baseName ++ ".wat"
           outWasmFile = outDir </> baseName ++ ".wasm"

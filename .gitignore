@@ -1,10 +1,10 @@
-dist/
 dist-newstyle/
 .hsenv/
 docs
 wiki
 TAGS
 tags
+target/
 wip
 .*.swp
 .*.swo
