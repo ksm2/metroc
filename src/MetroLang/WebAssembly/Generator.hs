@@ -14,6 +14,7 @@ declaration :: Declaration -> String
 declaration (Import m i s) = wrap "import" [stringLiteral m, stringLiteral i, importSpecifier s]
 declaration (Memory iden i) = wrap "memory" [identifier iden, show i]
 declaration (Export e s) = wrap "export" [stringLiteral e, exportSpecifier s]
+declaration (Global i gt e) = wrap "global" [identifier i, globaltype gt, expr e]
 declaration (Data e s) = wrap "data" [expr e, toString s]
 declaration (Func iden p (Just r) s) = wrap "func" [identifier iden, params p, result r, stmt s]
 declaration (Func iden p Nothing s) = wrap "func" [identifier iden, params p,  stmt s]
@@ -46,6 +47,10 @@ param (AnonymousPar vt) = wrap "param" [valtype vt]
 
 result :: Result -> String
 result (Res vt) = wrap "result" [valtype vt]
+
+globaltype :: Globaltype -> String
+globaltype (Mut vt) = wrap "mut" [valtype vt]
+globaltype (Imut vt) = valtype vt
 
 valtype :: Valtype -> String
 valtype I32 = "i32"

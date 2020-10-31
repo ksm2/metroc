@@ -7,6 +7,7 @@ data Module = Mod [Declaration] deriving (Show)
 data Declaration = Import StringLiteral StringLiteral ImportSpecifier
                  | Memory Identifier Integer
                  | Export StringLiteral ExportSpecifier
+                 | Global Identifier Globaltype Expr
                  | Data Expr Bytes
                  | Func Identifier [Param] (Maybe Result) Stmt
                  | Start Identifier
@@ -39,5 +40,7 @@ data Result = Res Valtype deriving (Show)
 type Identifier = String
 
 type StringLiteral = String
+
+data Globaltype = Imut Valtype | Mut Valtype deriving (Show)
 
 data Valtype = I32 | I64 | F32 | F64 deriving (Show)

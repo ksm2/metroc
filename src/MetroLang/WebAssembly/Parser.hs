@@ -1,5 +1,6 @@
 module MetroLang.WebAssembly.Parser (parseString, parseFile) where
 
+import Control.Monad (liftM)
 import Data.List (intercalate)
 import Data.Functor.Identity
 import Text.ParserCombinators.Parsec
@@ -24,6 +25,7 @@ languageDef =
                                      , "(local"
                                      , "(memory"
                                      , "(module"
+                                     , "(mut"
                                      , "(param"
                                      , "(result"
                                      , "(start"
@@ -77,6 +79,7 @@ declaration :: Parser Declaration
 declaration =   importDecl
             <|> memoryDecl
             <|> exportDecl
+            <|> globalDecl
             <|> dataDecl
             <|> funcDecl
             <|> startDecl
@@ -105,6 +108,15 @@ exportDecl =
         specifier <- exportSpecifier
         rparen
         return $ Export str specifier
+
+globalDecl :: Parser Declaration
+globalDecl =
+    do  reserved "(global"
+        globalIdentifier <- identifier
+        vt <- globaltype
+        initialValue <- expr
+        rparen
+        return $ Global globalIdentifier vt initialValue
 
 dataDecl :: Parser Declaration
 dataDecl =
@@ -264,6 +276,16 @@ stringLiteral =
         _ <- oneOf "\""
         whiteSpace
         return stringValue
+
+globaltype :: Parser Globaltype
+globaltype = mutableGlobal <|> (liftM Imut valtype)
+
+mutableGlobal :: Parser Globaltype
+mutableGlobal =
+    do  reserved "(mut"
+        x <- valtype
+        rparen
+        return $ Mut x
 
 valtype :: Parser Valtype
 valtype =   (reserved "i32" >> return I32)
