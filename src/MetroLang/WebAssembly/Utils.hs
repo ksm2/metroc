@@ -28,8 +28,11 @@ injectDeclaration x (Mod xs) = Mod (x:xs)
 injectData :: Int -> String -> Module -> Module
 injectData i str m =
   let e = Method "const" I32 [Lit (toInteger i)]
-      len = length str
+      len = length str - count '\\' str
   in  injectDeclaration (Data e (addString str (addInt32 (fromIntegral len) []))) m
+
+count :: (Eq a) => a -> [a] -> Int
+count ch = length . (filter (==ch))
 
 -- Helpers
 br :: Identifier -> Expr
