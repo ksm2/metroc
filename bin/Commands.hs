@@ -9,6 +9,7 @@ import Commands.Version
 
 data Command = Clean
              | Build
+             | Run
              | Help
              | Version
                deriving (Bounded, Enum, Show)
@@ -29,21 +30,23 @@ printHelp _ =
       putStrLn ""
 
       boldLn "COMPILER COMMANDS"
-      explainCommands [Clean, Build]
+      explainCommands [Clean, Build, Run]
       putStrLn ""
 
       boldLn "META COMMANDS"
       explainCommands [Help, Version]
 
 describeCommand :: Command -> String
-describeCommand Clean    = "Removes the target directory."
+describeCommand Clean    = "Remove the target directory."
 describeCommand Build    = "Build the project to WebAssembly."
+describeCommand Run      = "Run the project main function."
 describeCommand Help     = "Print this help text and exit."
 describeCommand Version  = "Display the version number and exit."
 
 runCommand :: Maybe Command -> [String] -> IO ()
 runCommand (Just Clean) = clean
 runCommand (Just Build) = build
+runCommand (Just Run) = run
 runCommand (Just Help) = printHelp
 runCommand (Just Version) = printVersion
 runCommand Nothing =

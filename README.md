@@ -19,8 +19,9 @@ SYNOPSIS
   metroc [-v|--version]
 
 COMPILER COMMANDS
-  metroc clean      Removes the target directory.
+  metroc clean      Remove the target directory.
   metroc build      Build the project to WebAssembly.
+  metroc run        Run the project main function.
 
 META COMMANDS
   metroc help       Print this help text and exit.
