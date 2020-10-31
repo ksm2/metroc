@@ -60,6 +60,8 @@ executable metroc
     unix          >= 2.7.2  && < 3,
     metroc
   other-modules:
+    Chalk
     Commands
     Commands.Build
+    Commands.Version
     Paths_metroc
