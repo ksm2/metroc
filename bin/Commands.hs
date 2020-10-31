@@ -7,7 +7,8 @@ import Chalk
 import Commands.Build
 import Commands.Version
 
-data Command = Build
+data Command = Clean
+             | Build
              | Help
              | Version
                deriving (Bounded, Enum, Show)
@@ -28,18 +29,20 @@ printHelp _ =
       putStrLn ""
 
       boldLn "COMPILER COMMANDS"
-      explainCommands [Build]
+      explainCommands [Clean, Build]
       putStrLn ""
 
       boldLn "META COMMANDS"
       explainCommands [Help, Version]
 
 describeCommand :: Command -> String
+describeCommand Clean    = "Removes the target directory."
 describeCommand Build    = "Build the project to WebAssembly."
 describeCommand Help     = "Print this help text and exit."
 describeCommand Version  = "Display the version number and exit."
 
 runCommand :: Maybe Command -> [String] -> IO ()
+runCommand (Just Clean) = clean
 runCommand (Just Build) = build
 runCommand (Just Help) = printHelp
 runCommand (Just Version) = printVersion

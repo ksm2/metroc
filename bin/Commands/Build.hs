@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Commands.Build(build) where
+module Commands.Build(clean, build) where
 
 import Data.FileEmbed
 import System.Directory
@@ -15,6 +15,11 @@ import MetroLang.WebAssembly.Utils
 -- | watToWasm compiles WebAssembly Text format to Binary format
 watToWasm :: String -> String -> IO ()
 watToWasm inFile outFile = callProcess "wat2wasm" [inFile, "-o", outFile]
+
+clean :: [String] -> IO ()
+clean _ =
+  do  let outDir = "target"
+      removeDirectoryRecursive outDir
 
 build :: [String] -> IO ()
 build args =

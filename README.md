@@ -8,6 +8,8 @@ Metro Language
 Usage
 -----
 
+Run `metroc help` to see usage instructions:
+
 ```
 Metro Compiler 0.1.0
 
@@ -15,6 +17,10 @@ SYNOPSIS
   metroc COMMAND
   metroc [-h|--help]
   metroc [-v|--version]
+
+COMPILER COMMANDS
+  metroc clean      Removes the target directory.
+  metroc build      Build the project to WebAssembly.
 
 META COMMANDS
   metroc help       Print this help text and exit.
