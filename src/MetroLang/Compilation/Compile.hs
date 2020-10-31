@@ -128,10 +128,19 @@ valtype t = case t of
               _ -> WASM.I32
 
 findLocals :: Metro.Block -> [WASM.Stmt]
-findLocals (Metro.Block b) = makeLocalStmts (filterDefs (flatMapStmtsToExprs b))
+findLocals b = makeLocalStmts (filterDefs (flatMapStmtsToExprs b))
 
-flatMapStmtsToExprs :: [Metro.Stmt] -> [Metro.Expression]
-flatMapStmtsToExprs statements = statements >>= (\xs -> case xs of Metro.ExprStmt x -> [x]; _ -> [])
+flatMapStmtsToExprs :: Metro.Block -> [Metro.Expression]
+flatMapStmtsToExprs (Metro.Block statements) =
+  statements >>= (\xs -> case xs of
+    Metro.IfStmt (Metro.If _ x Nothing)   -> flatMapStmtsToExprs x
+    Metro.IfStmt (Metro.If _ x (Just y))  -> (flatMapStmtsToExprs x) ++ (elseExprs y)
+    Metro.ExprStmt x                      -> [x])
+
+elseExprs :: Metro.Else -> [Metro.Expression]
+elseExprs (Metro.ElseStmt n) = flatMapStmtsToExprs n
+elseExprs (Metro.ElseIfStmt (Metro.If _ x Nothing)) = flatMapStmtsToExprs x
+elseExprs (Metro.ElseIfStmt (Metro.If _ x (Just y))) = (flatMapStmtsToExprs x) ++ (elseExprs y)
 
 filterDefs :: [Metro.Expression] -> [Metro.Identifier]
 filterDefs expressions = expressions >>= (\xs -> case xs of Metro.Binary Metro.Definition (Metro.VariableExpr x) _ -> [x]; _ -> [])
