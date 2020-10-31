@@ -1,21 +1,12 @@
-{-# LANGUAGE TemplateHaskell #-}
 module Main(main) where
 
-import Data.FileEmbed
 import Data.Version
 import Paths_metroc (version)
-import System.Directory
 import System.Environment
-import System.FilePath.Posix
 import System.Posix.Terminal (queryTerminal)
 import System.Posix.IO (stdOutput)
-import System.Process
 
-import MetroLang.Compilation.Compile
-import MetroLang.Parser as Metro
-import MetroLang.WebAssembly.Generator
-import MetroLang.WebAssembly.Parser as WASM
-import MetroLang.WebAssembly.Utils
+import Commands.Build
 
 joinDot :: (Show a) => [a] -> String
 joinDot [] = ""
@@ -54,31 +45,6 @@ printHelp =
 
 printVersion :: IO ()
 printVersion = putStr "v" >> (putStrLn . joinDot . versionBranch) version
-
-build :: [String] -> IO ()
-build args =
-  do  let inputFile:outDir:_ = args
-          baseName = takeBaseName inputFile
-          outWatFile = outDir </> baseName ++ ".wat"
-          outWasmFile = outDir </> baseName ++ ".wasm"
-
-      -- Create output directory if it is missing
-      createDirectoryIfMissing True outDir
-
-      -- Load std lib
-      std <- return $ WASM.parseString $(embedStringFile "std/std.wat")
-
-      -- Compile program and output WebAssembly Text format
-      ast <- Metro.parseFile inputFile
-      wasm <- return $ compile ast
-      generateFile outWatFile $ merge std wasm
-
-      -- Compile WebAssembly Text format to WebAssembly Binary format
-      watToWasm outWatFile outWasmFile
-
--- | watToWasm compiles WebAssembly Text format to Binary format
-watToWasm :: String -> String -> IO ()
-watToWasm inFile outFile = callProcess "wat2wasm" [inFile, "-o", outFile]
 
 -- | main, do nothing
 main :: IO ()

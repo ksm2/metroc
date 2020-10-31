@@ -60,4 +60,5 @@ executable metroc
     unix          >= 2.7.2  && < 3,
     metroc
   other-modules:
+    Commands.Build
     Paths_metroc
