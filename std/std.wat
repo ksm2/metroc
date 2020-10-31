@@ -6,7 +6,9 @@
   (memory $memory 1)
   (export "memory" (memory $memory))
 
-  (func $__metro_fd_write (param $handle i32) (param $string i32)
+  (global $__metro_allocOffset (mut i32) (i32.const 1024))
+
+  (func $__metro_fdWrite (param $handle i32) (param $string i32)
     (local $length i32)
     (set_local $length (i32.load (get_local $string)))
     (i32.store (i32.const 0) (i32.add (get_local $string) (i32.const 4)))
@@ -17,8 +19,10 @@
 
   ;; Allocate heap space
   (func $__metro_alloc (param $numberOfBytes i32) (result i32)
-    ;; TODO: Actually require some space on memory
-    (i32.const 1024)
+    (local $offset i32)
+    (set_local $offset (get_global $__metro_allocOffset))
+    (set_global $__metro_allocOffset (i32.add (get_local $offset) (get_local $numberOfBytes)))
+    (get_local $offset)
   )
 
   ;; Start here
