@@ -5,6 +5,14 @@ Metro Language
 
 **Metro** is a garbage collected, compiled language for the Web and Server.
 
+Example
+-------
+
+Run the example in `examples/print.metro` by calling:
+
+    metroc run examples/print.metro
+
+
 Usage
 -----
 

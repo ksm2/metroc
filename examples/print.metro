@@ -1,0 +1,24 @@
+import "wasi_unstable" fn fd_write(fd Int, ciovecArrayPtr Int, ciovecArrayLen Int, numWrittenPtr Int) Int
+
+class File(fileHandle Int) {
+  writeln(text String) {
+    this.write(text)
+    this.write("\n")
+  }
+
+  write(text String) {
+    i32_store(0, text.asInt() + 4)
+    i32_store(4, text.length)
+    fd_write(this.fileHandle, 0, 1, 20)
+  }
+}
+
+fn main() {
+  stderrHandle := 2
+
+  stdout := File(1)
+  stdout.writeln("stdout")
+
+  stderr := File(stderrHandle)
+  stderr.writeln("stderr")
+}
