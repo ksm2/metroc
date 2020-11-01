@@ -23,6 +23,7 @@ data Method = Method Identifier Params ReturnType Block deriving (Show)
 data Block = Block [Stmt] deriving (Show)
 
 data Stmt = IfStmt If
+          | ReturnStmt Expression
           | ExprStmt Expression
             deriving (Show)
 

@@ -22,6 +22,7 @@ languageDef =
                                      , "if"
                                      , "import"
                                      , "null"
+                                     , "return"
                                      , "this"
                                      , "true"
                                      ]
@@ -164,6 +165,7 @@ block = liftM Block $ braces (many stmt)
 
 stmt :: Parser Stmt
 stmt =   liftM IfStmt ifParser
+     <|> liftM ReturnStmt returnStmt
      <|> liftM ExprStmt expr
 
 ifParser :: Parser If
@@ -178,6 +180,11 @@ elseParser :: Parser Else
 elseParser =
   do  reserved "else"
       (liftM ElseIfStmt ifParser) <|> (liftM ElseStmt block)
+
+returnStmt :: Parser Expression
+returnStmt =
+  do  reserved "return"
+      expr
 
 expr :: Parser Expression
 expr = buildExpressionParser operators term

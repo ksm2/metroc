@@ -92,6 +92,10 @@ stmts = many stmt
 
 stmt :: Metro.Stmt -> Compiler WASM.Stmt
 stmt (Metro.IfStmt i) = ifStmt i
+stmt (Metro.ReturnStmt e) =
+  do  value <- expr e
+      wasmEx <- return $ wasmExpr value
+      return $ WASM.Exp wasmEx
 stmt (Metro.ExprStmt e) =
   do  value <- expr e
       wasmEx <- return $ wasmExpr value
@@ -160,7 +164,8 @@ flatMapStmtsToExprs (Metro.Block statements) =
   statements >>= (\xs -> case xs of
     Metro.IfStmt (Metro.If _ x Nothing)   -> flatMapStmtsToExprs x
     Metro.IfStmt (Metro.If _ x (Just y))  -> (flatMapStmtsToExprs x) ++ (elseExprs y)
-    Metro.ExprStmt x                      -> [x])
+    Metro.ExprStmt x                      -> [x]
+    _                                     -> [])
 
 elseExprs :: Metro.Else -> [Metro.Expression]
 elseExprs (Metro.ElseStmt n) = flatMapStmtsToExprs n
