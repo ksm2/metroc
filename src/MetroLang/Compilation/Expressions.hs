@@ -88,8 +88,18 @@ methodCall (Value objType _) methodName args = error $ "Unknown method " ++ meth
 classMethodCall :: String -> WASM.Expr -> String -> [Value] -> Compiler Value
 classMethodCall className obj methodName args =
   do  method <- lookupClassMethod className methodName
-      wasmArgs <- return $ map wasmExpr args
+      wasmArgs <- return $ checkFunctionSignature methodName (parameters method) args
       return $ Value (returnDataType method) $ call (className ++ "." ++ methodName) $ obj:wasmArgs
+
+checkFunctionSignature :: String -> [DataType] -> [Value] -> [WASM.Expr]
+checkFunctionSignature _ [] [] = []
+checkFunctionSignature fnName (p:params) (a:args) =
+  let Value dt ex = a
+  in  if p == dt
+      then ex:(checkFunctionSignature fnName params args)
+      else error $ "The parameter type of \"" ++ fnName ++ "\" does not match"
+checkFunctionSignature fnName [] _ = error $ "Too many arguments provided to method \"" ++ fnName ++ "\""
+checkFunctionSignature fnName _ [] = error $ "Not enough arguments provided to method \"" ++ fnName ++ "\""
 
 argsToInfo :: [Value] -> String
 argsToInfo vs = "(" ++ (joinArgs (map dataType vs)) ++ ")"
