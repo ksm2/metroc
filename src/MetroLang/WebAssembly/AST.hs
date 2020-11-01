@@ -9,11 +9,11 @@ data Declaration = Import StringLiteral StringLiteral ImportSpecifier
                  | Export StringLiteral ExportSpecifier
                  | Global Identifier Globaltype Expr
                  | Data Expr Bytes
-                 | Func Identifier [Param] (Maybe Result) Stmt
+                 | Func Identifier [Param] ReturnType Stmt
                  | Start Identifier
                    deriving (Show)
 
-data ImportSpecifier = IFunc Identifier [Param] Result
+data ImportSpecifier = IFunc Identifier [Param] ReturnType
                        deriving (Show)
 
 data ExportSpecifier = EMemory Identifier
@@ -34,6 +34,8 @@ data Expr = Instr String [Expr]
 data Param = Par Identifier Valtype
            | AnonymousPar Valtype
              deriving (Show)
+
+type ReturnType = Maybe Result
 
 data Result = Res Valtype deriving (Show)
 

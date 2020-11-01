@@ -131,10 +131,10 @@ funcDecl =
     do  reserved "(func"
         iden <- identifier
         parsedParams <- params
-        res <- optionMaybe result
+        fnReturn <- returnType
         body <- statement
         rparen
-        return $ Func iden parsedParams res body
+        return $ Func iden parsedParams fnReturn body
 
 startDecl :: Parser Declaration
 startDecl =
@@ -148,9 +148,9 @@ importSpecifier =
     do  reserved "(func"
         iden <- identifier
         p <- params
-        r <- result
+        fnReturn <- returnType
         rparen
-        return $ IFunc iden p r
+        return $ IFunc iden p fnReturn
 
 exportSpecifier :: Parser ExportSpecifier
 exportSpecifier =
@@ -256,6 +256,9 @@ anonymousPar =
     do  vt <- valtype
         rparen
         return $ AnonymousPar vt
+
+returnType :: Parser ReturnType
+returnType = optionMaybe result
 
 result :: Parser Result
 result =

@@ -16,12 +16,11 @@ declaration (Memory iden i) = wrap "memory" [identifier iden, show i]
 declaration (Export e s) = wrap "export" [stringLiteral e, exportSpecifier s]
 declaration (Global i gt e) = wrap "global" [identifier i, globaltype gt, expr e]
 declaration (Data e s) = wrap "data" [expr e, toString s]
-declaration (Func iden p (Just r) s) = wrap "func" [identifier iden, params p, result r, stmt s]
-declaration (Func iden p Nothing s) = wrap "func" [identifier iden, params p,  stmt s]
+declaration (Func iden p r s) = wrap "func" [identifier iden, params p, returnType r, stmt s]
 declaration (Start iden) = wrap "start" [identifier iden]
 
 importSpecifier :: ImportSpecifier -> String
-importSpecifier (IFunc iden p r) = wrap "func" [identifier iden, params p, result r]
+importSpecifier (IFunc iden p r) = wrap "func" [identifier iden, params p, returnType r]
 
 exportSpecifier :: ExportSpecifier -> String
 exportSpecifier (EMemory iden) = wrap "memory" [identifier iden]
@@ -44,6 +43,10 @@ params = unwords . map param
 param :: Param -> String
 param (Par iden vt) = wrap "param" [identifier iden, valtype vt]
 param (AnonymousPar vt) = wrap "param" [valtype vt]
+
+returnType :: ReturnType -> String
+returnType (Just rt) = result rt
+returnType Nothing = ""
 
 result :: Result -> String
 result (Res vt) = wrap "result" [valtype vt]
