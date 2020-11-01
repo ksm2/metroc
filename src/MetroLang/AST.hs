@@ -4,7 +4,7 @@ data Module = Mod [Declaration] deriving (Show)
 
 data Declaration = Import String ImportSpecifier
                  | Class Identifier Params ClassBlock
-                 | Func Identifier Params Block
+                 | Func Identifier Params ReturnType Block
                    deriving (Show)
 
 type Params = [Param]
@@ -18,7 +18,7 @@ data ImportSpecifier = FuncImport Identifier Params ReturnType
 
 data ClassBlock = ClassBlock [Method] deriving (Show)
 
-data Method = Method Identifier Params Block deriving (Show)
+data Method = Method Identifier Params ReturnType Block deriving (Show)
 
 data Block = Block [Stmt] deriving (Show)
 

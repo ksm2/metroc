@@ -114,10 +114,11 @@ classDeclaration =
 funcDeclaration :: Parser Declaration
 funcDeclaration =
   do  reserved "fn"
-      iden <- identifier
-      pars <- params
+      fnName <- identifier
+      fnParams <- params
+      fnReturn <- returnType
       body <- block
-      return $ Func iden pars body
+      return $ Func fnName fnParams fnReturn body
 
 params :: Parser Params
 params =
@@ -134,9 +135,7 @@ param =
       return $ Par iden typ
 
 returnType :: Parser ReturnType
-returnType =
-  do  typ <- optionMaybe identifier
-      return typ
+returnType = optionMaybe identifier
 
 importSpecifier :: Parser ImportSpecifier
 importSpecifier = funcImportSpecifier
@@ -154,10 +153,11 @@ classBlock = liftM ClassBlock $ braces (many method)
 
 method :: Parser Method
 method =
-  do  iden <- identifier
-      pars <- params
+  do  methodName <- identifier
+      methodParams <- params
+      methodReturn <- returnType
       body <- block
-      return $ Method iden pars body
+      return $ Method methodName methodParams methodReturn body
 
 block :: Parser Block
 block = liftM Block $ braces (many stmt)

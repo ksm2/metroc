@@ -28,11 +28,12 @@ declaration (Metro.Class name pars b) =
       classBlockDeclarations <- classBlock b
       constr <- constructor name pars
       return $ constr:classBlockDeclarations
-declaration (Metro.Func name pars b) =
-  do  p <- params pars
-      bb <- block b pars
-      s <- stmtSeq $ (findLocals b) ++ bb
-      return [WASM.Func name p Nothing s]
+declaration (Metro.Func fnName fnParams fnReturn body) =
+  do  p <- params fnParams
+      r <- returnType fnReturn
+      bb <- block body fnParams
+      s <- stmtSeq $ (findLocals body) ++ bb
+      return [WASM.Func fnName p r s]
 
 importName :: Metro.ImportSpecifier -> Compiler String
 importName (Metro.FuncImport fnName _ _) = return fnName
@@ -66,13 +67,14 @@ methods :: [Metro.Method] -> Compiler [WASM.Declaration]
 methods = many method
 
 method :: Metro.Method -> Compiler WASM.Declaration
-method (Metro.Method name pars b) =
+method (Metro.Method name methodParams methodReturn b) =
   do  className <- requireThisContext
       thisParam <- return $ WASM.Par "this" WASM.I32
-      pp <- params pars
-      bb <- block b pars
+      pp <- params methodParams
+      r <- returnType methodReturn
+      bb <- block b methodParams
       s <- stmtSeq $ (findLocals b) ++ bb
-      return $ WASM.Func (className ++ "." ++ name) (thisParam:pp) Nothing s
+      return $ WASM.Func (className ++ "." ++ name) (thisParam:pp) r s
 
 -- Statements
 stmtSeq :: [WASM.Stmt] -> Compiler WASM.Stmt
