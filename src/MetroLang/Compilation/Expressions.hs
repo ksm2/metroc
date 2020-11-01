@@ -61,11 +61,11 @@ binaryExpr Metro.Chain obj (Metro.VariableExpr fieldName) =
   do  objValue <- expr obj
       fieldAccess objValue fieldName
 
-binaryExpr Metro.Chain Metro.ThisKeyword (Metro.Call i2 args) =
+binaryExpr Metro.Chain Metro.ThisKeyword (Metro.Call methodName args) =
   do  className <- requireThisContext
-      thisAccess <- return $ Metro.VariableExpr "this"
-      a <- arguments (prependArg thisAccess args)
-      return $ Value TVoid $ call (className ++ "." ++ i2) (map wasmExpr a)
+      thisAccess <- return $ getLocal "this"
+      argValues <- arguments args
+      classMethodCall className thisAccess methodName argValues
 binaryExpr Metro.Chain obj (Metro.Call methodName args) =
   do  objValue <- expr obj
       argValues <- arguments args
@@ -81,11 +81,15 @@ fieldAccess (Value TString obj) "length" = return $ Value TInt $ i32Load obj
 fieldAccess (Value objType _) methodName = error $ "Unknown field " ++ methodName ++ " on primitive type " ++ show objType
 
 methodCall :: Value -> String -> [Value] -> Compiler Value
-methodCall (Value (TRef className) obj) methodName args =
-  do  wasmArgs <- return $ map wasmExpr args
-      return $ Value TVoid $ call (className ++ "." ++ methodName) $ obj:wasmArgs
+methodCall (Value (TRef className) obj) methodName args = classMethodCall className obj methodName args
 methodCall (Value TString obj) "asInt" [] = return $ Value TInt $ obj
 methodCall (Value objType _) methodName args = error $ "Unknown method " ++ methodName ++ argsToInfo args ++ " on primitive type " ++ show objType
+
+classMethodCall :: String -> WASM.Expr -> String -> [Value] -> Compiler Value
+classMethodCall className obj methodName args =
+  do  method <- lookupClassMethod className methodName
+      wasmArgs <- return $ map wasmExpr args
+      return $ Value (returnDataType method) $ call (className ++ "." ++ methodName) $ obj:wasmArgs
 
 argsToInfo :: [Value] -> String
 argsToInfo vs = "(" ++ (joinArgs (map dataType vs)) ++ ")"
@@ -134,6 +138,3 @@ arithmeticExpr op _ _ = error $ "Cannot apply " ++ op ++ ": Types on left and ri
 
 arguments :: Metro.Arguments -> Compiler [Value]
 arguments (Metro.Args e) = exprs e
-
-prependArg :: Metro.Expression -> Metro.Arguments -> Metro.Arguments
-prependArg item (Metro.Args e) = Metro.Args (item:e)

@@ -22,10 +22,10 @@ declaration (Metro.Import moduleName specifier) =
   do  wasmImportName <- importName specifier
       wasmImportSpecifier <- importSpecifier specifier
       return [WASM.Import moduleName wasmImportName wasmImportSpecifier]
-declaration (Metro.Class name pars b) =
+declaration (Metro.Class name pars body) =
   do  setThisContext (Just name)
-      declareClass name (createClassInfo pars)
-      classBlockDeclarations <- classBlock b
+      declareClass name (createClassInfo pars body)
+      classBlockDeclarations <- classBlock body
       constr <- constructor name pars
       return $ constr:classBlockDeclarations
 declaration (Metro.Func fnName fnParams fnReturn body) =

@@ -2,6 +2,7 @@ module MetroLang.Compilation.Context where
 
 import Control.Monad.State (get, put, runState, State)
 import Data.Map ((!), empty, insert, member, Map)
+import Data.Maybe (fromMaybe)
 import MetroLang.AST
 import MetroLang.Compilation.Values
 import MetroLang.Types
@@ -16,7 +17,13 @@ data CompileContext = CompileContext {
 } deriving Show
 
 data ClassInfo = ClassInfo {
-  fields :: Map String Int
+  fields :: Map String Int,
+  classMethods :: Map String FunctionInfo
+} deriving Show
+
+data FunctionInfo = FunctionInfo {
+  parameters :: [DataType],
+  returnDataType :: DataType
 } deriving Show
 
 newtype Scope = Scope (Map String DataType) deriving Show
@@ -54,8 +61,11 @@ declareClass className classInfo =
   do  ctx@CompileContext { classes } <- get
       put $ ctx { classes = insert className classInfo classes }
 
-createClassInfo :: [Param] -> ClassInfo
-createClassInfo pars = ClassInfo $ snd $ createClassFields $ reverse pars
+createClassInfo :: [Param] -> ClassBlock -> ClassInfo
+createClassInfo classParams (ClassBlock body) =
+  let fields = snd $ createClassFields $ reverse classParams
+      methods = readMethods body
+  in ClassInfo fields methods
 
 createClassFields :: [Param] -> (Int, Map String Int)
 createClassFields [] = (0, empty)
@@ -64,11 +74,41 @@ createClassFields ((Par fieldName t):params) =
       newOffset = (sizeOf t) + offset
   in (newOffset, insert fieldName offset existingMap)
 
+readMethods :: [Method] -> Map String FunctionInfo
+readMethods [] = empty
+readMethods (m:ms) =
+  let (Method methodName methodParams methodReturn _) = m
+      previousMap = readMethods ms
+  in  insert methodName (createFunctionInfo methodParams methodReturn) previousMap
+
+createFunctionInfo :: [Param] -> ReturnType -> FunctionInfo
+createFunctionInfo params returnType =
+  let paramDataTypes = map getParamDataType params
+      returnDataType = fromMaybe TVoid (fmap typeToDataType returnType)
+  in  FunctionInfo paramDataTypes returnDataType
+
+getParamDataType :: Param -> DataType
+getParamDataType (Par _ t) = typeToDataType t
+
 getFieldOffset :: String -> String -> Compiler Int
 getFieldOffset className fieldName =
   do  CompileContext { classes } <- get
       classInfo <- return (classes ! className)
       return $ (fields classInfo) ! fieldName
+
+lookupClassMethod :: String -> String -> Compiler FunctionInfo
+lookupClassMethod className methodName =
+  do  classInfo <- lookupClass className
+      if member methodName (classMethods classInfo)
+      then return $ (classMethods classInfo) ! methodName
+      else error $ "Class \"" ++ className ++ "\" has no method \"" ++ methodName ++ "\""
+
+lookupClass :: String -> Compiler ClassInfo
+lookupClass className =
+  do  CompileContext { classes } <- get
+      if member className classes
+      then return $ classes ! className
+      else error $ "Class does not exist: \"" ++ className ++ "\""
 
 classExists :: String -> Compiler Bool
 classExists className =
