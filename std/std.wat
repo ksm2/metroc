@@ -3,7 +3,7 @@
   (memory $memory 1)
   (export "memory" (memory $memory))
 
-  (global $__allocationOffset (mut i32) (i32.const 1024))
+  (global $__allocationOffset (mut i32) (i32.const 2056))
 
   ;; Stores an Int at the given location
   (func $__storeInt (param $location i32) (param $value i32)

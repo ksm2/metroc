@@ -1,3 +1,4 @@
+import "wasi_unstable" fn fd_read(fd Int, ciovecArrayPtr Int, ciovecArrayLen Int, numReadPtr Int) Int
 import "wasi_unstable" fn fd_write(fd Int, ciovecArrayPtr Int, ciovecArrayLen Int, numWrittenPtr Int) Int
 
 class File(fileHandle Int) {
@@ -11,14 +12,29 @@ class File(fileHandle Int) {
     __storeInt(4, text.length)
     fd_write(this.fileHandle, 0, 1, 20)
   }
+
+  read() String {
+    // Allocate enough space
+    pos := __allocate(1028)
+    __storeInt(0, pos + 4)
+    __storeInt(4, 1024)
+    fd_read(this.fileHandle, 0, 1, 8)
+
+    // Prefix string with its length
+    length := __loadInt(8)
+    __storeInt(pos, length)
+
+    return pos
+  }
 }
 
 fn main() {
-  stderrHandle := 2
+  stdin := File(0)
+  str := stdin.read()
 
   stdout := File(1)
-  stdout.writeln("stdout")
+  stdout.write(str)
 
-  stderr := File(stderrHandle)
+  stderr := File(2)
   stderr.writeln("stderr")
 }

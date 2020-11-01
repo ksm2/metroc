@@ -182,7 +182,7 @@ builtInFunctions =
 -- | runCompiler executes the compilation of a module
 runCompiler :: Compiler b -> (b, CompileContext)
 runCompiler cb =
-  let initialState = CompileContext 0 2056 empty Nothing empty builtInFunctions []
+  let initialState = CompileContext 0 1024 empty Nothing empty builtInFunctions []
   in  runState cb initialState
 
 type Compiler = State CompileContext

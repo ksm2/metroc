@@ -42,7 +42,7 @@ jobs:
     - name: Run tests
       run: cabal test all
     - name: Run examples/print.metro
-      run: cabal run metroc -- run examples/print.metro
+      run: echo "stdout" | cabal run metroc -- run examples/print.metro
       env:
         PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
     - name: Upload Executable
