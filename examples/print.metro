@@ -7,8 +7,8 @@ class File(fileHandle Int) {
   }
 
   write(text String) {
-    i32_store(0, text.asInt() + 4)
-    i32_store(4, text.length)
+    __storeInt(0, text.asInt() + 4)
+    __storeInt(4, text.length)
     fd_write(this.fileHandle, 0, 1, 20)
   }
 }

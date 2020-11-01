@@ -47,7 +47,7 @@ constructor :: WASM.Identifier -> [Metro.Param] -> Compiler WASM.Declaration
 constructor name pars =
   do  p <- params pars
       sizeOfClass <- return $ i32Const $ toInteger $ calculateSizeOfClass pars
-      allocation <- return $ WASM.Exp $ setLocal "___ptr" $ call "__metro_alloc" [sizeOfClass]
+      allocation <- return $ WASM.Exp $ setLocal "___ptr" $ call "__allocate" [sizeOfClass]
       fieldAssigns <- many assignField pars
       body <- return $ [WASM.Local "___ptr" WASM.I32, allocation] ++ fieldAssigns ++ [WASM.Exp $ getLocal "___ptr"]
       return $ WASM.Func name p (Just (WASM.Res WASM.I32)) $ WASM.Seq body
