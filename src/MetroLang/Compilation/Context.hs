@@ -76,9 +76,9 @@ classExists className =
       return $ member className classes
 
 -- | pushScope adds a new empty scope on top of all scopes.
-pushScope :: Compiler ()
-pushScope =
-  let newScope = Scope empty
+pushScope :: [Param] -> Compiler ()
+pushScope p =
+  let newScope = Scope $ scopeFromParams p
   in  do  ctx@CompileContext { scope } <- get
           put $ ctx { scope = newScope:scope }
 
@@ -88,6 +88,10 @@ popScope =
   do  ctx@CompileContext { scope } <- get
       t <- return $ tail scope
       put $ ctx { scope = t }
+
+scopeFromParams :: [Param] -> Map String DataType
+scopeFromParams [] = empty
+scopeFromParams ((Par paramName paramType):ps) = insert paramName (typeToDataType paramType) $ scopeFromParams ps
 
 declareVariable :: String -> DataType -> Compiler ()
 declareVariable varName varType=

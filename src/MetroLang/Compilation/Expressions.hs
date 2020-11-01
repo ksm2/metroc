@@ -51,27 +51,49 @@ unaryExprWasm Metro.LogicalNot _ = error "Can only apply 'not' on a Bool."
 binaryExpr :: Metro.BinOp -> Metro.Expression -> Metro.Expression -> Compiler Value
 binaryExpr Metro.Definition e1 e2 = definitionExpr e1 e2
 binaryExpr Metro.Assignment e1 e2 = assignment e1 e2
-binaryExpr Metro.Chain (Metro.VariableExpr i1) (Metro.VariableExpr i2) = expr $ Metro.VariableExpr (i1 ++ "." ++ i2)
-binaryExpr Metro.Chain Metro.ThisKeyword (Metro.Call i2 args) =
-  do  className <- requireThisContext
-      thisAccess <- return $ Metro.VariableExpr "this"
-      expr $ Metro.Call (className ++ "." ++ i2) (prependArg thisAccess args)
-binaryExpr Metro.Chain obj (Metro.Call methodName args) =
-  do  Value objType objExpr <- expr obj
-      argValues <- arguments args
-      wasmArgs <- return $ map wasmExpr argValues
-      case objType of
-        TRef className -> return $ Value TVoid $ call (className ++ "." ++ methodName) $ objExpr:wasmArgs
-        _              -> error $ "Cannot call method " ++ methodName ++ " on primitive type " ++ show objType
+
 binaryExpr Metro.Chain Metro.ThisKeyword (Metro.VariableExpr fieldName) =
   do  className <- requireThisContext
       fieldOffset <- getFieldOffset className fieldName
       return $ Value TInt $ i32Load $ i32Add (getLocal "this") (i32Const $ toInteger fieldOffset)
       -- TODO: can only load Int
+binaryExpr Metro.Chain obj (Metro.VariableExpr fieldName) =
+  do  objValue <- expr obj
+      fieldAccess objValue fieldName
+
+binaryExpr Metro.Chain Metro.ThisKeyword (Metro.Call i2 args) =
+  do  className <- requireThisContext
+      thisAccess <- return $ Metro.VariableExpr "this"
+      a <- arguments (prependArg thisAccess args)
+      return $ Value TVoid $ call (className ++ "." ++ i2) (map wasmExpr a)
+binaryExpr Metro.Chain obj (Metro.Call methodName args) =
+  do  objValue <- expr obj
+      argValues <- arguments args
+      methodCall objValue methodName argValues
+
 binaryExpr op e1 e2 =
   do  f1 <- expr e1
       f2 <- expr e2
       return $ binaryExprWasm op f1 f2
+
+fieldAccess :: Value -> String -> Compiler Value
+fieldAccess (Value TString obj) "length" = return $ Value TInt $ i32Load obj
+fieldAccess (Value objType _) methodName = error $ "Unknown field " ++ methodName ++ " on primitive type " ++ show objType
+
+methodCall :: Value -> String -> [Value] -> Compiler Value
+methodCall (Value (TRef className) obj) methodName args =
+  do  wasmArgs <- return $ map wasmExpr args
+      return $ Value TVoid $ call (className ++ "." ++ methodName) $ obj:wasmArgs
+methodCall (Value TString obj) "asInt" [] = return $ Value TInt $ obj
+methodCall (Value objType _) methodName args = error $ "Unknown method " ++ methodName ++ argsToInfo args ++ " on primitive type " ++ show objType
+
+argsToInfo :: [Value] -> String
+argsToInfo vs = "(" ++ (joinArgs (map dataType vs)) ++ ")"
+
+joinArgs :: (Show a) => [a] -> String
+joinArgs [] = ""
+joinArgs [element] = show element
+joinArgs (x:xs) = (show x) ++ ", " ++ (joinArgs xs)
 
 definitionExpr :: Metro.Expression -> Metro.Expression -> Compiler Value
 definitionExpr (Metro.VariableExpr varName) ex =

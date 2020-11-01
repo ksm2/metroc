@@ -30,7 +30,7 @@ declaration (Metro.Class name pars b) =
       return $ constr:classBlockDeclarations
 declaration (Metro.Func name pars b) =
   do  p <- params pars
-      bb <- block b
+      bb <- block b pars
       s <- stmtSeq $ (findLocals b) ++ bb
       return [WASM.Func name p Nothing s]
 
@@ -70,7 +70,7 @@ method (Metro.Method name pars b) =
   do  className <- requireThisContext
       thisParam <- return $ WASM.Par "this" WASM.I32
       pp <- params pars
-      bb <- block b
+      bb <- block b pars
       s <- stmtSeq $ (findLocals b) ++ bb
       return $ WASM.Func (className ++ "." ++ name) (thisParam:pp) Nothing s
 
@@ -78,9 +78,9 @@ method (Metro.Method name pars b) =
 stmtSeq :: [WASM.Stmt] -> Compiler WASM.Stmt
 stmtSeq s = return $ WASM.Seq s
 
-block :: Metro.Block -> Compiler [WASM.Stmt]
-block (Metro.Block b) =
-  do  pushScope
+block :: Metro.Block -> [Metro.Param] -> Compiler [WASM.Stmt]
+block (Metro.Block b) p =
+  do  pushScope p
       x <- stmts b
       popScope
       return x
@@ -92,7 +92,10 @@ stmt :: Metro.Stmt -> Compiler WASM.Stmt
 stmt (Metro.IfStmt i) = ifStmt i
 stmt (Metro.ExprStmt e) =
   do  value <- expr e
-      return $ WASM.Exp $ wasmExpr value
+      wasmEx <- return $ wasmExpr value
+      if (dataType value) /= TVoid
+      then return $ WASM.Seq [WASM.Exp wasmEx, WASM.Exp dropInstr]
+      else return $ WASM.Exp wasmEx
 
 
 -- If
@@ -108,11 +111,11 @@ thenStmt :: Metro.Expression -> Metro.Block -> [WASM.Stmt] -> Compiler WASM.Stmt
 thenStmt cond thenBlock elseCond =
   do  l <- label "if"
       c <- ifCond l cond
-      b <- block thenBlock
+      b <- block thenBlock []
       return $ WASM.Block l $ (c : b) ++ elseCond
 
 elseStmt :: Metro.Else -> Compiler [WASM.Stmt]
-elseStmt (Metro.ElseStmt b) = block b
+elseStmt (Metro.ElseStmt b) = block b []
 elseStmt (Metro.ElseIfStmt i) = (ifStmt i) >>= \x -> return [x]
 
 ifCond :: String -> Metro.Expression -> Compiler WASM.Stmt
