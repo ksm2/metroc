@@ -6,9 +6,8 @@
   (global $__allocationOffset (mut i32) (i32.const 1024))
 
   ;; Stores an Int at the given location
-  (func $__storeInt (param $location i32) (param $value i32) (result i32)
+  (func $__storeInt (param $location i32) (param $value i32)
     (i32.store (get_local $location) (get_local $value))
-    (get_local $value)
   )
 
   ;; Loads an Int at the given location

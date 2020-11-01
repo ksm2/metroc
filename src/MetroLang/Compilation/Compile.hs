@@ -2,6 +2,7 @@ module MetroLang.Compilation.Compile(compile) where
 
 import Control.Monad (liftM)
 import Data.Map (toAscList)
+import Data.Maybe (fromMaybe)
 import qualified MetroLang.AST as Metro
 import qualified MetroLang.WebAssembly.AST as WASM
 import MetroLang.WebAssembly.Utils
@@ -42,6 +43,7 @@ importSpecifier :: Metro.ImportSpecifier -> Compiler WASM.ImportSpecifier
 importSpecifier (Metro.FuncImport fnName fnParams fnReturn) =
   do  p <- params fnParams
       r <- returnType fnReturn
+      declareFunction fnName $ FunctionInfo (map getParamDataType fnParams) $ fromMaybe TVoid (fmap typeToDataType fnReturn)
       return $ WASM.IFunc fnName p r
 
 constructor :: WASM.Identifier -> [Metro.Param] -> Compiler WASM.Declaration

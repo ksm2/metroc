@@ -37,7 +37,13 @@ expr (Metro.Call callee args) =
       isConstructorCall <- classExists callee
       if isConstructorCall
       then return $ Value (TRef callee) $ call callee (map wasmExpr a)
-      else return $ Value TInt $ call callee (map wasmExpr a) -- TODO: call can only return Int atm
+      else functionCall callee a
+
+functionCall :: String -> [Value] -> Compiler Value
+functionCall fnName args =
+  do  functionInfo <- lookupFunction fnName
+      wasmArgs <- return $ checkFunctionSignature fnName (parameters functionInfo) args
+      return $ Value (returnDataType functionInfo) $ call fnName wasmArgs
 
 unaryExpr :: Metro.UnaryOp -> Metro.Expression -> Compiler Value
 unaryExpr op e = expr e >>= \value -> return $ unaryExprWasm op value

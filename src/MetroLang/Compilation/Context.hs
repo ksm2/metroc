@@ -1,7 +1,7 @@
 module MetroLang.Compilation.Context where
 
 import Control.Monad.State (get, put, runState, State)
-import Data.Map ((!), empty, insert, member, Map)
+import Data.Map ((!), empty, insert, fromList, member, Map)
 import Data.Maybe (fromMaybe)
 import MetroLang.AST
 import MetroLang.Compilation.Values
@@ -13,6 +13,7 @@ data CompileContext = CompileContext {
   strings :: Map String Int,
   thisContext :: Maybe String,
   classes :: Map String ClassInfo,
+  functions :: Map String FunctionInfo,
   scope :: [Scope]
 } deriving Show
 
@@ -115,6 +116,20 @@ classExists className =
   do  CompileContext { classes } <- get
       return $ member className classes
 
+-- | declareFunction declares a function in the application.
+declareFunction :: String -> FunctionInfo -> Compiler ()
+declareFunction fnName fnInfo =
+  do  ctx@CompileContext { functions } <- get
+      put $ ctx { functions = insert fnName fnInfo functions }
+
+-- | lookupFunction looks up a function declared in the application.
+lookupFunction :: String -> Compiler FunctionInfo
+lookupFunction fnName =
+  do  CompileContext { functions } <- get
+      if member fnName functions
+      then return $ functions ! fnName
+      else error $ "Function does not exist: \"" ++ fnName ++ "\""
+
 -- | pushScope adds a new empty scope on top of all scopes.
 pushScope :: [Param] -> Compiler ()
 pushScope p =
@@ -157,10 +172,17 @@ lookupVariableTypeInScopes varName ((Scope x):xs) =
   then (x ! varName)
   else lookupVariableTypeInScopes varName xs
 
+builtInFunctions :: Map String FunctionInfo
+builtInFunctions =
+  fromList [ ("__storeInt", FunctionInfo [TInt, TInt] TVoid)
+           , ("__loadInt", FunctionInfo [TInt] TInt)
+           , ("__allocate", FunctionInfo [TInt] TInt)
+           ]
+
 -- | runCompiler executes the compilation of a module
 runCompiler :: Compiler b -> (b, CompileContext)
 runCompiler cb =
-  let initialState = CompileContext 0 2056 empty Nothing empty []
+  let initialState = CompileContext 0 2056 empty Nothing empty builtInFunctions []
   in  runState cb initialState
 
 type Compiler = State CompileContext
