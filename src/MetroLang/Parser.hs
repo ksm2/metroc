@@ -20,6 +20,7 @@ languageDef =
                                      , "false"
                                      , "fn"
                                      , "if"
+                                     , "import"
                                      , "null"
                                      , "this"
                                      , "true"
@@ -91,8 +92,16 @@ moduleParser =
       return $ Mod values
 
 declaration :: Parser Declaration
-declaration =   classDeclaration
+declaration =   importDeclaration
+            <|> classDeclaration
             <|> funcDeclaration
+
+importDeclaration :: Parser Declaration
+importDeclaration =
+  do  reserved "import"
+      moduleName <- stringLiteral
+      specifier <- importSpecifier
+      return $ Import moduleName specifier
 
 classDeclaration :: Parser Declaration
 classDeclaration =
@@ -123,6 +132,22 @@ param =
   do  iden <- identifier
       typ <- identifier
       return $ Par iden typ
+
+returnType :: Parser ReturnType
+returnType =
+  do  typ <- optionMaybe identifier
+      return typ
+
+importSpecifier :: Parser ImportSpecifier
+importSpecifier = funcImportSpecifier
+
+funcImportSpecifier :: Parser ImportSpecifier
+funcImportSpecifier =
+  do  reserved "fn"
+      fnName <- identifier
+      fnParams <- params
+      fnReturn <- returnType
+      return $ FuncImport fnName fnParams fnReturn
 
 classBlock :: Parser ClassBlock
 classBlock = liftM ClassBlock $ braces (many method)

@@ -2,13 +2,19 @@ module MetroLang.AST where
 
 data Module = Mod [Declaration] deriving (Show)
 
-data Declaration = Class Identifier Params ClassBlock
+data Declaration = Import String ImportSpecifier
+                 | Class Identifier Params ClassBlock
                  | Func Identifier Params Block
                    deriving (Show)
 
 type Params = [Param]
 
 data Param = Par Identifier Type deriving (Show)
+
+type ReturnType = Maybe Type
+
+data ImportSpecifier = FuncImport Identifier Params ReturnType
+                       deriving (Show)
 
 data ClassBlock = ClassBlock [Method] deriving (Show)
 

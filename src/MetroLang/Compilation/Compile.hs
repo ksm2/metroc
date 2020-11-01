@@ -18,6 +18,10 @@ declarations :: [Metro.Declaration] -> Compiler [WASM.Declaration]
 declarations = flatMany declaration
 
 declaration :: Metro.Declaration -> Compiler [WASM.Declaration]
+declaration (Metro.Import moduleName specifier) =
+  do  wasmImportName <- importName specifier
+      wasmImportSpecifier <- importSpecifier specifier
+      return [WASM.Import moduleName wasmImportName wasmImportSpecifier]
 declaration (Metro.Class name pars b) =
   do  setThisContext (Just name)
       declareClass name (createClassInfo pars)
@@ -25,14 +29,23 @@ declaration (Metro.Class name pars b) =
       constr <- constructor name pars
       return $ constr:classBlockDeclarations
 declaration (Metro.Func name pars b) =
-  do  p <- many param pars
+  do  p <- params pars
       bb <- block b
       s <- stmtSeq $ (findLocals b) ++ bb
       return [WASM.Func name p Nothing s]
 
+importName :: Metro.ImportSpecifier -> Compiler String
+importName (Metro.FuncImport fnName _ _) = return fnName
+
+importSpecifier :: Metro.ImportSpecifier -> Compiler WASM.ImportSpecifier
+importSpecifier (Metro.FuncImport fnName fnParams fnReturn) =
+  do  p <- params fnParams
+      r <- returnType fnReturn
+      return $ WASM.IFunc fnName p r
+
 constructor :: WASM.Identifier -> [Metro.Param] -> Compiler WASM.Declaration
 constructor name pars =
-  do  p <- many param pars
+  do  p <- params pars
       sizeOfClass <- return $ i32Const $ toInteger $ calculateSizeOfClass pars
       allocation <- return $ WASM.Exp $ setLocal "___ptr" $ call "__metro_alloc" [sizeOfClass]
       fieldAssigns <- many assignField pars
@@ -56,7 +69,7 @@ method :: Metro.Method -> Compiler WASM.Declaration
 method (Metro.Method name pars b) =
   do  className <- requireThisContext
       thisParam <- return $ WASM.Par "this" WASM.I32
-      pp <- many param pars
+      pp <- params pars
       bb <- block b
       s <- stmtSeq $ (findLocals b) ++ bb
       return $ WASM.Func (className ++ "." ++ name) (thisParam:pp) Nothing s
@@ -112,8 +125,15 @@ ifCond i cond =
 label :: String -> Compiler String
 label s = incrCtr >>= \ctr -> return $ "___" ++ s ++ "_" ++ (show ctr)
 
+params :: [Metro.Param] -> Compiler [WASM.Param]
+params = many param
+
 param :: Metro.Param -> Compiler WASM.Param
 param (Metro.Par i t) = return $ WASM.Par i (valtype t)
+
+returnType :: Metro.ReturnType -> Compiler WASM.ReturnType
+returnType (Just rt) = return $ Just $ WASM.Res $ valtype rt
+returnType Nothing = return Nothing
 
 -- Type conversion
 valtype :: Metro.Type -> WASM.Valtype
