@@ -241,7 +241,15 @@ stringLiteral =
       stringValue <- many (noneOf "\"")
       _ <- oneOf "\""
       whiteSpace
-      return stringValue
+      return $ decodeStringLiteral stringValue
+
+decodeStringLiteral :: String -> String
+decodeStringLiteral [] = []
+decodeStringLiteral ('\\':'t':xs) = (toEnum 9):(decodeStringLiteral xs)
+decodeStringLiteral ('\\':'n':xs) = (toEnum 10):(decodeStringLiteral xs)
+decodeStringLiteral ('\\':'r':xs) = (toEnum 13):(decodeStringLiteral xs)
+decodeStringLiteral ('\\':'e':xs) = (toEnum 27):(decodeStringLiteral xs)
+decodeStringLiteral (x:xs) = x:(decodeStringLiteral xs)
 
 nullLiteral :: Parser Expression
 nullLiteral = reserved "null" >> (return NullLiteral)

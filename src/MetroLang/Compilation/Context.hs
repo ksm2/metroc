@@ -4,6 +4,7 @@ import Control.Monad.State (get, put, runState, State)
 import Data.Map ((!), empty, insert, fromList, member, Map)
 import Data.Maybe (fromMaybe)
 import MetroLang.AST
+import MetroLang.Bytes (utf8Length)
 import MetroLang.Compilation.Values
 import MetroLang.Types
 
@@ -41,7 +42,7 @@ registerString str =
       if member str strings then
         return $ strings ! str
       else
-        do  nextOffset <- return $ stringOffset + (length str) + 4
+        do  nextOffset <- return $ stringOffset + (utf8Length str) + 4
             inserted <- return $ insert str stringOffset strings
             put $ ctx { stringOffset = nextOffset, strings = inserted }
             return stringOffset

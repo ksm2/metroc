@@ -45,6 +45,7 @@ library
     cereal        >= 0.5.8,
     parsec        >= 3.1.14 && < 3.2,
     mtl           >= 2.2.2  && < 3,
+    utf8-string   >= 1.0.1  && < 2,
     containers    >= 0.6
 
 executable metroc

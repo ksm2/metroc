@@ -1,7 +1,8 @@
 module MetroLang.Bytes where
 
 import Numeric (readHex, showHex)
-import Data.ByteString
+import qualified Codec.Binary.UTF8.String as UTF8
+import Data.ByteString (unpack)
 import Data.Serialize
 import Data.Word
 
@@ -12,35 +13,31 @@ fromString [] = []
 fromString ('\\':a:b:xs) =
   let [(i, _)] = readHex [a, b]
       c = toEnum i
-  in  preChar c (fromString xs)
-fromString (x:xs) = preChar x (fromString xs)
+  in  (UTF8.encodeChar c) ++ (fromString xs)
+fromString (x:xs) = (UTF8.encodeChar x) ++ (fromString xs)
 
-toString :: Bytes -> String
-toString = enquote . toStringUnquoted
+toWasmStringLiteral :: Bytes -> String
+toWasmStringLiteral = enquote . toWasmStringUnquoted
 
 enquote :: String -> String
 enquote str = "\"" ++ str ++ "\""
 
-toStringUnquoted :: Bytes -> String
-toStringUnquoted [] = ""
-toStringUnquoted (x:xs) =
-  if (x >= 32 && x <= 127) then (toEnum (fromIntegral x)):(toStringUnquoted xs) else "\\" ++ (strPadLeft '0' 2 (showHex x "")) ++ toStringUnquoted xs
+toWasmStringUnquoted :: Bytes -> String
+toWasmStringUnquoted [] = ""
+toWasmStringUnquoted (x:xs) =
+  let previous = toWasmStringUnquoted xs
+  in  if (x >= 32 && x < 127)
+      then (toEnum (fromIntegral x)):previous
+      else "\\" ++ (strPadLeft '0' 2 (showHex x "")) ++ previous
 
 strPadLeft :: Char -> Int -> String -> String
 strPadLeft c i str = if (Prelude.length str) < i then strPadLeft c i (c:str) else str
 
-addBytes :: Bytes -> Bytes -> Bytes
-addBytes b2 b1 = b1 ++ b2
+int32ToBytes :: Int -> Bytes
+int32ToBytes i = unpack (encode (byteSwap32 (fromIntegral i)))
 
-preChar :: Char -> Bytes -> Bytes
-preChar c b = (fromIntegral (fromEnum c)) : b
+stringToBytes :: String -> Bytes
+stringToBytes = UTF8.encode
 
-addChar :: Char -> Bytes -> Bytes
-addChar c b = b ++ [(fromIntegral (fromEnum c))]
-
-addInt32 :: Word32 -> Bytes -> Bytes
-addInt32 i = addBytes (unpack (encode (byteSwap32 i)))
-
-addString :: String -> Bytes -> Bytes
-addString [] b = b
-addString (x:xs) b = addString xs $ addChar x b
+utf8Length :: String -> Int
+utf8Length = length . UTF8.encode

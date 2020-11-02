@@ -16,7 +16,7 @@ module MetroLang.WebAssembly.Utils (
   i32Store,
 ) where
 
-import MetroLang.Bytes
+import qualified MetroLang.Bytes as Bytes
 import MetroLang.WebAssembly.AST
 
 merge :: Module -> Module -> Module
@@ -28,11 +28,10 @@ injectDeclaration x (Mod xs) = Mod (x:xs)
 injectData :: Int -> String -> Module -> Module
 injectData i str m =
   let e = Method "const" I32 [Lit (toInteger i)]
-      len = length str - count '\\' str
-  in  injectDeclaration (Data e (addString str (addInt32 (fromIntegral len) []))) m
-
-count :: (Eq a) => a -> [a] -> Int
-count ch = length . (filter (==ch))
+      strBytes = Bytes.stringToBytes str
+      len = length strBytes
+      bytes = (Bytes.int32ToBytes len) ++ strBytes
+  in  injectDeclaration (Data e bytes) m
 
 -- Helpers
 br :: Identifier -> Expr
