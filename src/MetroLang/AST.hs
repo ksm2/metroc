@@ -38,6 +38,10 @@ data BinOp = Assignment
            | Is
            | Unequal
            | Equal
+           | LessThan
+           | LessThanOrEqual
+           | GreaterThan
+           | GreaterThanOrEqual
            | LogicalOr
            | LogicalAnd
            | Subtract

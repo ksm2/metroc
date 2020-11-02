@@ -132,6 +132,10 @@ binaryExprWasm :: Metro.BinOp -> Value -> Value -> Value
 binaryExprWasm Metro.Is _e1 _e2 = falseValue -- TODO!
 binaryExprWasm Metro.Unequal (Value _ e1) (Value _ e2) = Value TBool $ i32Eqz (i32Eq e1 e2)
 binaryExprWasm Metro.Equal (Value _ e1) (Value _ e2) = Value TBool $ i32Eq e1 e2
+binaryExprWasm Metro.LessThan v1 v2 = comparingExpr "lt_s" v1 v2
+binaryExprWasm Metro.LessThanOrEqual v1 v2 = comparingExpr "le_s" v1 v2
+binaryExprWasm Metro.GreaterThan v1 v2 = comparingExpr "gt_s" v1 v2
+binaryExprWasm Metro.GreaterThanOrEqual v1 v2 = comparingExpr "ge_s" v1 v2
 binaryExprWasm Metro.LogicalOr v1 v2 = boolExpr "or" v1 v2
 binaryExprWasm Metro.LogicalAnd v1 v2 = boolExpr "and" v1 v2
 binaryExprWasm Metro.Subtract v1 v2 = arithmeticExpr "sub" v1 v2
@@ -146,6 +150,11 @@ binaryExprWasm _ _ _ = error "?. and . not implemented yet"
 boolExpr :: String -> Value -> Value -> Value
 boolExpr op (Value TBool e1) (Value TBool e2) = Value TBool $ WASM.Method op WASM.I32 [e1, e2]
 boolExpr op _ _ = error $ "Can only apply '" ++ op ++ "' on two Bools."
+
+comparingExpr :: String -> Value -> Value -> Value
+comparingExpr op (Value TInt e1) (Value TInt e2) = Value TBool $ WASM.Method op WASM.I32 [e1, e2]
+comparingExpr op (Value TLong e1) (Value TLong e2) = Value TBool $ WASM.Method op WASM.I64 [e1, e2]
+comparingExpr op _ _ = error $ "Cannot apply " ++ op ++ ": Types on left and right don't match."
 
 arithmeticExpr :: String -> Value -> Value -> Value
 arithmeticExpr op (Value TInt e1) (Value TInt e2) = Value TInt $ WASM.Method op WASM.I32 [e1, e2]
