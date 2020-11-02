@@ -132,6 +132,7 @@ binaryExprWasm :: Metro.BinOp -> Value -> Value -> Value
 binaryExprWasm Metro.Is _e1 _e2 = falseValue -- TODO!
 binaryExprWasm Metro.Unequal (Value _ e1) (Value _ e2) = Value TBool $ i32Eqz (i32Eq e1 e2)
 binaryExprWasm Metro.Equal (Value _ e1) (Value _ e2) = Value TBool $ i32Eq e1 e2
+binaryExprWasm Metro.Add (Value TString e1) (Value TString e2) = Value TString $ call "__concat" [e1, e2]
 binaryExprWasm Metro.LessThan v1 v2 = comparingExpr "lt_s" v1 v2
 binaryExprWasm Metro.LessThanOrEqual v1 v2 = comparingExpr "le_s" v1 v2
 binaryExprWasm Metro.GreaterThan v1 v2 = comparingExpr "gt_s" v1 v2

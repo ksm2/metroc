@@ -36,5 +36,5 @@ fn main() {
   stdout.write(str)
 
   stderr := File(2)
-  stderr.writeln("stderr")
+  stderr.writeln("standard" + "error")
 }

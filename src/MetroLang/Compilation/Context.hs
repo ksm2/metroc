@@ -183,6 +183,8 @@ builtInFunctions =
            , ("__storeLong", FunctionInfo [TInt, TLong] TVoid)
            , ("__loadLong", FunctionInfo [TInt] TLong)
            , ("__allocate", FunctionInfo [TInt] TInt)
+           , ("__memcpy", FunctionInfo [TInt, TInt, TInt] TVoid)
+           , ("__concat", FunctionInfo [TString, TString] TString)
            ]
 
 -- | runCompiler executes the compilation of a module

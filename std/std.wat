@@ -43,6 +43,37 @@
     (get_local $offset)
   )
 
+  ;; Copy $size bytes of memory from $source to $destination
+  (func $__memcpy (param $destination i32) (param $source i32) (param $size i32)
+    (block $___else_memcpy0
+      (block $___if_memcpy1
+        (br_if $___if_memcpy1 (i32.eqz (i32.ge_s (get_local $size) (i32.const 8))))
+        (call $__storeLong (get_local $destination) (call $__loadLong (get_local $source)))
+        (call $__memcpy (i32.add (get_local $destination) (i32.const 8)) (i32.add (get_local $source) (i32.const 8)) (i32.sub (get_local $size) (i32.const 8)))
+        (br $___else_memcpy0)
+      )
+      (block $___if_memcpy2
+        (br_if $___if_memcpy2 (i32.eqz (i32.eqz (i32.eq (get_local $size) (i32.const 0)))))
+        (call $__storeByte (get_local $destination) (call $__loadByte (get_local $source)))
+        (call $__memcpy (i32.add (get_local $destination) (i32.const 1)) (i32.add (get_local $source) (i32.const 1)) (i32.sub (get_local $size) (i32.const 1)))
+      )
+    )
+  )
+
+  ;; Concatnate two strings
+  (func $__concat (param $str1 i32) (param $str2 i32) (result i32)
+    (local $length1 i32)
+    (local $length2 i32)
+    (local $ptr i32)
+    (set_local $length1 (call $__loadInt (get_local $str1)))
+    (set_local $length2 (call $__loadInt (get_local $str2)))
+    (set_local $ptr (call $__allocate (i32.add (i32.add (get_local $length1) (get_local $length2)) (i32.const 4))))
+    (call $__storeInt (get_local $ptr) (i32.add (get_local $length1) (get_local $length2)))
+    (call $__memcpy (i32.add (get_local $ptr) (i32.const 4)) (i32.add (get_local $str1) (i32.const 4)) (get_local $length1))
+    (call $__memcpy (i32.add (i32.add (get_local $ptr) (get_local $length1)) (i32.const 4)) (i32.add (get_local $str2) (i32.const 4)) (get_local $length2))
+    (get_local $ptr)
+  )
+
   ;; Start here
   (start $main)
 )
