@@ -174,8 +174,12 @@ lookupVariableTypeInScopes varName ((Scope x):xs) =
 
 builtInFunctions :: Map String FunctionInfo
 builtInFunctions =
-  fromList [ ("__storeInt", FunctionInfo [TInt, TInt] TVoid)
+  fromList [ ("__storeByte", FunctionInfo [TInt, TByte] TVoid)
+           , ("__loadByte", FunctionInfo [TInt] TByte)
+           , ("__storeInt", FunctionInfo [TInt, TInt] TVoid)
            , ("__loadInt", FunctionInfo [TInt] TInt)
+           , ("__storeLong", FunctionInfo [TInt, TLong] TVoid)
+           , ("__loadLong", FunctionInfo [TInt] TLong)
            , ("__allocate", FunctionInfo [TInt] TInt)
            ]
 

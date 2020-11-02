@@ -1,8 +1,9 @@
 module MetroLang.Compilation.Values where
 
-import MetroLang.WebAssembly.AST (Expr)
+import MetroLang.WebAssembly.AST
 
 data DataType = TVoid
+              | TByte
               | TInt
               | TLong
               | TBool
@@ -13,6 +14,7 @@ data DataType = TVoid
 instance Eq DataType where
   (TRef c1) == (TRef c2) = c1 == c2
   TVoid == TVoid = True
+  TByte == TByte = True
   TInt == TInt = True
   TLong == TLong = True
   TBool == TBool = True
@@ -22,6 +24,7 @@ instance Eq DataType where
 
 instance Show DataType where
   show TVoid = "Void"
+  show TByte = "Byte"
   show TInt = "Int"
   show TLong = "Long"
   show TBool = "Bool"
