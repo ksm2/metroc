@@ -43,3 +43,7 @@ typeToDataType "Long" = TLong
 typeToDataType "Bool" = TBool
 typeToDataType "String" = TString
 typeToDataType a = TRef a
+
+dataTypeToValtype :: DataType -> Valtype
+dataTypeToValtype TLong = I64
+dataTypeToValtype _ = I32

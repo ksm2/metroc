@@ -1,7 +1,7 @@
 module MetroLang.Compilation.Compile(compile) where
 
 import Control.Monad (liftM)
-import Data.Map (toAscList)
+import Data.Map (assocs, toAscList)
 import Data.Maybe (fromMaybe)
 import qualified MetroLang.AST as Metro
 import qualified MetroLang.WebAssembly.AST as WASM
@@ -30,10 +30,11 @@ declaration (Metro.Class name pars body) =
       constr <- constructor name pars
       return $ constr:classBlockDeclarations
 declaration (Metro.Func fnName fnParams fnReturn body) =
-  do  p <- params fnParams
+  do  declareFunction fnName $ FunctionInfo (map getParamDataType fnParams) $ returnToDataType fnReturn
+      p <- params fnParams
       r <- returnType fnReturn
-      bb <- block body fnParams
-      s <- stmtSeq $ (findLocals body) ++ bb
+      bb <- fnBlock body fnParams
+      s <- stmtSeq bb
       return [WASM.Func fnName p r s]
 
 importName :: Metro.ImportSpecifier -> Compiler String
@@ -41,10 +42,13 @@ importName (Metro.FuncImport fnName _ _) = return fnName
 
 importSpecifier :: Metro.ImportSpecifier -> Compiler WASM.ImportSpecifier
 importSpecifier (Metro.FuncImport fnName fnParams fnReturn) =
-  do  p <- params fnParams
+  do  declareFunction fnName $ FunctionInfo (map getParamDataType fnParams) $ returnToDataType fnReturn
+      p <- params fnParams
       r <- returnType fnReturn
-      declareFunction fnName $ FunctionInfo (map getParamDataType fnParams) $ fromMaybe TVoid (fmap typeToDataType fnReturn)
       return $ WASM.IFunc fnName p r
+
+returnToDataType :: Maybe String -> DataType
+returnToDataType rt = fromMaybe TVoid $ fmap typeToDataType rt
 
 constructor :: WASM.Identifier -> [Metro.Param] -> Compiler WASM.Declaration
 constructor name pars =
@@ -74,20 +78,30 @@ method (Metro.Method name methodParams methodReturn b) =
       thisParam <- return $ WASM.Par "this" WASM.I32
       pp <- params methodParams
       r <- returnType methodReturn
-      bb <- block b methodParams
-      s <- stmtSeq $ (findLocals b) ++ bb
+      bb <- fnBlock b methodParams
+      s <- stmtSeq bb
       return $ WASM.Func (className ++ "." ++ name) (thisParam:pp) r s
 
 -- Statements
 stmtSeq :: [WASM.Stmt] -> Compiler WASM.Stmt
 stmtSeq s = return $ WASM.Seq s
 
-block :: Metro.Block -> [Metro.Param] -> Compiler [WASM.Stmt]
-block (Metro.Block b) p =
+fnBlock :: Metro.Block -> [Metro.Param] -> Compiler [WASM.Stmt]
+fnBlock (Metro.Block b) p =
   do  pushScope p
       x <- stmts b
-      popScope
-      return x
+      Scope found <- popScope
+      ls <- return $ makeLocalStmts (filter (isNotParam p) (assocs found))
+      return $ ls ++ x
+
+isNotParam :: [Metro.Param] -> (Metro.Identifier, DataType) -> Bool
+isNotParam fnParams (varName, _) = not $ any (paramNameEquals varName) fnParams
+
+paramNameEquals :: String -> Metro.Param -> Bool
+paramNameEquals expected (Metro.Par actual _) = expected == actual
+
+block :: Metro.Block -> Compiler [WASM.Stmt]
+block (Metro.Block b) = stmts b
 
 stmts :: [Metro.Stmt] -> Compiler [WASM.Stmt]
 stmts = many stmt
@@ -119,11 +133,11 @@ thenStmt :: Metro.Expression -> Metro.Block -> [WASM.Stmt] -> Compiler WASM.Stmt
 thenStmt cond thenBlock elseCond =
   do  l <- label "if"
       c <- ifCond l cond
-      b <- block thenBlock []
+      b <- block thenBlock
       return $ WASM.Block l $ (c : b) ++ elseCond
 
 elseStmt :: Metro.Else -> Compiler [WASM.Stmt]
-elseStmt (Metro.ElseStmt b) = block b []
+elseStmt (Metro.ElseStmt b) = block b
 elseStmt (Metro.ElseIfStmt i) = (ifStmt i) >>= \x -> return [x]
 
 ifCond :: String -> Metro.Expression -> Compiler WASM.Stmt
@@ -158,31 +172,12 @@ valtype t = case t of
               "Double" -> WASM.F64
               _ -> WASM.I32
 
-findLocals :: Metro.Block -> [WASM.Stmt]
-findLocals b = makeLocalStmts (filterDefs (flatMapStmtsToExprs b))
 
-flatMapStmtsToExprs :: Metro.Block -> [Metro.Expression]
-flatMapStmtsToExprs (Metro.Block statements) =
-  statements >>= (\xs -> case xs of
-    Metro.IfStmt (Metro.If _ x Nothing)   -> flatMapStmtsToExprs x
-    Metro.IfStmt (Metro.If _ x (Just y))  -> (flatMapStmtsToExprs x) ++ (elseExprs y)
-    Metro.ExprStmt x                      -> [x]
-    _                                     -> [])
-
-elseExprs :: Metro.Else -> [Metro.Expression]
-elseExprs (Metro.ElseStmt n) = flatMapStmtsToExprs n
-elseExprs (Metro.ElseIfStmt (Metro.If _ x Nothing)) = flatMapStmtsToExprs x
-elseExprs (Metro.ElseIfStmt (Metro.If _ x (Just y))) = (flatMapStmtsToExprs x) ++ (elseExprs y)
-
-filterDefs :: [Metro.Expression] -> [Metro.Identifier]
-filterDefs expressions = expressions >>= (\xs -> case xs of Metro.Binary Metro.Definition (Metro.VariableExpr x) _ -> [x]; _ -> [])
-
-makeLocalStmts :: [Metro.Identifier] -> [WASM.Stmt]
+makeLocalStmts :: [(Metro.Identifier, DataType)] -> [WASM.Stmt]
 makeLocalStmts = map makeLocalStmt
 
-makeLocalStmt :: Metro.Identifier -> WASM.Stmt
-makeLocalStmt i = WASM.Local i WASM.I32
-
+makeLocalStmt :: (Metro.Identifier, DataType) -> WASM.Stmt
+makeLocalStmt (i, dt) = WASM.Local i $ dataTypeToValtype dt
 
 compiling :: (a -> Compiler WASM.Module) -> a -> WASM.Module
 compiling cab a =

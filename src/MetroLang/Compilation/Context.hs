@@ -138,11 +138,13 @@ pushScope p =
           put $ ctx { scope = newScope:scope }
 
 -- | popScope removes the last declared scope.
-popScope :: Compiler ()
+popScope :: Compiler Scope
 popScope =
   do  ctx@CompileContext { scope } <- get
+      h <- return $ head scope
       t <- return $ tail scope
       put $ ctx { scope = t }
+      return h
 
 scopeFromParams :: [Param] -> Map String DataType
 scopeFromParams [] = empty
