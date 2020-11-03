@@ -14,6 +14,7 @@ module MetroLang.WebAssembly.Utils (
   i32Sub,
   i32Load,
   i32Store,
+  i64ExtendI32S,
 ) where
 
 import qualified MetroLang.Bytes as Bytes
@@ -60,3 +61,4 @@ i32Load :: Expr -> Expr
 i32Load n1 = Method "load" I32 [n1]
 i32Store :: Expr -> Expr -> Expr
 i32Store n1 n2 = Method "store" I32 [n1, n2]
+i64ExtendI32S n = Method "extend_i32_s" I64 [n]

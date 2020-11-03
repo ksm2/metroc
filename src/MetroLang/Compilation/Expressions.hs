@@ -88,6 +88,7 @@ fieldAccess (Value objType _) methodName = error $ "Unknown field " ++ methodNam
 
 methodCall :: Value -> String -> [Value] -> Compiler Value
 methodCall (Value (TRef className) obj) methodName args = classMethodCall className obj methodName args
+methodCall (Value TInt obj) "toLong" [] = return $ Value TLong $ i64ExtendI32S obj
 methodCall (Value TString obj) "asInt" [] = return $ Value TInt $ obj
 methodCall (Value objType _) methodName args = error $ "Unknown method " ++ methodName ++ argsToInfo args ++ " on primitive type " ++ show objType
 
