@@ -42,7 +42,7 @@ expr (Metro.Call callee args) =
 functionCall :: String -> [Value] -> Compiler Value
 functionCall fnName args =
   do  functionInfo <- lookupFunction fnName
-      wasmArgs <- return $ checkFunctionSignature fnName (parameters functionInfo) args
+      wasmArgs <- return $ checkFunctionSignature 1 fnName (parameters functionInfo) args
       return $ Value (returnDataType functionInfo) $ call fnName wasmArgs
 
 unaryExpr :: Metro.UnaryOp -> Metro.Expression -> Compiler Value
@@ -95,18 +95,24 @@ methodCall (Value objType _) methodName args = error $ "Unknown method " ++ meth
 classMethodCall :: String -> WASM.Expr -> String -> [Value] -> Compiler Value
 classMethodCall className obj methodName args =
   do  method <- lookupClassMethod className methodName
-      wasmArgs <- return $ checkFunctionSignature methodName (parameters method) args
+      wasmArgs <- return $ checkFunctionSignature 1 methodName (parameters method) args
       return $ Value (returnDataType method) $ call (className ++ "." ++ methodName) $ obj:wasmArgs
 
-checkFunctionSignature :: String -> [DataType] -> [Value] -> [WASM.Expr]
-checkFunctionSignature _ [] [] = []
-checkFunctionSignature fnName (p:params) (a:args) =
+checkFunctionSignature :: Int -> String -> [DataType] -> [Value] -> [WASM.Expr]
+checkFunctionSignature _ _ [] [] = []
+checkFunctionSignature no fnName (p:params) (a:args) =
   let Value dt ex = a
   in  if p == dt
-      then ex:(checkFunctionSignature fnName params args)
-      else error $ "The parameter type of \"" ++ fnName ++ "\" does not match"
-checkFunctionSignature fnName [] _ = error $ "Too many arguments provided to method \"" ++ fnName ++ "\""
-checkFunctionSignature fnName _ [] = error $ "Not enough arguments provided to method \"" ++ fnName ++ "\""
+      then ex:(checkFunctionSignature (no + 1) fnName params args)
+      else error $ "The " ++ (ordnum no) ++ " parameter type of \"" ++ fnName ++ "\" does not match: Expected " ++ (show p) ++ ", but was " ++ (show dt)
+checkFunctionSignature _ fnName [] _ = error $ "Too many arguments provided to method \"" ++ fnName ++ "\""
+checkFunctionSignature _ fnName _ [] = error $ "Not enough arguments provided to method \"" ++ fnName ++ "\""
+
+ordnum :: Int -> String
+ordnum 1 = "1st"
+ordnum 2 = "2nd"
+ordnum 3 = "3rd"
+ordnum x = (show x) ++ "th"
 
 argsToInfo :: [Value] -> String
 argsToInfo vs = "(" ++ (joinArgs (map dataType vs)) ++ ")"
