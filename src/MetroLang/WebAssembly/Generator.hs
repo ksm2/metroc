@@ -25,6 +25,7 @@ importSpecifier (IFunc iden p r) = wrap "func" [identifier iden, params p, retur
 
 exportSpecifier :: ExportSpecifier -> String
 exportSpecifier (EMemory iden) = wrap "memory" [identifier iden]
+exportSpecifier (EFunc iden) = wrap "func" [identifier iden]
 
 stmt :: Stmt -> String
 stmt (Local iden vt) = wrap "local" [identifier iden, valtype vt]

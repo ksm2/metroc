@@ -63,6 +63,7 @@ data ImportSpecifier = IFunc Identifier [Param] ReturnType
                        deriving (Show)
 
 data ExportSpecifier = EMemory Identifier
+                     | EFunc Identifier
                        deriving (Show)
 
 data Stmt = Local Identifier Valtype

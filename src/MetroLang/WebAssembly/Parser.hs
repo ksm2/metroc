@@ -153,11 +153,21 @@ importSpecifier =
         return $ IFunc iden p fnReturn
 
 exportSpecifier :: Parser ExportSpecifier
-exportSpecifier =
+exportSpecifier = memoryExportSpecifier <|> funcExportSpecifier
+
+memoryExportSpecifier :: Parser ExportSpecifier
+memoryExportSpecifier =
     do  reserved "(memory"
         iden <- identifier
         rparen
         return $ EMemory iden
+
+funcExportSpecifier :: Parser ExportSpecifier
+funcExportSpecifier =
+    do  reserved "(func"
+        iden <- identifier
+        rparen
+        return $ EFunc iden
 
 statement :: Parser Stmt
 statement =
