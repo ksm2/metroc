@@ -19,6 +19,9 @@ outDir = "target"
 watToWasm :: String -> String -> IO ()
 watToWasm inFile outFile = callProcess "wat2wasm" [inFile, "-o", outFile]
 
+wasmToBinary :: String -> String -> IO ()
+wasmToBinary inFile outFile = callProcess "cc" ["runtime.c", "-Iinclude", "lib/libwasmtime.a", "-lpthread", "-ldl", "-lm", "-DWASM_FILE=" ++ inFile, "-o", outFile]
+
 -- | metroToWat compiles Metro to WebAssembly Text format
 metroToWat :: String -> String -> IO ()
 metroToWat inFile outFile =
@@ -46,9 +49,11 @@ build args =
           baseName = takeBaseName inputFile
           outWatFile = outDir </> baseName ++ ".wat"
           outWasmFile = outDir </> baseName ++ ".wasm"
+          outBinary = outDir </> baseName
 
       metroToWat inputFile outWatFile
       watToWasm outWatFile outWasmFile
+      wasmToBinary outWasmFile outBinary
 
 run :: [String] -> IO ()
 run args =
