@@ -25,7 +25,7 @@ declaration (Metro.Import moduleName specifier) =
       return [WASM.Import moduleName wasmImportName wasmImportSpecifier]
 declaration (Metro.Enumeration _ _) = return []
 declaration (Metro.Interface _ _) = return []
-declaration (Metro.Class name pars body) =
+declaration (Metro.Class name pars _ body) =
   do  setThisContext (Just name)
       declareClass name (createClassInfo pars body)
       classBlockDeclarations <- classBlock body

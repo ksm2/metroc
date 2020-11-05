@@ -61,6 +61,9 @@ lexer       = Token.makeTokenParser languageDef
 identifier  :: Parser Identifier
 identifier  = Token.identifier lexer
 
+commaSeparatedIdentifiers :: Parser [Identifier]
+commaSeparatedIdentifiers = sepBy identifier comma
+
 -- | reserved parses a reserved word
 reserved    :: String -> Parser ()
 reserved    = Token.reserved lexer
@@ -130,8 +133,9 @@ classDeclaration =
   do  reserved "class"
       iden <- identifier
       pars <- params
+      classImpls <- impls
       body <- classBlock
-      return $ Class iden pars body
+      return $ Class iden pars classImpls body
 
 implDeclaration :: Parser Declaration
 implDeclaration =
@@ -191,6 +195,9 @@ enumItem =
 
 interfaceBlock :: Parser InterfaceBlock
 interfaceBlock = liftM InterfaceBlock $ braces $ many methodSignature
+
+impls :: Parser [Identifier]
+impls = reserved "impl" >> commaSeparatedIdentifiers
 
 classBlock :: Parser ClassBlock
 classBlock = liftM ClassBlock $ braces $ many method

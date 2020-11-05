@@ -5,7 +5,7 @@ data Module = Mod [Declaration] deriving (Show)
 data Declaration = Import String ImportSpecifier
                  | Enumeration Identifier [EnumItem]
                  | Interface Identifier InterfaceBlock
-                 | Class Identifier Params ClassBlock
+                 | Class Identifier Params [Identifier] ClassBlock
                  | Impl Identifier Identifier ClassBlock
                  | Func Identifier Params ReturnType Block
                    deriving (Show)
