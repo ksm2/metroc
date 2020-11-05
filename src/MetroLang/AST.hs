@@ -3,6 +3,7 @@ module MetroLang.AST where
 data Module = Mod [Declaration] deriving (Show)
 
 data Declaration = Import String ImportSpecifier
+                 | Enumeration Identifier [EnumItem]
                  | Class Identifier Params ClassBlock
                  | Func Identifier Params ReturnType Block
                    deriving (Show)
@@ -15,6 +16,9 @@ type ReturnType = Maybe Type
 
 data ImportSpecifier = FuncImport Identifier Params ReturnType
                        deriving (Show)
+
+data EnumItem = EnumItem Identifier Params
+                deriving (Show)
 
 data ClassBlock = ClassBlock [Method] deriving (Show)
 

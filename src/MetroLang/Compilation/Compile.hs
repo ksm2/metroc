@@ -23,6 +23,7 @@ declaration (Metro.Import moduleName specifier) =
   do  wasmImportName <- importName specifier
       wasmImportSpecifier <- importSpecifier specifier
       return [WASM.Import moduleName wasmImportName wasmImportSpecifier]
+declaration (Metro.Enumeration _ _) = return []
 declaration (Metro.Class name pars body) =
   do  setThisContext (Just name)
       declareClass name (createClassInfo pars body)

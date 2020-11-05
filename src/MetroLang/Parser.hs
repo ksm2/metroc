@@ -17,6 +17,7 @@ languageDef =
            , Token.identLetter     = alphaNum <|> oneOf "_"
            , Token.reservedNames   = [ "class"
                                      , "else"
+                                     , "enum"
                                      , "false"
                                      , "fn"
                                      , "if"
@@ -94,6 +95,7 @@ moduleParser =
 
 declaration :: Parser Declaration
 declaration =   importDeclaration
+            <|> enumDeclaration
             <|> classDeclaration
             <|> funcDeclaration
 
@@ -103,6 +105,13 @@ importDeclaration =
       moduleName <- stringLiteral
       specifier <- importSpecifier
       return $ Import moduleName specifier
+
+enumDeclaration :: Parser Declaration
+enumDeclaration =
+  do  reserved "enum"
+      iden <- identifier
+      items <- braces enumItems
+      return $ Enumeration iden items
 
 classDeclaration :: Parser Declaration
 classDeclaration =
@@ -121,13 +130,14 @@ funcDeclaration =
       body <- block
       return $ Func fnName fnParams fnReturn body
 
+optionalParams :: Parser Params
+optionalParams = option [] params
+
 params :: Parser Params
-params =
-  do  reservedOp "("
-      pars <- sepBy param comma
-      optional comma
-      reservedOp ")"
-      return pars
+params = parens commaSeparatedParams
+
+commaSeparatedParams :: Parser Params
+commaSeparatedParams = sepEndBy param comma
 
 param :: Parser Param
 param =
@@ -148,6 +158,15 @@ funcImportSpecifier =
       fnParams <- params
       fnReturn <- returnType
       return $ FuncImport fnName fnParams fnReturn
+
+enumItems :: Parser [EnumItem]
+enumItems = many enumItem
+
+enumItem :: Parser EnumItem
+enumItem =
+  do  itemName <- identifier
+      itemParams <- optionalParams
+      return $ EnumItem itemName itemParams
 
 classBlock :: Parser ClassBlock
 classBlock = liftM ClassBlock $ braces (many method)
