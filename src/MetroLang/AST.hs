@@ -6,6 +6,7 @@ data Declaration = Import String ImportSpecifier
                  | Enumeration Identifier [EnumItem]
                  | Interface Identifier InterfaceBlock
                  | Class Identifier Params ClassBlock
+                 | Impl Identifier Identifier ClassBlock
                  | Func Identifier Params ReturnType Block
                    deriving (Show)
 

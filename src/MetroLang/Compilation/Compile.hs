@@ -31,6 +31,7 @@ declaration (Metro.Class name pars body) =
       classBlockDeclarations <- classBlock body
       constr <- constructor name pars
       return $ constr:classBlockDeclarations
+declaration (Metro.Impl _ _ _) = return []
 declaration (Metro.Func fnName fnParams fnReturn body) =
   do  declareFunction fnName $ FunctionInfo (map getParamDataType fnParams) $ returnToDataType fnReturn
       p <- params fnParams

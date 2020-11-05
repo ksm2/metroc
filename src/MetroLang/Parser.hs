@@ -20,7 +20,9 @@ languageDef =
                                      , "enum"
                                      , "false"
                                      , "fn"
+                                     , "for"
                                      , "if"
+                                     , "impl"
                                      , "import"
                                      , "interface"
                                      , "null"
@@ -99,6 +101,7 @@ declaration =   importDeclaration
             <|> enumDeclaration
             <|> interfaceDeclaration
             <|> classDeclaration
+            <|> implDeclaration
             <|> funcDeclaration
 
 importDeclaration :: Parser Declaration
@@ -129,6 +132,15 @@ classDeclaration =
       pars <- params
       body <- classBlock
       return $ Class iden pars body
+
+implDeclaration :: Parser Declaration
+implDeclaration =
+  do  reserved "impl"
+      interfaceType <- identifier
+      reserved "for"
+      targetType <- identifier
+      body <- classBlock
+      return $ Impl interfaceType targetType body
 
 funcDeclaration :: Parser Declaration
 funcDeclaration =
