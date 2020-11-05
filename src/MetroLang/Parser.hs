@@ -22,6 +22,7 @@ languageDef =
                                      , "fn"
                                      , "if"
                                      , "import"
+                                     , "interface"
                                      , "null"
                                      , "return"
                                      , "this"
@@ -96,6 +97,7 @@ moduleParser =
 declaration :: Parser Declaration
 declaration =   importDeclaration
             <|> enumDeclaration
+            <|> interfaceDeclaration
             <|> classDeclaration
             <|> funcDeclaration
 
@@ -112,6 +114,13 @@ enumDeclaration =
       iden <- identifier
       items <- braces enumItems
       return $ Enumeration iden items
+
+interfaceDeclaration :: Parser Declaration
+interfaceDeclaration =
+  do  reserved "interface"
+      iden <- identifier
+      body <- interfaceBlock
+      return $ Interface iden body
 
 classDeclaration :: Parser Declaration
 classDeclaration =
@@ -168,16 +177,24 @@ enumItem =
       itemParams <- optionalParams
       return $ EnumItem itemName itemParams
 
-classBlock :: Parser ClassBlock
-classBlock = liftM ClassBlock $ braces (many method)
+interfaceBlock :: Parser InterfaceBlock
+interfaceBlock = liftM InterfaceBlock $ braces $ many methodSignature
 
-method :: Parser Method
-method =
+classBlock :: Parser ClassBlock
+classBlock = liftM ClassBlock $ braces $ many method
+
+methodSignature :: Parser MethodSignature
+methodSignature =
   do  methodName <- identifier
       methodParams <- params
       methodReturn <- returnType
+      return $ MethodSignature methodName methodParams methodReturn
+
+method :: Parser Method
+method =
+  do  signature <- methodSignature
       body <- block
-      return $ Method methodName methodParams methodReturn body
+      return $ Method signature body
 
 block :: Parser Block
 block = liftM Block $ braces (many stmt)

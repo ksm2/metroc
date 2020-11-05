@@ -79,7 +79,7 @@ createClassFields ((Par fieldName t):params) =
 readMethods :: [Method] -> Map String FunctionInfo
 readMethods [] = empty
 readMethods (m:ms) =
-  let (Method methodName methodParams methodReturn _) = m
+  let (Method (MethodSignature methodName methodParams methodReturn) _) = m
       previousMap = readMethods ms
   in  insert methodName (createFunctionInfo methodParams methodReturn) previousMap
 

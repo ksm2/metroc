@@ -24,6 +24,7 @@ declaration (Metro.Import moduleName specifier) =
       wasmImportSpecifier <- importSpecifier specifier
       return [WASM.Import moduleName wasmImportName wasmImportSpecifier]
 declaration (Metro.Enumeration _ _) = return []
+declaration (Metro.Interface _ _) = return []
 declaration (Metro.Class name pars body) =
   do  setThisContext (Just name)
       declareClass name (createClassInfo pars body)
@@ -74,14 +75,19 @@ methods :: [Metro.Method] -> Compiler [WASM.Declaration]
 methods = many method
 
 method :: Metro.Method -> Compiler WASM.Declaration
-method (Metro.Method name methodParams methodReturn b) =
+method (Metro.Method m@(Metro.MethodSignature _ methodParams _) b) =
+  do  signature <- methodSignature m
+      bb <- fnBlock b methodParams
+      s <- stmtSeq bb
+      return $ signature s
+
+methodSignature :: Metro.MethodSignature -> Compiler (WASM.Stmt -> WASM.Declaration)
+methodSignature (Metro.MethodSignature name methodParams methodReturn) =
   do  className <- requireThisContext
       thisParam <- return $ WASM.Par "this" WASM.I32
       pp <- params methodParams
       r <- returnType methodReturn
-      bb <- fnBlock b methodParams
-      s <- stmtSeq bb
-      return $ WASM.Func (className ++ "." ++ name) (thisParam:pp) r s
+      return $ WASM.Func (className ++ "." ++ name) (thisParam:pp) r
 
 -- Statements
 stmtSeq :: [WASM.Stmt] -> Compiler WASM.Stmt

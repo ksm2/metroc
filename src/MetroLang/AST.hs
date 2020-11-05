@@ -4,6 +4,7 @@ data Module = Mod [Declaration] deriving (Show)
 
 data Declaration = Import String ImportSpecifier
                  | Enumeration Identifier [EnumItem]
+                 | Interface Identifier InterfaceBlock
                  | Class Identifier Params ClassBlock
                  | Func Identifier Params ReturnType Block
                    deriving (Show)
@@ -20,9 +21,13 @@ data ImportSpecifier = FuncImport Identifier Params ReturnType
 data EnumItem = EnumItem Identifier Params
                 deriving (Show)
 
+data InterfaceBlock = InterfaceBlock [MethodSignature] deriving (Show)
+
 data ClassBlock = ClassBlock [Method] deriving (Show)
 
-data Method = Method Identifier Params ReturnType Block deriving (Show)
+data MethodSignature = MethodSignature Identifier Params ReturnType deriving (Show)
+
+data Method = Method MethodSignature Block deriving (Show)
 
 data Block = Block [Stmt] deriving (Show)
 
