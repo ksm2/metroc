@@ -197,7 +197,7 @@ interfaceBlock :: Parser InterfaceBlock
 interfaceBlock = liftM InterfaceBlock $ braces $ many methodSignature
 
 impls :: Parser [Identifier]
-impls = reserved "impl" >> commaSeparatedIdentifiers
+impls = option [] $ reserved "impl" >> commaSeparatedIdentifiers
 
 classBlock :: Parser ClassBlock
 classBlock = liftM ClassBlock $ braces $ many method
