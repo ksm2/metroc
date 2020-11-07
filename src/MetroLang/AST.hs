@@ -49,15 +49,23 @@ data Else = ElseStmt Block
 
 data BinOp = Assignment
            | Definition
-           | Is
+           | LogicalOr
+           | LogicalAnd
+           | BitwiseOr
+           | BitwiseXor
+           | BitwiseAnd
            | Unequal
            | Equal
+           | Is
            | LessThan
            | LessThanOrEqual
            | GreaterThan
            | GreaterThanOrEqual
-           | LogicalOr
-           | LogicalAnd
+           | RotateLeft
+           | RotateRight
+           | ShiftLeft
+           | ShiftRight
+           | UnsignedShiftRight
            | Subtract
            | Add
            | Modulo

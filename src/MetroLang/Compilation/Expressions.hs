@@ -138,6 +138,11 @@ assignment (Metro.VariableExpr i) e2 =
 assignment _ _ = error "Bad variable assignment"
 
 binaryExprWasm :: Metro.BinOp -> Value -> Value -> Value
+binaryExprWasm Metro.LogicalOr v1 v2 = boolExpr "or" v1 v2
+binaryExprWasm Metro.LogicalAnd v1 v2 = boolExpr "and" v1 v2
+binaryExprWasm Metro.BitwiseOr v1 v2 = arithmeticExpr "or" v1 v2
+binaryExprWasm Metro.BitwiseXor v1 v2 = arithmeticExpr "xor" v1 v2
+binaryExprWasm Metro.BitwiseAnd v1 v2 = arithmeticExpr "and" v1 v2
 binaryExprWasm Metro.Is _e1 _e2 = falseValue -- TODO!
 binaryExprWasm Metro.Unequal (Value _ e1) (Value _ e2) = Value (Primitive TBool) $ i32Eqz (i32Eq e1 e2)
 binaryExprWasm Metro.Equal (Value _ e1) (Value _ e2) = Value (Primitive TBool) $ i32Eq e1 e2
@@ -146,14 +151,17 @@ binaryExprWasm Metro.LessThan v1 v2 = comparingExpr "lt_s" v1 v2
 binaryExprWasm Metro.LessThanOrEqual v1 v2 = comparingExpr "le_s" v1 v2
 binaryExprWasm Metro.GreaterThan v1 v2 = comparingExpr "gt_s" v1 v2
 binaryExprWasm Metro.GreaterThanOrEqual v1 v2 = comparingExpr "ge_s" v1 v2
-binaryExprWasm Metro.LogicalOr v1 v2 = boolExpr "or" v1 v2
-binaryExprWasm Metro.LogicalAnd v1 v2 = boolExpr "and" v1 v2
+binaryExprWasm Metro.RotateLeft v1 v2 = arithmeticExpr "rotl" v1 v2
+binaryExprWasm Metro.RotateRight v1 v2 = arithmeticExpr "rotr" v1 v2
+binaryExprWasm Metro.ShiftLeft v1 v2 = arithmeticExpr "shl" v1 v2
+binaryExprWasm Metro.ShiftRight v1 v2 = arithmeticExpr "shr_s" v1 v2
+binaryExprWasm Metro.UnsignedShiftRight v1 v2 = arithmeticExpr "shr_u" v1 v2
 binaryExprWasm Metro.Subtract v1 v2 = arithmeticExpr "sub" v1 v2
 binaryExprWasm Metro.Add v1 v2 = arithmeticExpr "add" v1 v2
 binaryExprWasm Metro.Modulo v1 v2 = arithmeticExpr "rem_s" v1 v2
 binaryExprWasm Metro.Divide v1 v2 = arithmeticExpr "div_s" v1 v2
 binaryExprWasm Metro.Multiply v1 v2 = arithmeticExpr "mul" v1 v2
-binaryExprWasm _ _ _ = error "?. and . not implemented yet"
+binaryExprWasm op _ _ = error $ (show op) ++ " not implemented yet"
 --binaryExpr Metro.OptChain e1 e2 = TODO!
 --binaryExpr Metro.Chain e1 e2 = TODO!
 

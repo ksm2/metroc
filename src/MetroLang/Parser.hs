@@ -43,6 +43,9 @@ languageDef =
                                      , "and"
                                      , "not"
                                      , "is"
+                                     , "&"
+                                     , "^"
+                                     , "|"
                                      , "+"
                                      , "-"
                                      , "*"
@@ -53,7 +56,12 @@ languageDef =
                                      , "!="
                                      , ">="
                                      , ">"
+                                     , ">>"
+                                     , ">>>"
                                      , "<"
+                                     , "<<"
+                                     , "%>"
+                                     , "<%"
                                      ]
            }
 
@@ -285,8 +293,11 @@ operators = [ [Infix  (reservedOp "."   >> return (Binary Chain               ))
                Infix  (reservedOp "%"   >> return (Binary Modulo              )) AssocLeft]
             , [Infix  (reservedOp "+"   >> return (Binary Add                 )) AssocLeft,
                Infix  (reservedOp "-"   >> return (Binary Subtract            )) AssocLeft]
-            , [Infix  (reservedOp "and" >> return (Binary LogicalAnd          )) AssocLeft,
-               Infix  (reservedOp "or"  >> return (Binary LogicalOr           )) AssocLeft]
+            , [Infix  (reservedOp ">>>" >> return (Binary UnsignedShiftRight  )) AssocLeft,
+               Infix  (reservedOp ">>"  >> return (Binary ShiftRight          )) AssocLeft,
+               Infix  (reservedOp "<<"  >> return (Binary ShiftLeft           )) AssocLeft]
+            , [Infix  (reservedOp "%>"  >> return (Binary RotateRight         )) AssocLeft,
+               Infix  (reservedOp "<%"  >> return (Binary RotateLeft          )) AssocLeft]
             , [Infix  (reservedOp "<"   >> return (Binary LessThan            )) AssocLeft,
                Infix  (reservedOp "<="  >> return (Binary LessThanOrEqual     )) AssocLeft,
                Infix  (reservedOp ">"   >> return (Binary GreaterThan         )) AssocLeft,
@@ -294,6 +305,11 @@ operators = [ [Infix  (reservedOp "."   >> return (Binary Chain               ))
             , [Infix  (reservedOp "=="  >> return (Binary Equal               )) AssocLeft,
                Infix  (reservedOp "!="  >> return (Binary Unequal             )) AssocLeft,
                Infix  (reservedOp "is"  >> return (Binary Is                  )) AssocLeft]
+            , [Infix  (reservedOp "&"   >> return (Binary BitwiseAnd          )) AssocLeft,
+               Infix  (reservedOp "^"   >> return (Binary BitwiseXor          )) AssocLeft,
+               Infix  (reservedOp "|"   >> return (Binary BitwiseOr           )) AssocLeft]
+            , [Infix  (reservedOp "and" >> return (Binary LogicalAnd          )) AssocLeft,
+               Infix  (reservedOp "or"  >> return (Binary LogicalOr           )) AssocLeft]
             , [Infix  (reservedOp ":="  >> return (Binary Definition          )) AssocLeft,
                Infix  (reservedOp "="   >> return (Binary Assignment          )) AssocLeft]
             ]
