@@ -2,7 +2,7 @@ module MetroLang.Compilation.Compile(compile) where
 
 import Control.Monad (liftM)
 import Data.Map (assocs, toAscList)
-import Data.Maybe (fromMaybe)
+import MetroLang.AST as Metro (Type(..), PrimitiveType(..))
 import qualified MetroLang.AST as Metro
 import qualified MetroLang.WebAssembly.AST as WASM
 import MetroLang.WebAssembly.Utils
@@ -23,9 +23,9 @@ declaration (Metro.Import moduleName specifier) =
   do  wasmImportName <- importName specifier
       wasmImportSpecifier <- importSpecifier specifier
       return [WASM.Import moduleName wasmImportName wasmImportSpecifier]
-declaration (Metro.Enumeration _ _) = return []
-declaration (Metro.Interface _ _) = return []
-declaration (Metro.Class name pars _ body) =
+declaration (Metro.Enumeration _name _typeArgs _) = return []
+declaration (Metro.Interface _name _typeArgs _ _) = return []
+declaration (Metro.Class name _typeArgs pars _ _ body) =
   do  setThisContext (Just name)
       declareClass name (createClassInfo pars body)
       classBlockDeclarations <- classBlock body
@@ -33,7 +33,7 @@ declaration (Metro.Class name pars _ body) =
       return $ constr:classBlockDeclarations
 declaration (Metro.Impl _ _ _) = return []
 declaration (Metro.Func fnName fnParams fnReturn body) =
-  do  declareFunction fnName $ FunctionInfo (map getParamDataType fnParams) $ returnToDataType fnReturn
+  do  declareFunction fnName $ FunctionInfo (map getParamType fnParams) fnReturn
       p <- params fnParams
       r <- returnType fnReturn
       bb <- fnBlock body fnParams
@@ -45,13 +45,10 @@ importName (Metro.FuncImport fnName _ _) = return fnName
 
 importSpecifier :: Metro.ImportSpecifier -> Compiler WASM.ImportSpecifier
 importSpecifier (Metro.FuncImport fnName fnParams fnReturn) =
-  do  declareFunction fnName $ FunctionInfo (map getParamDataType fnParams) $ returnToDataType fnReturn
+  do  declareFunction fnName $ FunctionInfo (map getParamType fnParams) fnReturn
       p <- params fnParams
       r <- returnType fnReturn
       return $ WASM.IFunc fnName p r
-
-returnToDataType :: Maybe String -> DataType
-returnToDataType rt = fromMaybe TVoid $ fmap typeToDataType rt
 
 constructor :: WASM.Identifier -> [Metro.Param] -> Compiler WASM.Declaration
 constructor name pars =
@@ -102,7 +99,7 @@ fnBlock (Metro.Block b) p =
       ls <- return $ makeLocalStmts (filter (isNotParam p) (assocs found))
       return $ ls ++ x
 
-isNotParam :: [Metro.Param] -> (Metro.Identifier, DataType) -> Bool
+isNotParam :: [Metro.Param] -> (Metro.Identifier, Metro.Type) -> Bool
 isNotParam fnParams (varName, _) = not $ any (paramNameEquals varName) fnParams
 
 paramNameEquals :: String -> Metro.Param -> Bool
@@ -152,7 +149,7 @@ ifCond :: String -> Metro.Expression -> Compiler WASM.Stmt
 ifCond i cond =
   do  value <- expr cond
       case value of
-        Value TBool wasmCond  -> return $ WASM.Exp $ brIf i wasmCond
+        Value (Primitive TBool) wasmCond  -> return $ WASM.Exp $ brIf i wasmCond
         _                     -> error "The if condition must be of type Bool."
 
 label :: String -> Compiler String
@@ -162,29 +159,16 @@ params :: [Metro.Param] -> Compiler [WASM.Param]
 params = many param
 
 param :: Metro.Param -> Compiler WASM.Param
-param (Metro.Par i t) = return $ WASM.Par i (valtype t)
+param (Metro.Par i t) = return $ WASM.Par i $ dataTypeToValtype t
 
 returnType :: Metro.ReturnType -> Compiler WASM.ReturnType
-returnType (Just rt) = return $ Just $ WASM.Res $ valtype rt
-returnType Nothing = return Nothing
+returnType TVoid = return Nothing
+returnType rt = return $ Just $ WASM.Res $ dataTypeToValtype rt
 
--- Type conversion
-valtype :: Metro.Type -> WASM.Valtype
-valtype t = case t of
-              "Bool" -> WASM.I32
-              "Int" -> WASM.I32
-              "UInt" -> WASM.I32
-              "Long" -> WASM.I64
-              "ULong" -> WASM.I64
-              "Float" -> WASM.F32
-              "Double" -> WASM.F64
-              _ -> WASM.I32
-
-
-makeLocalStmts :: [(Metro.Identifier, DataType)] -> [WASM.Stmt]
+makeLocalStmts :: [(Metro.Identifier, Metro.Type)] -> [WASM.Stmt]
 makeLocalStmts = map makeLocalStmt
 
-makeLocalStmt :: (Metro.Identifier, DataType) -> WASM.Stmt
+makeLocalStmt :: (Metro.Identifier, Metro.Type) -> WASM.Stmt
 makeLocalStmt (i, dt) = WASM.Local i $ dataTypeToValtype dt
 
 compiling :: (a -> Compiler WASM.Module) -> a -> WASM.Module

@@ -18,6 +18,7 @@ languageDef =
            , Token.reservedNames   = [ "class"
                                      , "else"
                                      , "enum"
+                                     , "extends"
                                      , "false"
                                      , "fn"
                                      , "for"
@@ -61,9 +62,6 @@ lexer       = Token.makeTokenParser languageDef
 identifier  :: Parser Identifier
 identifier  = Token.identifier lexer
 
-commaSeparatedIdentifiers :: Parser [Identifier]
-commaSeparatedIdentifiers = sepBy identifier comma
-
 -- | reserved parses a reserved word
 reserved    :: String -> Parser ()
 reserved    = Token.reserved lexer
@@ -72,13 +70,21 @@ reserved    = Token.reserved lexer
 reservedOp  :: String -> Parser ()
 reservedOp  = Token.reservedOp lexer
 
--- | parens parses parentheses around an expression
+-- | symbol parses a symbol with trailing whitespace
+symbol  :: String -> Parser String
+symbol  = Token.symbol lexer
+
+-- | parens parses round brackets ("(" and ")") around an expression
 parens      :: Parser a -> Parser a
 parens      = Token.parens     lexer
 
--- | parens parses parentheses around an expression
+-- | braces parses curly brackets ("{" and "}") around an expression
 braces      :: Parser a -> Parser a
 braces      = Token.braces     lexer
+
+-- | angles parses angle brackets ("<" and ">") around an expression
+angles      :: Parser a -> Parser a
+angles      = Token.angles     lexer
 
 -- | integer parses an integer
 integer     :: Parser Integer
@@ -89,7 +95,11 @@ whiteSpace  :: Parser ()
 whiteSpace  = Token.whiteSpace lexer
 
 comma :: Parser ()
-comma = reservedOp ","
+comma = symbol "," >> return ()
+commaSep :: Parser a -> Parser [a]
+commaSep a = sepBy a comma
+commaSepEnd :: Parser a -> Parser [a]
+commaSepEnd a = sepEndBy a comma
 
 whileParser :: Parser Module
 whileParser = whiteSpace >> moduleParser
@@ -117,32 +127,37 @@ importDeclaration =
 enumDeclaration :: Parser Declaration
 enumDeclaration =
   do  reserved "enum"
-      iden <- identifier
+      name <- identifier
+      args <- typeArgs
       items <- braces enumItems
-      return $ Enumeration iden items
+      return $ Enumeration name args items
 
 interfaceDeclaration :: Parser Declaration
 interfaceDeclaration =
   do  reserved "interface"
-      iden <- identifier
+      name <- identifier
+      args <- typeArgs
+      extends <- interfaceExtends
       body <- interfaceBlock
-      return $ Interface iden body
+      return $ Interface name args extends body
 
 classDeclaration :: Parser Declaration
 classDeclaration =
   do  reserved "class"
-      iden <- identifier
+      name <- identifier
+      args <- typeArgs
       pars <- params
-      classImpls <- impls
+      extends <- classExtends
+      implements <- impls
       body <- classBlock
-      return $ Class iden pars classImpls body
+      return $ Class name args pars extends implements body
 
 implDeclaration :: Parser Declaration
 implDeclaration =
   do  reserved "impl"
-      interfaceType <- identifier
+      interfaceType <- typeParser
       reserved "for"
-      targetType <- identifier
+      targetType <- typeParser
       body <- classBlock
       return $ Impl interfaceType targetType body
 
@@ -162,16 +177,16 @@ params :: Parser Params
 params = parens commaSeparatedParams
 
 commaSeparatedParams :: Parser Params
-commaSeparatedParams = sepEndBy param comma
+commaSeparatedParams = commaSepEnd param
 
 param :: Parser Param
 param =
-  do  iden <- identifier
-      typ <- identifier
-      return $ Par iden typ
+  do  name <- identifier
+      paramType <- typeParser
+      return $ Par name paramType
 
 returnType :: Parser ReturnType
-returnType = optionMaybe identifier
+returnType = option TVoid typeParser
 
 importSpecifier :: Parser ImportSpecifier
 importSpecifier = funcImportSpecifier
@@ -193,11 +208,17 @@ enumItem =
       itemParams <- optionalParams
       return $ EnumItem itemName itemParams
 
+interfaceExtends :: Parser InterfaceExtends
+interfaceExtends = option [] $ reserved "extends" >> (commaSep typeParser)
+
 interfaceBlock :: Parser InterfaceBlock
 interfaceBlock = liftM InterfaceBlock $ braces $ many methodSignature
 
-impls :: Parser [Identifier]
-impls = option [] $ reserved "impl" >> commaSeparatedIdentifiers
+classExtends :: Parser ClassExtends
+classExtends = option TVoid $ reserved "extends" >> typeParser
+
+impls :: Parser Implements
+impls = option [] $ reserved "impl" >> (commaSep typeParser)
 
 classBlock :: Parser ClassBlock
 classBlock = liftM ClassBlock $ braces $ many method
@@ -284,7 +305,7 @@ callExpr =
       return $ Call callee arg
 
 arguments :: Parser Arguments
-arguments = liftM Args $ parens (sepEndBy expr comma)
+arguments = liftM Args $ parens (commaSepEnd expr)
 
 booleanLiteral :: Parser Bool
 booleanLiteral =   (reserved "true" >> (return True))
@@ -311,6 +332,36 @@ nullLiteral = reserved "null" >> (return NullLiteral)
 
 thisKeyword :: Parser Expression
 thisKeyword = reserved "this" >> (return ThisKeyword)
+
+typeArgs :: Parser TypeArgs
+typeArgs = option [] $ angles $ many typeParser
+
+typeParser :: Parser Type
+typeParser = primitiveType <|> genericType
+
+primitiveType :: Parser Type
+primitiveType =
+  do  name <- primitiveTypeName
+      return $ Primitive name
+
+primitiveTypeName :: Parser PrimitiveType
+primitiveTypeName =
+      (reserved "Bool" >> return TBool)
+  <|> (reserved "Byte" >> return TByte)
+  <|> (reserved "UByte" >> return TUByte)
+  <|> (reserved "Int" >> return TInt)
+  <|> (reserved "UInt" >> return TUInt)
+  <|> (reserved "Long" >> return TLong)
+  <|> (reserved "ULong" >> return TULong)
+  <|> (reserved "Float" >> return TFloat)
+  <|> (reserved "Double" >> return TDouble)
+  <|> (reserved "String" >> return TString)
+
+genericType :: Parser Type
+genericType =
+  do  name <- identifier
+      args <- typeArgs
+      return $ Generic name args
 
 parseString :: String -> Module
 parseString str =

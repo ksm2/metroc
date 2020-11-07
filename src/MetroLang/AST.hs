@@ -3,10 +3,10 @@ module MetroLang.AST where
 data Module = Mod [Declaration] deriving (Show)
 
 data Declaration = Import String ImportSpecifier
-                 | Enumeration Identifier [EnumItem]
-                 | Interface Identifier InterfaceBlock
-                 | Class Identifier Params [Identifier] ClassBlock
-                 | Impl Identifier Identifier ClassBlock
+                 | Enumeration Identifier TypeArgs [EnumItem]
+                 | Interface Identifier TypeArgs InterfaceExtends InterfaceBlock
+                 | Class Identifier TypeArgs Params ClassExtends Implements ClassBlock
+                 | Impl Type Type ClassBlock
                  | Func Identifier Params ReturnType Block
                    deriving (Show)
 
@@ -14,21 +14,24 @@ type Params = [Param]
 
 data Param = Par Identifier Type deriving (Show)
 
-type ReturnType = Maybe Type
+type ReturnType = Type
 
 data ImportSpecifier = FuncImport Identifier Params ReturnType
                        deriving (Show)
 
-data EnumItem = EnumItem Identifier Params
-                deriving (Show)
+-- Enums
+data EnumItem = EnumItem Identifier Params deriving Show
 
-data InterfaceBlock = InterfaceBlock [MethodSignature] deriving (Show)
+-- Interfaces
+type InterfaceExtends = [Type]
+data InterfaceBlock = InterfaceBlock [MethodSignature] deriving Show
 
-data ClassBlock = ClassBlock [Method] deriving (Show)
-
+-- Classes
+type ClassExtends = Type
+type Implements = [Type]
+data ClassBlock = ClassBlock [Method] deriving Show
 data MethodSignature = MethodSignature Identifier Params ReturnType deriving (Show)
-
-data Method = Method MethodSignature Block deriving (Show)
+data Method = Method MethodSignature Block deriving Show
 
 data Block = Block [Stmt] deriving (Show)
 
@@ -82,4 +85,36 @@ data Arguments = Args [Expression] deriving (Show)
 
 type Identifier = String
 
-type Type = String
+-- Types
+type TypeArgs = [Type]
+data Type = TVoid
+          | Primitive PrimitiveType
+          | Generic String TypeArgs
+data PrimitiveType  = TBool
+                    | TByte
+                    | TUByte
+                    | TInt
+                    | TUInt
+                    | TLong
+                    | TULong
+                    | TFloat
+                    | TDouble
+                    | TString
+                      deriving (Enum, Show, Eq)
+
+instance Eq Type where
+  TVoid == TVoid = True
+  Primitive a == Primitive b = a == b
+  Generic a1 a2 == Generic b1 b2 = a1 == b1 && a2 == b2
+  _ == _ = False
+
+instance Show Type where
+  show TVoid = "Void"
+  show (Primitive p) = let (_:xs) = show p in xs
+  show (Generic s []) = s
+  show (Generic s args) = s ++ "<" ++ (joinArgs args) ++ ">"
+
+joinArgs :: (Show a) => [a] -> String
+joinArgs [] = ""
+joinArgs [element] = show element
+joinArgs (x:xs) = (show x) ++ ", " ++ (joinArgs xs)

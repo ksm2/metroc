@@ -2,10 +2,8 @@ module MetroLang.Compilation.Context where
 
 import Control.Monad.State (get, put, runState, State)
 import Data.Map ((!), empty, insert, fromList, member, Map)
-import Data.Maybe (fromMaybe)
 import MetroLang.AST
 import MetroLang.Bytes (utf8Length)
-import MetroLang.Compilation.Values
 import MetroLang.Types
 
 data CompileContext = CompileContext {
@@ -24,11 +22,11 @@ data ClassInfo = ClassInfo {
 } deriving Show
 
 data FunctionInfo = FunctionInfo {
-  parameters :: [DataType],
-  returnDataType :: DataType
+  parameters :: [Type],
+  returnDataType :: Type
 } deriving Show
 
-newtype Scope = Scope (Map String DataType) deriving Show
+newtype Scope = Scope (Map String Type) deriving Show
 
 incrCtr :: Compiler Int
 incrCtr =
@@ -85,12 +83,11 @@ readMethods (m:ms) =
 
 createFunctionInfo :: [Param] -> ReturnType -> FunctionInfo
 createFunctionInfo params returnType =
-  let paramDataTypes = map getParamDataType params
-      returnDataType = fromMaybe TVoid (fmap typeToDataType returnType)
-  in  FunctionInfo paramDataTypes returnDataType
+  let paramTypes = map getParamType params
+  in  FunctionInfo paramTypes returnType
 
-getParamDataType :: Param -> DataType
-getParamDataType (Par _ t) = typeToDataType t
+getParamType :: Param -> Type
+getParamType (Par _ t) = t
 
 getFieldOffset :: String -> String -> Compiler Int
 getFieldOffset className fieldName =
@@ -147,28 +144,28 @@ popScope =
       put $ ctx { scope = t }
       return h
 
-scopeFromParams :: [Param] -> Map String DataType
+scopeFromParams :: [Param] -> Map String Type
 scopeFromParams [] = empty
-scopeFromParams ((Par paramName paramType):ps) = insert paramName (typeToDataType paramType) $ scopeFromParams ps
+scopeFromParams ((Par paramName paramType):ps) = insert paramName paramType $ scopeFromParams ps
 
-declareVariable :: String -> DataType -> Compiler ()
+declareVariable :: String -> Type -> Compiler ()
 declareVariable varName varType=
   do  ctx@CompileContext { scope } <- get
       newScope <- declareVariableInScope varName varType $ head scope
       put $ ctx { scope = newScope:(tail scope) }
 
-declareVariableInScope :: String -> DataType -> Scope -> Compiler Scope
+declareVariableInScope :: String -> Type -> Scope -> Compiler Scope
 declareVariableInScope varName varType (Scope varMap) =
   if member varName varMap
   then error $ "Variable " ++ varName ++ " is already declared in this scope."
   else return $ Scope $ insert varName varType varMap
 
-lookupVariableType :: String -> Compiler DataType
+lookupVariableType :: String -> Compiler Type
 lookupVariableType varName =
   do  CompileContext { scope } <- get
       return $ lookupVariableTypeInScopes varName scope
 
-lookupVariableTypeInScopes :: String -> [Scope] -> DataType
+lookupVariableTypeInScopes :: String -> [Scope] -> Type
 lookupVariableTypeInScopes varName [] = error $ "Could not find variable " ++ varName ++ " in scope."
 lookupVariableTypeInScopes varName ((Scope x):xs) =
   if member varName x
@@ -177,15 +174,15 @@ lookupVariableTypeInScopes varName ((Scope x):xs) =
 
 builtInFunctions :: Map String FunctionInfo
 builtInFunctions =
-  fromList [ ("__storeByte", FunctionInfo [TInt, TByte] TVoid)
-           , ("__loadByte", FunctionInfo [TInt] TByte)
-           , ("__storeInt", FunctionInfo [TInt, TInt] TVoid)
-           , ("__loadInt", FunctionInfo [TInt] TInt)
-           , ("__storeLong", FunctionInfo [TInt, TLong] TVoid)
-           , ("__loadLong", FunctionInfo [TInt] TLong)
-           , ("__allocate", FunctionInfo [TInt] TInt)
-           , ("__memcpy", FunctionInfo [TInt, TInt, TInt] TVoid)
-           , ("__concat", FunctionInfo [TString, TString] TString)
+  fromList [ ("__storeByte", FunctionInfo [Primitive TInt, Primitive TByte] TVoid)
+           , ("__loadByte", FunctionInfo [Primitive TInt] (Primitive TByte))
+           , ("__storeInt", FunctionInfo [Primitive TInt, Primitive TInt] TVoid)
+           , ("__loadInt", FunctionInfo [Primitive TInt] (Primitive TInt))
+           , ("__storeLong", FunctionInfo [Primitive TInt, Primitive TLong] TVoid)
+           , ("__loadLong", FunctionInfo [Primitive TInt] (Primitive TLong))
+           , ("__allocate", FunctionInfo [Primitive TInt] (Primitive TInt))
+           , ("__memcpy", FunctionInfo [Primitive TInt, Primitive TInt, Primitive TInt] TVoid)
+           , ("__concat", FunctionInfo [Primitive TString, Primitive TString] (Primitive TString))
            ]
 
 -- | runCompiler executes the compilation of a module
