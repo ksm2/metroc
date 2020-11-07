@@ -23,6 +23,7 @@ languageDef =
                                      , "(import"
                                      , "(import"
                                      , "(local"
+                                     , "(loop"
                                      , "(memory"
                                      , "(module"
                                      , "(mut"
@@ -178,6 +179,7 @@ statement =
 statement' :: Parser Stmt
 statement' =   localStmt
            <|> blockStmt
+           <|> loopStmt
            <|> expStmt
 
 localStmt :: Parser Stmt
@@ -195,6 +197,13 @@ blockStmt =
         s <- many1 statement
         rparen
         return $ Block iden s
+
+loopStmt :: Parser Stmt
+loopStmt =
+    do  reserved "(loop"
+        s <- many1 statement
+        rparen
+        return $ Loop s
 
 expStmt :: Parser Stmt
 expStmt =
