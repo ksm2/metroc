@@ -93,12 +93,15 @@ data Type = TVoid
 data PrimitiveType  = TBool
                     | TByte
                     | TUByte
+                    | TWord
+                    | TUWord
                     | TInt
                     | TUInt
                     | TLong
                     | TULong
                     | TFloat
                     | TDouble
+                    | TChar
                     | TString
                       deriving (Enum, Show, Eq)
 

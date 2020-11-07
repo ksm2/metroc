@@ -349,12 +349,15 @@ primitiveTypeName =
       (reserved "Bool" >> return TBool)
   <|> (reserved "Byte" >> return TByte)
   <|> (reserved "UByte" >> return TUByte)
+  <|> (reserved "Word" >> return TWord)
+  <|> (reserved "UWord" >> return TUWord)
   <|> (reserved "Int" >> return TInt)
   <|> (reserved "UInt" >> return TUInt)
   <|> (reserved "Long" >> return TLong)
   <|> (reserved "ULong" >> return TULong)
   <|> (reserved "Float" >> return TFloat)
   <|> (reserved "Double" >> return TDouble)
+  <|> (reserved "Char" >> return TChar)
   <|> (reserved "String" >> return TString)
 
 genericType :: Parser Type
