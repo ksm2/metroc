@@ -1,0 +1,70 @@
+interface ToString {
+  /**
+   * Converts this value to a String.
+   */
+  toString() String
+}
+
+/**
+ * Copy a chunk of memory.
+ *
+ * @param destination - The target pointer in memory
+ * @param source - The source pointer in memory
+ * @param size - The number of bytes to copy
+ */
+fn __memcpy(destination Int, source Int, size Int) {
+  if size >= 8 {
+    // Copy 8 bytes
+    __storeLong(destination, __loadLong(source))
+    __memcpy(destination + 8, source + 8, size - 8)
+  } else if size != 0 {
+    // Copy one byte
+    __storeByte(destination, __loadByte(source))
+    __memcpy(destination + 1, source + 1, size - 1)
+  }
+}
+
+/**
+ * Concatenate two strings.
+ *
+ * @param str1 - The left string
+ * @param str2 - The right string
+ * @returns Left and right concatenated
+ */
+fn __concat(str1 String, str2 String) String {
+  length1 := __loadInt(str1.asInt())
+  length2 := __loadInt(str2.asInt())
+  ptr := __allocate(length1 + length2 + 4)
+  __storeInt(ptr, length1 + length2)
+  __memcpy(ptr + 4, str1.asInt() + 4, length1)
+  __memcpy(ptr + length1 + 4, str2.asInt() + 4, length2)
+
+  return ptr
+}
+
+fn countDigits(int Int) Int {
+  out := 1
+  if int >= 10 {
+    out = countDigits(int / 10) + 1
+  }
+  return out
+}
+
+fn putIntStr(ptr Int, int Int) {
+  if int < 10 {
+    __storeByte(ptr, (int + 48).toByte())
+  } else {
+    __storeByte(ptr, ((int % 10) + 48).toByte())
+    putIntStr(ptr - 1, int / 10)
+  }
+}
+
+impl ToString for Int {
+  toString(int Int) String {
+    len := countDigits(int)
+    str := __allocate(len + 4)
+    __storeInt(str, len)
+    putIntStr(str + len + 3, int)
+    return str
+  }
+}

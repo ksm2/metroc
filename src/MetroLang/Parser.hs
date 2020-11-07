@@ -1,4 +1,4 @@
-module MetroLang.Parser (parseString, parseFile) where
+module MetroLang.Parser (parseString, parseFile, merge) where
 
 import Control.Monad (liftM)
 import Data.Functor.Identity
@@ -375,3 +375,6 @@ parseFile file =
      case parse whileParser "" program of
        Left e  -> print e >> fail "parse error"
        Right r -> return r
+
+merge :: Module -> Module -> Module
+merge (Mod m1) (Mod m2) = Mod (m1 ++ m2)

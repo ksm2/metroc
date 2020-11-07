@@ -1,4 +1,4 @@
-module MetroLang.WebAssembly.Parser (parseString, parseFile) where
+module MetroLang.WebAssembly.Parser (parseString, parseFile, merge) where
 
 import Control.Monad (liftM)
 import Data.List (intercalate)
@@ -324,3 +324,6 @@ parseFile file =
      case parse whileParser "" program of
        Left e  -> print e >> fail "parse error"
        Right r -> return r
+
+merge :: Module -> Module -> Module
+merge (Mod d1) (Mod d2) = Mod (d1 ++ d2)

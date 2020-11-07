@@ -1,6 +1,5 @@
 module MetroLang.WebAssembly.Utils (
   injectData,
-  merge,
   br,
   brIf,
   call,
@@ -19,9 +18,6 @@ module MetroLang.WebAssembly.Utils (
 
 import qualified MetroLang.Bytes as Bytes
 import MetroLang.WebAssembly.AST
-
-merge :: Module -> Module -> Module
-merge (Mod d1) (Mod d2) = Mod (d1 ++ d2)
 
 injectDeclaration :: Declaration -> Module -> Module
 injectDeclaration x (Mod xs) = Mod (x:xs)

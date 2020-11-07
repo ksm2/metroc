@@ -10,7 +10,6 @@ import MetroLang.Compilation.Compile
 import MetroLang.Parser as Metro
 import MetroLang.WebAssembly.Generator
 import MetroLang.WebAssembly.Parser as WASM
-import MetroLang.WebAssembly.Utils
 
 outDir :: String
 outDir = "target"
@@ -26,12 +25,13 @@ metroToWat inFile outFile =
       createDirectoryIfMissing True outDir
 
       -- Load std lib
-      std <- return $ WASM.parseString $(embedStringFile "std/std.wat")
+      stdWasm <- return $ WASM.parseString $(embedStringFile "std/std.wat")
+      stdMetro <- return $ Metro.parseString $(embedStringFile "std/std.metro")
 
       -- Compile program and output WebAssembly Text format
       ast <- Metro.parseFile inFile
-      wasm <- return $ compile ast
-      generateFile outFile $ merge std wasm
+      wasm <- return $ compile $ Metro.merge stdMetro ast
+      generateFile outFile $ WASM.merge stdWasm wasm
 
 -- | runWat runs a WebAssembly Text format file
 runWat :: String -> IO ()
