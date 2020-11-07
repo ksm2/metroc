@@ -11,6 +11,7 @@ data CompileContext = CompileContext {
   stringOffset :: Int,
   strings :: Map String Int,
   thisContext :: Maybe String,
+  consts :: Map String Type,
   classes :: Map String ClassInfo,
   functions :: Map String FunctionInfo,
   scope :: [Scope]
@@ -55,6 +56,21 @@ requireThisContext =
   do  CompileContext { thisContext } <- get
       case thisContext of Just f  -> return f
                           _       -> error "You cannot use this in this context"
+
+declareConst :: String -> Type -> Compiler ()
+declareConst constName valueType =
+  do  ctx@CompileContext { consts } <- get
+      put $ ctx { consts = insert constName valueType consts }
+
+hasConst :: String -> Compiler Bool
+hasConst constName =
+  do  CompileContext { consts } <- get
+      return $ member constName consts
+
+lookupConst :: String -> Compiler Type
+lookupConst constName =
+  do  CompileContext { consts } <- get
+      return $ consts ! constName
 
 declareClass :: String -> ClassInfo -> Compiler ()
 declareClass className classInfo =
@@ -186,7 +202,16 @@ builtInFunctions =
 -- | runCompiler executes the compilation of a module
 runCompiler :: Compiler b -> (b, CompileContext)
 runCompiler cb =
-  let initialState = CompileContext 0 1024 empty Nothing empty builtInFunctions []
+  let initialState = CompileContext {
+                                      blockCtr = 0,
+                                      stringOffset = 1024,
+                                      strings = empty,
+                                      thisContext = Nothing,
+                                      consts = empty,
+                                      classes = empty,
+                                      functions = builtInFunctions,
+                                      scope = []
+                                    }
   in  runState cb initialState
 
 type Compiler = State CompileContext

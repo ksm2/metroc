@@ -23,6 +23,10 @@ declaration (Metro.Import moduleName specifier) =
   do  wasmImportName <- importName specifier
       wasmImportSpecifier <- importSpecifier specifier
       return [WASM.Import moduleName wasmImportName wasmImportSpecifier]
+declaration (Metro.Const constName value) =
+  do  Value valueType valueExpr <- expr value
+      declareConst constName valueType
+      return [WASM.Global constName (WASM.Imut (dataTypeToValtype valueType)) valueExpr]
 declaration (Metro.Enumeration _name _typeArgs _) = return []
 declaration (Metro.Interface _name _typeArgs _ _) = return []
 declaration (Metro.Class name _typeArgs pars _ _ body) =

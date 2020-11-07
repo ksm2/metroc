@@ -1,6 +1,10 @@
 import "wasi_unstable" fn fd_read(fd Int, ciovecArrayPtr Int, ciovecArrayLen Int, numReadPtr Int) Int
 import "wasi_unstable" fn fd_write(fd Int, ciovecArrayPtr Int, ciovecArrayLen Int, numWrittenPtr Int) Int
 
+const stdinFd = 0
+const stdoutFd = 1
+const stderrFd = 2
+
 class File(fileHandle Int) {
   writeln(text String) {
     this.write(text)
@@ -29,12 +33,12 @@ class File(fileHandle Int) {
 }
 
 fn main() {
-  stdin := File(0)
+  stdin := File(stdinFd)
   str := stdin.read()
 
-  stdout := File(1)
+  stdout := File(stdoutFd)
   stdout.write(str)
 
-  stderr := File(2)
+  stderr := File(stderrFd)
   stderr.writeln("standard" + "error")
 }

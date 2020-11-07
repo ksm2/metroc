@@ -16,6 +16,7 @@ languageDef =
            , Token.identStart      = letter <|> oneOf "_"
            , Token.identLetter     = alphaNum <|> oneOf "_"
            , Token.reservedNames   = [ "class"
+                                     , "const"
                                      , "else"
                                      , "enum"
                                      , "extends"
@@ -111,6 +112,7 @@ moduleParser =
 
 declaration :: Parser Declaration
 declaration =   importDeclaration
+            <|> constDeclaration
             <|> enumDeclaration
             <|> interfaceDeclaration
             <|> classDeclaration
@@ -123,6 +125,14 @@ importDeclaration =
       moduleName <- stringLiteral
       specifier <- importSpecifier
       return $ Import moduleName specifier
+
+constDeclaration :: Parser Declaration
+constDeclaration =
+  do  reserved "const"
+      constName <- identifier
+      reservedOp "="
+      value <- expr
+      return $ Const constName value
 
 enumDeclaration :: Parser Declaration
 enumDeclaration =

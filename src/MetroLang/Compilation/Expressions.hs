@@ -19,8 +19,13 @@ falseValue = Value (Primitive TBool) $ i32Const 0
 
 expr :: Metro.Expression -> Compiler Value
 expr (Metro.VariableExpr varName) =
-  do  varType <- lookupVariableType varName
-      return $ Value varType $ getLocal varName
+  do  isConst <- hasConst varName
+      if isConst then
+        do  varType <- lookupConst varName
+            return $ Value varType $ getGlobal varName
+      else
+        do  varType <- lookupVariableType varName
+            return $ Value varType $ getLocal varName
 expr (Metro.BooleanLiteral True) = return trueValue
 expr (Metro.BooleanLiteral False) = return falseValue
 expr (Metro.NumberLiteral n) = return $ Value (Primitive TInt) $ i32Const n

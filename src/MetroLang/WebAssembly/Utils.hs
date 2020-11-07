@@ -6,6 +6,8 @@ module MetroLang.WebAssembly.Utils (
   dropInstr,
   getLocal,
   setLocal,
+  getGlobal,
+  setGlobal,
   i32Const,
   i32Eqz,
   i32Eq,
@@ -43,6 +45,10 @@ getLocal :: Identifier -> Expr
 getLocal i = Instr "get_local" [Var i]
 setLocal :: Identifier -> Expr -> Expr
 setLocal i v = Instr "set_local" [Var i, v]
+getGlobal :: Identifier -> Expr
+getGlobal i = Instr "get_global" [Var i]
+setGlobal :: Identifier -> Expr -> Expr
+setGlobal i v = Instr "set_global" [Var i, v]
 i32Const :: Integer -> Expr
 i32Const num = Method "const" I32 [Lit num]
 i32Eqz :: Expr -> Expr

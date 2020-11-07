@@ -3,6 +3,7 @@ module MetroLang.AST where
 data Module = Mod [Declaration] deriving (Show)
 
 data Declaration = Import String ImportSpecifier
+                 | Const Identifier Expression
                  | Enumeration Identifier TypeArgs [EnumItem]
                  | Interface Identifier TypeArgs InterfaceExtends InterfaceBlock
                  | Class Identifier TypeArgs Params ClassExtends Implements ClassBlock
