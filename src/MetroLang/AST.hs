@@ -37,6 +37,7 @@ data Method = Method MethodSignature Block deriving Show
 data Block = Block [Stmt] deriving (Show)
 
 data Stmt = IfStmt If
+          | WhileStmt Expression Block
           | ReturnStmt Expression
           | ExprStmt Expression
             deriving (Show)

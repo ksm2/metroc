@@ -117,6 +117,15 @@ stmts = many stmt
 
 stmt :: Metro.Stmt -> Compiler WASM.Stmt
 stmt (Metro.IfStmt i) = ifStmt i
+stmt (Metro.WhileStmt cond whileBlock) =
+  do  Value condType condExpr <- expr cond
+      if condType /= Metro.Primitive TBool
+      then  error "The while condition must be of type Bool."
+      else  do  whileLabel <- label "while"
+                b <- block whileBlock
+                condBr <- return $ WASM.Exp $ brIf whileLabel condExpr
+                return $ WASM.Block whileLabel $ [WASM.Loop $ condBr:b]
+
 stmt (Metro.ReturnStmt e) =
   do  value <- expr e
       wasmEx <- return $ wasmExpr value

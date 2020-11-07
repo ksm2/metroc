@@ -31,6 +31,7 @@ languageDef =
                                      , "return"
                                      , "this"
                                      , "true"
+                                     , "while"
                                      ]
            , Token.reservedOpNames = [ ","
                                      , "."
@@ -259,6 +260,7 @@ block = liftM Block $ braces (many stmt)
 
 stmt :: Parser Stmt
 stmt =   liftM IfStmt ifParser
+     <|> whileStmt
      <|> liftM ReturnStmt returnStmt
      <|> liftM ExprStmt expr
 
@@ -274,6 +276,13 @@ elseParser :: Parser Else
 elseParser =
   do  reserved "else"
       (liftM ElseIfStmt ifParser) <|> (liftM ElseStmt block)
+
+whileStmt :: Parser Stmt
+whileStmt =
+  do  reserved "while"
+      cond <- expr
+      whileBlock <- block
+      return $ WhileStmt cond whileBlock
 
 returnStmt :: Parser Expression
 returnStmt =
