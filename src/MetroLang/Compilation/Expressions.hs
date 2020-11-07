@@ -28,7 +28,7 @@ expr (Metro.VariableExpr varName) =
             return $ Value varType $ getLocal varName
 expr (Metro.BooleanLiteral True) = return trueValue
 expr (Metro.BooleanLiteral False) = return falseValue
-expr (Metro.NumberLiteral n) = return $ Value (Primitive TInt) $ i32Const n
+expr (Metro.NumberLiteral p n) = return $ Value (Primitive p) $ i32Const n
 expr (Metro.StringLiteral l) =
   do  ptr <- registerString l
       return $ Value (Primitive TString) $ i32Const (toInteger ptr)
@@ -89,13 +89,19 @@ binaryExpr op e1 e2 =
       return $ binaryExprWasm op f1 f2
 
 fieldAccess :: Value -> String -> Compiler Value
+fieldAccess (Value (Primitive TUInt) obj) "lowUWord" = return $ Value (Primitive TUWord) $ toWord obj
+fieldAccess (Value (Primitive TUInt) obj) "highUWord" = return $ Value (Primitive TUWord) $ i32Shru obj $ i32Const 16
 fieldAccess (Value (Primitive TString) obj) "length" = return $ Value (Primitive TInt) $ i32Load obj
 fieldAccess (Value objType _) methodName = error $ "Unknown field " ++ methodName ++ " on primitive type " ++ show objType
 
 methodCall :: Value -> String -> [Value] -> Compiler Value
 methodCall (Value (Generic className _) obj) methodName args = classMethodCall className obj methodName args
+methodCall (Value (Primitive TUByte) obj) "toUWord" [] = return $ Value (Primitive TUWord) obj
+methodCall (Value (Primitive TUByte) obj) "toUInt" [] = return $ Value (Primitive TUInt) obj
+methodCall (Value (Primitive TUWord) obj) "toUInt" [] = return $ Value (Primitive TUInt) obj
 methodCall (Value (Primitive TInt) obj) "toLong" [] = return $ Value (Primitive TLong) $ i64ExtendI32S obj
-methodCall (Value (Primitive TInt) obj) "toByte" [] = return $ Value (Primitive TByte) $ obj
+methodCall (Value (Primitive TInt) obj) "toWord" [] = return $ Value (Primitive TWord) $ toWord obj
+methodCall (Value (Primitive TInt) obj) "toByte" [] = return $ Value (Primitive TByte) $ toByte obj
 methodCall (Value (Primitive TString) obj) "asInt" [] = return $ Value (Primitive TInt) $ obj
 methodCall (Value objType _) methodName args = error $ "Unknown method " ++ methodName ++ argsToInfo args ++ " on primitive type " ++ show objType
 
@@ -175,9 +181,21 @@ comparingExpr op (Value (Primitive TLong) e1) (Value (Primitive TLong) e2) = Val
 comparingExpr op _ _ = error $ "Cannot apply " ++ op ++ ": Types on left and right don't match."
 
 arithmeticExpr :: String -> Value -> Value -> Value
+arithmeticExpr op (Value (Primitive TByte) e1) (Value (Primitive TByte) e2) = Value (Primitive TByte) $ toByte $ WASM.Method op WASM.I32 [e1, e2]
+arithmeticExpr op (Value (Primitive TUByte) e1) (Value (Primitive TUByte) e2) = Value (Primitive TUByte) $ toByte $ WASM.Method op WASM.I32 [e1, e2]
+arithmeticExpr op (Value (Primitive TWord) e1) (Value (Primitive TWord) e2) = Value (Primitive TWord) $ toWord $ WASM.Method op WASM.I32 [e1, e2]
+arithmeticExpr op (Value (Primitive TUWord) e1) (Value (Primitive TUWord) e2) = Value (Primitive TUWord) $ toWord $ WASM.Method op WASM.I32 [e1, e2]
 arithmeticExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TInt) $ WASM.Method op WASM.I32 [e1, e2]
+arithmeticExpr op (Value (Primitive TUInt) e1) (Value (Primitive TUInt) e2) = Value (Primitive TUInt) $ WASM.Method op WASM.I32 [e1, e2]
 arithmeticExpr op (Value (Primitive TLong) e1) (Value (Primitive TLong) e2) = Value (Primitive TLong) $ WASM.Method op WASM.I64 [e1, e2]
-arithmeticExpr op _ _ = error $ "Cannot apply " ++ op ++ ": Types on left and right don't match."
+arithmeticExpr op (Value (Primitive TULong) e1) (Value (Primitive TULong) e2) = Value (Primitive TULong) $ WASM.Method op WASM.I64 [e1, e2]
+arithmeticExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
+
+toByte :: WASM.Expr -> WASM.Expr
+toByte e = i32And (i32Const 0xFF) e
+
+toWord :: WASM.Expr -> WASM.Expr
+toWord e = i32And (i32Const 0xFFFF) e
 
 arguments :: Metro.Arguments -> Compiler [Value]
 arguments (Metro.Args e) = exprs e

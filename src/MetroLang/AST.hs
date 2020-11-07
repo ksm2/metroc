@@ -81,7 +81,7 @@ data UnaryOp = Neg
 
 data Expression = VariableExpr Identifier
                 | BooleanLiteral Bool
-                | NumberLiteral Integer
+                | NumberLiteral PrimitiveType Integer
                 | StringLiteral String
                 | NullLiteral
                 | ThisKeyword

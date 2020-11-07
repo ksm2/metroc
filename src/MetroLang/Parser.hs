@@ -321,7 +321,7 @@ term =   parens expr
      <|> liftM BooleanLiteral booleanLiteral
      <|> try callExpr
      <|> liftM VariableExpr identifier
-     <|> liftM NumberLiteral integer
+     <|> numberLiteral
      <|> liftM StringLiteral stringLiteral
 
 callExpr :: Parser Expression
@@ -344,6 +344,28 @@ stringLiteral =
       _ <- oneOf "\""
       whiteSpace
       return $ decodeStringLiteral stringValue
+
+numberLiteral :: Parser Expression
+numberLiteral = integerLiteral
+
+integerLiteral :: Parser Expression
+integerLiteral =
+  do  int <- integer
+
+      suffix <- option "" $ choice [try $ symbol "UB", try $ symbol "UW", try $ symbol "UL", symbol "U"
+                                  , symbol "B", symbol "W", symbol "L"]
+      return $ NumberLiteral (suffixToPrimitiveType suffix) int
+
+suffixToPrimitiveType :: String -> PrimitiveType
+suffixToPrimitiveType "UB" = TUByte
+suffixToPrimitiveType "B" = TByte
+suffixToPrimitiveType "UW" = TUWord
+suffixToPrimitiveType "W" = TWord
+suffixToPrimitiveType "U" = TUInt
+suffixToPrimitiveType "" = TInt
+suffixToPrimitiveType "UL" = TULong
+suffixToPrimitiveType "L" = TLong
+suffixToPrimitiveType _ = error "Unexpected number suffix"
 
 decodeStringLiteral :: String -> String
 decodeStringLiteral [] = []
