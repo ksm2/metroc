@@ -201,9 +201,10 @@ blockStmt =
 loopStmt :: Parser Stmt
 loopStmt =
     do  reserved "(loop"
+        iden <- identifier
         s <- many1 statement
         rparen
-        return $ Loop s
+        return $ Loop iden s
 
 expStmt :: Parser Stmt
 expStmt =

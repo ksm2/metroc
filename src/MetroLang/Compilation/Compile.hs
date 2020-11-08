@@ -122,9 +122,10 @@ stmt (Metro.WhileStmt cond whileBlock) =
       if condType /= Metro.Primitive TBool
       then  error "The while condition must be of type Bool."
       else  do  whileLabel <- label "while"
+                continueLabel <- label "continue"
                 b <- block whileBlock
                 condBr <- return $ WASM.Exp $ brIf whileLabel condExpr
-                return $ WASM.Block whileLabel $ [WASM.Loop $ condBr:b]
+                return $ WASM.Block whileLabel $ [WASM.Loop continueLabel $ condBr:b ++ [WASM.Exp $ br continueLabel]]
 
 stmt (Metro.ReturnStmt e) =
   do  value <- expr e
