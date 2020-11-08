@@ -30,12 +30,15 @@ declaration (Metro.Const constName value) =
 declaration (Metro.Enumeration _name _typeArgs _) = return []
 declaration (Metro.Interface _name _typeArgs _ _) = return []
 declaration (Metro.Class name _typeArgs pars _ _ body) =
-  do  setThisContext (Just name)
+  do  setThisContext (Generic name [])
       declareClass name (createClassInfo pars body)
       classBlockDeclarations <- classBlock body
       constr <- constructor name pars
       return $ constr:classBlockDeclarations
-declaration (Metro.Impl _ _ _) = return []
+declaration (Metro.Impl _ targetType body) =
+  do  setThisContext targetType
+      enhanceClass (show targetType) (createClassInfo [] body)
+      classBlock body
 declaration (Metro.Func fnName fnParams fnReturn body) =
   do  declareFunction fnName $ FunctionInfo (map getParamType fnParams) fnReturn
       p <- params fnParams
@@ -66,7 +69,7 @@ constructor name pars =
 assignField :: Metro.Param -> Compiler WASM.Stmt
 assignField (Metro.Par fieldName _) =
   do  className <- requireThisContext
-      fieldOffset <- getFieldOffset className fieldName
+      fieldOffset <- getFieldOffset (show className) fieldName
       return $ WASM.Exp $ i32Store (i32Add (getLocal "___ptr") (i32Const $ toInteger fieldOffset)) (getLocal fieldName)
 
 -- Classes
@@ -89,7 +92,7 @@ methodSignature (Metro.MethodSignature name methodParams methodReturn) =
       thisParam <- return $ WASM.Par "this" WASM.I32
       pp <- params methodParams
       r <- returnType methodReturn
-      return $ WASM.Func (className ++ "." ++ name) (thisParam:pp) r
+      return $ WASM.Func ((show className) ++ "." ++ name) (thisParam:pp) r
 
 -- Statements
 stmtSeq :: [WASM.Stmt] -> Compiler WASM.Stmt

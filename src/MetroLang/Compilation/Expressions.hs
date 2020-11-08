@@ -1,6 +1,6 @@
 module MetroLang.Compilation.Expressions(exprs, expr) where
 
-import MetroLang.AST as Metro (joinArgs, Type(..), PrimitiveType(..))
+import MetroLang.AST as Metro (Type(..), PrimitiveType(..))
 import qualified MetroLang.AST as Metro
 import qualified MetroLang.WebAssembly.AST as WASM
 import MetroLang.WebAssembly.Utils
@@ -35,8 +35,8 @@ expr (Metro.StringLiteral l) =
       return $ Value (Primitive TString) $ i32Const (toInteger ptr)
 expr (Metro.NullLiteral) = return $ Value TVoid $ i32Const 0
 expr (Metro.ThisKeyword) =
-  do  className <- requireThisContext
-      return $ Value (Generic className []) $ i32Const 0
+  do  classType <- requireThisContext
+      return $ Value classType $ getLocal "this"
 expr (Metro.Unary op e) = unaryExpr op e
 expr (Metro.Binary op e1 e2) = binaryExpr op e1 e2
 expr (Metro.Call callee args) =
@@ -66,20 +66,10 @@ binaryExpr :: Metro.BinOp -> Metro.Expression -> Metro.Expression -> Compiler Va
 binaryExpr Metro.Definition e1 e2 = definitionExpr e1 e2
 binaryExpr Metro.Assignment e1 e2 = assignment e1 e2
 
-binaryExpr Metro.Chain Metro.ThisKeyword (Metro.VariableExpr fieldName) =
-  do  className <- requireThisContext
-      fieldOffset <- getFieldOffset className fieldName
-      return $ Value (Primitive TInt) $ i32Load $ i32Add (getLocal "this") (i32Const $ toInteger fieldOffset)
-      -- TODO: can only load Int
 binaryExpr Metro.Chain obj (Metro.VariableExpr fieldName) =
   do  objValue <- expr obj
       fieldAccess objValue fieldName
 
-binaryExpr Metro.Chain Metro.ThisKeyword (Metro.Call methodName args) =
-  do  className <- requireThisContext
-      thisAccess <- return $ getLocal "this"
-      argValues <- arguments args
-      classMethodCall className thisAccess methodName argValues
 binaryExpr Metro.Chain obj (Metro.Call methodName args) =
   do  objValue <- expr obj
       argValues <- arguments args
@@ -95,19 +85,24 @@ fieldAccess (Value (Primitive TUInt) obj) "lowUWord" = return $ Value (Primitive
 fieldAccess (Value (Primitive TUInt) obj) "highUWord" = return $ Value (Primitive TUWord) $ i32Shru obj $ i32Const 16
 fieldAccess (Value (Primitive TString) obj) "length" = return $ Value (Primitive TInt) $ i32Load obj
 fieldAccess (Value (List _) obj) "length" = return $ Value (Primitive TUInt) $ i32Load obj
+fieldAccess (Value (Generic className _) objExpr) fieldName =
+  do  fieldOffset <- getFieldOffset className fieldName
+      return $ Value (Primitive TInt) $ i32Load $ i32Add objExpr (i32Const $ toInteger fieldOffset)
+      -- TODO: can only load Int
 fieldAccess (Value objType _) methodName = error $ "Unknown field " ++ methodName ++ " on primitive type " ++ show objType
 
 methodCall :: Value -> String -> [Value] -> Compiler Value
-methodCall (Value (Generic className _) obj) methodName args = classMethodCall className obj methodName args
 methodCall (Value (Primitive TUByte) obj) "toUWord" [] = return $ Value (Primitive TUWord) obj
 methodCall (Value (Primitive TUByte) obj) "toUInt" [] = return $ Value (Primitive TUInt) obj
 methodCall (Value (Primitive TUWord) obj) "toUInt" [] = return $ Value (Primitive TUInt) obj
 methodCall (Value (Primitive TInt) obj) "toLong" [] = return $ Value (Primitive TLong) $ i64ExtendI32S obj
 methodCall (Value (Primitive TInt) obj) "toWord" [] = return $ Value (Primitive TWord) $ toWord obj
 methodCall (Value (Primitive TInt) obj) "toByte" [] = return $ Value (Primitive TByte) $ toByte obj
+methodCall (Value (Primitive TUInt) obj) "toByte" [] = return $ Value (Primitive TByte) $ toByte obj
 methodCall (Value (Primitive TString) obj) "toUByteList" [] = return $ Value (List (Primitive TUByte)) $ obj
 methodCall (Value (Primitive TString) obj) "asInt" [] = return $ Value (Primitive TInt) $ obj
-methodCall (Value objType _) methodName args = error $ "Unknown method " ++ methodName ++ argsToInfo args ++ " on primitive type " ++ show objType
+methodCall (Value objType obj) methodName args = classMethodCall (show objType) obj methodName args
+--methodCall (Value objType _) methodName args = error $ "Unknown method " ++ methodName ++ argsToInfo args ++ " on primitive type " ++ show objType
 
 classMethodCall :: String -> WASM.Expr -> String -> [Value] -> Compiler Value
 classMethodCall className obj methodName args =
@@ -122,8 +117,17 @@ listAccessExpr obj key =
       then  error "List access needs to be of type UInt."
       else  do  Value objType objExpr <- expr obj
                 case objType of
-                  List listType -> return $ Value listType $ i32Load $ i32Add (i32Const 4) $ i32Add objExpr $ i32Mul keyExpr $ i32Const $ toInteger (sizeOf listType)
+                  List listType -> return $ load listType $ i32Add (i32Const 4) $ i32Add objExpr $ i32Mul keyExpr $ i32Const $ toInteger (sizeOf listType)
                   _ -> error "Can only access lists by index."
+
+load :: Type -> WASM.Expr -> Value
+load (Primitive TByte) n1 = Value (Primitive TByte) $ WASM.Method "load8_s" WASM.I32 [n1]
+load (Primitive TUByte) n1 = Value (Primitive TUByte) $ WASM.Method "load8_u" WASM.I32 [n1]
+load (Primitive TWord) n1 = Value (Primitive TWord) $ WASM.Method "load16_s" WASM.I32 [n1]
+load (Primitive TUWord) n1 = Value (Primitive TUWord) $ WASM.Method "load16_u" WASM.I32 [n1]
+load (Primitive TLong) n1 = Value (Primitive TLong) $ WASM.Method "load" WASM.I64 [n1]
+load (Primitive TULong) n1 = Value (Primitive TULong) $ WASM.Method "load" WASM.I64 [n1]
+load x n1 = Value x $ WASM.Method "load" WASM.I32 [n1]
 
 checkFunctionSignature :: Int -> String -> [Metro.Type] -> [Value] -> [WASM.Expr]
 checkFunctionSignature _ _ [] [] = []
@@ -140,9 +144,6 @@ ordnum 1 = "1st"
 ordnum 2 = "2nd"
 ordnum 3 = "3rd"
 ordnum x = (show x) ++ "th"
-
-argsToInfo :: [Value] -> String
-argsToInfo vs = "(" ++ (joinArgs (map dataType vs)) ++ ")"
 
 definitionExpr :: Metro.Expression -> Metro.Expression -> Compiler Value
 definitionExpr (Metro.VariableExpr varName) ex =

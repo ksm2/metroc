@@ -1,7 +1,7 @@
 module MetroLang.Compilation.Context where
 
 import Control.Monad.State (get, put, runState, State)
-import Data.Map ((!), empty, insert, fromList, member, Map)
+import Data.Map ((!), adjust, empty, insert, fromList, member, union, Map)
 import MetroLang.AST
 import MetroLang.Bytes (utf8Length)
 import MetroLang.Types
@@ -10,7 +10,7 @@ data CompileContext = CompileContext {
   blockCtr :: Int,
   stringOffset :: Int,
   strings :: Map String Int,
-  thisContext :: Maybe String,
+  thisContext :: Type,
   consts :: Map String Type,
   classes :: Map String ClassInfo,
   functions :: Map String FunctionInfo,
@@ -46,16 +46,16 @@ registerString str =
             put $ ctx { stringOffset = nextOffset, strings = inserted }
             return stringOffset
 
-setThisContext :: Maybe String -> Compiler ()
+setThisContext :: Type -> Compiler ()
 setThisContext thisContext =
   do ctx <- get
      put $ ctx { thisContext }
 
-requireThisContext :: Compiler String
+requireThisContext :: Compiler Type
 requireThisContext =
   do  CompileContext { thisContext } <- get
-      case thisContext of Just f  -> return f
-                          _       -> error "You cannot use this in this context"
+      case thisContext of TVoid -> error "You cannot use this in this context"
+                          f     -> return f
 
 declareConst :: String -> Type -> Compiler ()
 declareConst constName valueType =
@@ -76,6 +76,17 @@ declareClass :: String -> ClassInfo -> Compiler ()
 declareClass className classInfo =
   do  ctx@CompileContext { classes } <- get
       put $ ctx { classes = insert className classInfo classes }
+
+enhanceClass :: String -> ClassInfo -> Compiler ()
+enhanceClass className classInfo =
+  do  ctx@CompileContext { classes } <- get
+      put $ ctx { classes = adjust (mergeClassInfo classInfo) className classes }
+
+mergeClassInfo :: ClassInfo -> ClassInfo -> ClassInfo
+mergeClassInfo ci1 ci2 =
+  let ClassInfo fields1 methods1 = ci1
+      ClassInfo fields2 methods2 = ci2
+  in  ClassInfo (union fields1 fields2) (union methods1 methods2)
 
 createClassInfo :: [Param] -> ClassBlock -> ClassInfo
 createClassInfo classParams (ClassBlock body) =
@@ -206,7 +217,7 @@ runCompiler cb =
                                       blockCtr = 0,
                                       stringOffset = 1024,
                                       strings = empty,
-                                      thisContext = Nothing,
+                                      thisContext = TVoid,
                                       consts = empty,
                                       classes = empty,
                                       functions = builtInFunctions,
