@@ -423,10 +423,10 @@ genericType =
       args <- typeArgs
       return $ Generic name args
 
-parseString :: String -> Module
-parseString str =
+parseString :: String -> String -> Module
+parseString context str =
   case parse whileParser "" str of
-    Left e  -> error $ show e
+    Left e  -> error $ "Parse error in " ++ context ++ ": " ++ (show e)
     Right r -> r
 
 parseFile :: String -> IO Module

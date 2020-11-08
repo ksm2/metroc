@@ -26,7 +26,7 @@ metroToWat inFile outFile =
 
       -- Load std lib
       stdWasm <- return $ WASM.parseString $(embedStringFile "std/std.wat")
-      stdMetro <- return $ Metro.parseString $(embedStringFile "std/std.metro")
+      stdMetro <- return $ Metro.parseString "std.metro" $(embedStringFile "std/std.metro")
 
       -- Compile program and output WebAssembly Text format
       ast <- Metro.parseFile inFile

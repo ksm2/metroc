@@ -42,29 +42,29 @@ fn __concat(str1 String, str2 String) String {
   return ptr
 }
 
-fn countDigits(int Int) Int {
-  out := 1
-  if int >= 10 {
-    out = countDigits(int / 10) + 1
-  }
-  return out
-}
-
-fn putIntStr(ptr Int, int Int) {
-  if int < 10 {
-    __storeByte(ptr, (int + 48).toByte())
-  } else {
-    __storeByte(ptr, ((int % 10) + 48).toByte())
-    putIntStr(ptr - 1, int / 10)
-  }
-}
-
 impl ToString for Int {
-  toString(int Int) String {
-    len := countDigits(int)
+  toString() String {
+    len := this.countDigits()
     str := __allocate(len + 4)
     __storeInt(str, len)
-    putIntStr(str + len + 3, int)
+    this.putIntStr(str + len + 3)
     return str
+  }
+
+  countDigits() Int {
+    out := 1
+    if int >= 10 {
+      out = countDigits(int / 10) + 1
+    }
+    return out
+  }
+
+  putIntStr(ptr Int) {
+    if this < 10 {
+      __storeByte(ptr, (this + 48).toByte())
+    } else {
+      __storeByte(ptr, ((this % 10) + 48).toByte())
+      putIntStr(ptr - 1, this / 10)
+    }
   }
 }
