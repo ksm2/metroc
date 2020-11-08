@@ -190,9 +190,14 @@ boolExpr op (Value (Primitive TBool) e1) (Value (Primitive TBool) e2) = Value (P
 boolExpr op _ _ = error $ "Can only apply '" ++ op ++ "' on two Bools."
 
 comparingExpr :: String -> Value -> Value -> Value
-comparingExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TBool) $ WASM.Method op WASM.I32 [e1, e2]
-comparingExpr op (Value (Primitive TUInt) e1) (Value (Primitive TUInt) e2) = Value (Primitive TBool) $ WASM.Method op WASM.I32 [e1, e2]
-comparingExpr op (Value (Primitive TLong) e1) (Value (Primitive TLong) e2) = Value (Primitive TBool) $ WASM.Method op WASM.I64 [e1, e2]
+comparingExpr op (Value (Primitive TByte) e1) (Value (Primitive TByte) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
+comparingExpr op (Value (Primitive TUByte) e1) (Value (Primitive TUByte) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
+comparingExpr op (Value (Primitive TWord) e1) (Value (Primitive TWord) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
+comparingExpr op (Value (Primitive TUWord) e1) (Value (Primitive TUWord) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
+comparingExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
+comparingExpr op (Value (Primitive TUInt) e1) (Value (Primitive TUInt) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
+comparingExpr op (Value (Primitive TLong) e1) (Value (Primitive TLong) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I64 [e1, e2]
+comparingExpr op (Value (Primitive TULong) e1) (Value (Primitive TULong) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I64 [e1, e2]
 comparingExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
 
 arithmeticExpr :: String -> Value -> Value -> Value
