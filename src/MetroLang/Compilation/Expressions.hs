@@ -7,6 +7,7 @@ import MetroLang.WebAssembly.Utils
 import MetroLang.Compilation.Combinators
 import MetroLang.Compilation.Context
 import MetroLang.Compilation.Values
+import MetroLang.Types
 
 exprs :: [Metro.Expression] -> Compiler [Value]
 exprs = many expr
@@ -44,6 +45,7 @@ expr (Metro.Call callee args) =
       if isConstructorCall
       then return $ Value (Generic callee []) $ call callee (map wasmExpr a)
       else functionCall callee a
+expr (Metro.ListAccess obj key) = listAccessExpr obj key
 
 functionCall :: String -> [Value] -> Compiler Value
 functionCall fnName args =
@@ -92,6 +94,7 @@ fieldAccess :: Value -> String -> Compiler Value
 fieldAccess (Value (Primitive TUInt) obj) "lowUWord" = return $ Value (Primitive TUWord) $ toWord obj
 fieldAccess (Value (Primitive TUInt) obj) "highUWord" = return $ Value (Primitive TUWord) $ i32Shru obj $ i32Const 16
 fieldAccess (Value (Primitive TString) obj) "length" = return $ Value (Primitive TInt) $ i32Load obj
+fieldAccess (Value (List _) obj) "length" = return $ Value (Primitive TUInt) $ i32Load obj
 fieldAccess (Value objType _) methodName = error $ "Unknown field " ++ methodName ++ " on primitive type " ++ show objType
 
 methodCall :: Value -> String -> [Value] -> Compiler Value
@@ -102,6 +105,7 @@ methodCall (Value (Primitive TUWord) obj) "toUInt" [] = return $ Value (Primitiv
 methodCall (Value (Primitive TInt) obj) "toLong" [] = return $ Value (Primitive TLong) $ i64ExtendI32S obj
 methodCall (Value (Primitive TInt) obj) "toWord" [] = return $ Value (Primitive TWord) $ toWord obj
 methodCall (Value (Primitive TInt) obj) "toByte" [] = return $ Value (Primitive TByte) $ toByte obj
+methodCall (Value (Primitive TString) obj) "toUByteList" [] = return $ Value (List (Primitive TUByte)) $ obj
 methodCall (Value (Primitive TString) obj) "asInt" [] = return $ Value (Primitive TInt) $ obj
 methodCall (Value objType _) methodName args = error $ "Unknown method " ++ methodName ++ argsToInfo args ++ " on primitive type " ++ show objType
 
@@ -110,6 +114,16 @@ classMethodCall className obj methodName args =
   do  method <- lookupClassMethod className methodName
       wasmArgs <- return $ checkFunctionSignature 1 methodName (parameters method) args
       return $ Value (returnDataType method) $ call (className ++ "." ++ methodName) $ obj:wasmArgs
+
+listAccessExpr :: Metro.Expression -> Metro.Expression -> Compiler Value
+listAccessExpr obj key =
+  do  Value keyType keyExpr <- expr key
+      if keyType /= Primitive TUInt
+      then  error "List access needs to be of type UInt."
+      else  do  Value objType objExpr <- expr obj
+                case objType of
+                  List listType -> return $ Value listType $ i32Load $ i32Add (i32Const 4) $ i32Add objExpr $ i32Mul keyExpr $ i32Const $ toInteger (sizeOf listType)
+                  _ -> error "Can only access lists by index."
 
 checkFunctionSignature :: Int -> String -> [Metro.Type] -> [Value] -> [WASM.Expr]
 checkFunctionSignature _ _ [] [] = []
@@ -177,8 +191,9 @@ boolExpr op _ _ = error $ "Can only apply '" ++ op ++ "' on two Bools."
 
 comparingExpr :: String -> Value -> Value -> Value
 comparingExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TBool) $ WASM.Method op WASM.I32 [e1, e2]
+comparingExpr op (Value (Primitive TUInt) e1) (Value (Primitive TUInt) e2) = Value (Primitive TBool) $ WASM.Method op WASM.I32 [e1, e2]
 comparingExpr op (Value (Primitive TLong) e1) (Value (Primitive TLong) e2) = Value (Primitive TBool) $ WASM.Method op WASM.I64 [e1, e2]
-comparingExpr op _ _ = error $ "Cannot apply " ++ op ++ ": Types on left and right don't match."
+comparingExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
 
 arithmeticExpr :: String -> Value -> Value -> Value
 arithmeticExpr op (Value (Primitive TByte) e1) (Value (Primitive TByte) e2) = Value (Primitive TByte) $ toByte $ WASM.Method op WASM.I32 [e1, e2]

@@ -89,6 +89,7 @@ data Expression = VariableExpr Identifier
                 | Unary UnaryOp Expression
                 | Binary BinOp Expression Expression
                 | Call Identifier Arguments
+                | ListAccess Expression Expression
                   deriving (Show)
 
 data Arguments = Args [Expression] deriving (Show)
@@ -99,6 +100,7 @@ type Identifier = String
 type TypeArgs = [Type]
 data Type = TVoid
           | Primitive PrimitiveType
+          | List Type
           | Generic String TypeArgs
 data PrimitiveType  = TBool
                     | TByte
@@ -118,12 +120,14 @@ data PrimitiveType  = TBool
 instance Eq Type where
   TVoid == TVoid = True
   Primitive a == Primitive b = a == b
+  List a == List b = a == b
   Generic a1 a2 == Generic b1 b2 = a1 == b1 && a2 == b2
   _ == _ = False
 
 instance Show Type where
   show TVoid = "Void"
   show (Primitive p) = let (_:xs) = show p in xs
+  show (List t) = "[" ++ (show t) ++ "]"
   show (Generic s []) = s
   show (Generic s args) = s ++ "<" ++ (joinArgs args) ++ ">"
 

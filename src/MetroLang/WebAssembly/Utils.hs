@@ -12,6 +12,7 @@ module MetroLang.WebAssembly.Utils (
   i32Eqz,
   i32Eq,
   i32Add,
+  i32Mul,
   i32And,
   i32Or,
   i32Sub,
@@ -66,6 +67,8 @@ i32Add :: Expr -> Expr -> Expr
 i32Add n1 n2 = Method "add" I32 [n1, n2]
 i32Sub :: Expr -> Expr -> Expr
 i32Sub n1 n2 = Method "sub" I32 [n1, n2]
+i32Mul :: Expr -> Expr -> Expr
+i32Mul n1 n2 = Method "mul" I32 [n1, n2]
 i32Shru :: Expr -> Expr -> Expr
 i32Shru n1 n2 = Method "shr_u" I32 [n1, n2]
 i32Load :: Expr -> Expr

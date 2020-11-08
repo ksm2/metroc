@@ -92,6 +92,10 @@ parens      = Token.parens     lexer
 braces      :: Parser a -> Parser a
 braces      = Token.braces     lexer
 
+-- | brackets parses square brackets ("[" and "]") around an expression
+brackets    :: Parser a -> Parser a
+brackets    = Token.brackets   lexer
+
 -- | angles parses angle brackets ("<" and ">") around an expression
 angles      :: Parser a -> Parser a
 angles      = Token.angles     lexer
@@ -324,20 +328,30 @@ operators = [ [Infix  (reservedOp "."   >> return (Binary Chain               ))
             ]
 
 term :: Parser Expression
-term =   parens expr
-     <|> nullLiteral
-     <|> thisKeyword
-     <|> liftM BooleanLiteral booleanLiteral
-     <|> try callExpr
-     <|> liftM VariableExpr identifier
-     <|> numberLiteral
-     <|> liftM StringLiteral stringLiteral
+term =   try callExpr
+     <|> try listAccessExpr
+     <|> primaryExpression
+
+primaryExpression :: Parser Expression
+primaryExpression =   parens expr
+                  <|> nullLiteral
+                  <|> thisKeyword
+                  <|> liftM BooleanLiteral booleanLiteral
+                  <|> liftM VariableExpr identifier
+                  <|> numberLiteral
+                  <|> liftM StringLiteral stringLiteral
 
 callExpr :: Parser Expression
 callExpr =
   do  callee <- identifier
       arg <- arguments
       return $ Call callee arg
+
+listAccessExpr :: Parser Expression
+listAccessExpr =
+  do  obj <- primaryExpression
+      key <- brackets expr
+      return $ ListAccess obj key
 
 arguments :: Parser Arguments
 arguments = liftM Args $ parens (commaSepEnd expr)
@@ -394,7 +408,9 @@ typeArgs :: Parser TypeArgs
 typeArgs = option [] $ angles $ many typeParser
 
 typeParser :: Parser Type
-typeParser = primitiveType <|> genericType
+typeParser =   primitiveType
+           <|> listType
+           <|> genericType
 
 primitiveType :: Parser Type
 primitiveType =
@@ -416,6 +432,9 @@ primitiveTypeName =
   <|> (reserved "Double" >> return TDouble)
   <|> (reserved "Char" >> return TChar)
   <|> (reserved "String" >> return TString)
+
+listType :: Parser Type
+listType = liftM List $ brackets typeParser
 
 genericType :: Parser Type
 genericType =
