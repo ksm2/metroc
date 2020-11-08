@@ -169,7 +169,7 @@ classDeclaration =
   do  reserved "class"
       name <- identifier
       args <- typeArgs
-      pars <- params
+      pars <- optionalParams
       extends <- classExtends
       implements <- impls
       body <- classBlock
