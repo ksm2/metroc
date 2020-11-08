@@ -178,8 +178,8 @@ binaryExprWasm Metro.ShiftRight v1 v2 = arithmeticExpr "shr_s" v1 v2
 binaryExprWasm Metro.UnsignedShiftRight v1 v2 = arithmeticExpr "shr_u" v1 v2
 binaryExprWasm Metro.Subtract v1 v2 = arithmeticExpr "sub" v1 v2
 binaryExprWasm Metro.Add v1 v2 = arithmeticExpr "add" v1 v2
-binaryExprWasm Metro.Modulo v1 v2 = arithmeticExpr "rem_s" v1 v2
-binaryExprWasm Metro.Divide v1 v2 = arithmeticExpr "div_s" v1 v2
+binaryExprWasm Metro.Modulo v1 v2 = signedArithmeticExpr "rem" v1 v2
+binaryExprWasm Metro.Divide v1 v2 = signedArithmeticExpr "div" v1 v2
 binaryExprWasm Metro.Multiply v1 v2 = arithmeticExpr "mul" v1 v2
 binaryExprWasm op _ _ = error $ (show op) ++ " not implemented yet"
 --binaryExpr Metro.OptChain e1 e2 = TODO!
@@ -205,6 +205,17 @@ arithmeticExpr op (Value (Primitive TUInt) e1) (Value (Primitive TUInt) e2) = Va
 arithmeticExpr op (Value (Primitive TLong) e1) (Value (Primitive TLong) e2) = Value (Primitive TLong) $ WASM.Method op WASM.I64 [e1, e2]
 arithmeticExpr op (Value (Primitive TULong) e1) (Value (Primitive TULong) e2) = Value (Primitive TULong) $ WASM.Method op WASM.I64 [e1, e2]
 arithmeticExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
+
+signedArithmeticExpr :: String -> Value -> Value -> Value
+signedArithmeticExpr op (Value (Primitive TByte) e1) (Value (Primitive TByte) e2) = Value (Primitive TByte) $ toByte $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
+signedArithmeticExpr op (Value (Primitive TUByte) e1) (Value (Primitive TUByte) e2) = Value (Primitive TUByte) $ toByte $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
+signedArithmeticExpr op (Value (Primitive TWord) e1) (Value (Primitive TWord) e2) = Value (Primitive TWord) $ toWord $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
+signedArithmeticExpr op (Value (Primitive TUWord) e1) (Value (Primitive TUWord) e2) = Value (Primitive TUWord) $ toWord $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
+signedArithmeticExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TInt) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
+signedArithmeticExpr op (Value (Primitive TUInt) e1) (Value (Primitive TUInt) e2) = Value (Primitive TUInt) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
+signedArithmeticExpr op (Value (Primitive TLong) e1) (Value (Primitive TLong) e2) = Value (Primitive TLong) $ WASM.Method (op ++ "_s") WASM.I64 [e1, e2]
+signedArithmeticExpr op (Value (Primitive TULong) e1) (Value (Primitive TULong) e2) = Value (Primitive TULong) $ WASM.Method (op ++ "_u") WASM.I64 [e1, e2]
+signedArithmeticExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
 
 toByte :: WASM.Expr -> WASM.Expr
 toByte e = i32And (i32Const 0xFF) e
