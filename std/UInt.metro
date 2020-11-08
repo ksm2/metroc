@@ -1,0 +1,28 @@
+class UInt {}
+
+impl ToString for UInt {
+  toString() String {
+    len := this.countDigits()
+    str := __allocate(len + 4)
+    __storeInt(str, len)
+    this.putIntStr(str + len + 3)
+    return str
+  }
+
+  countDigits() Int {
+    out := 1
+    if this >= 10U {
+      out = (this / 10U).countDigits() + 1
+    }
+    return out
+  }
+
+  putIntStr(ptr Int) {
+    if this < 10U {
+      __storeByte(ptr, (this + 48U).toByte())
+    } else {
+      __storeByte(ptr, ((this % 10U) + 48U).toByte())
+      (this / 10U).putIntStr(ptr - 1)
+    }
+  }
+}

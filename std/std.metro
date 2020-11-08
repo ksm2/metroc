@@ -41,30 +41,3 @@ fn __concat(str1 String, str2 String) String {
 
   return ptr
 }
-
-impl ToString for Int {
-  toString() String {
-    len := this.countDigits()
-    str := __allocate(len + 4)
-    __storeInt(str, len)
-    this.putIntStr(str + len + 3)
-    return str
-  }
-
-  countDigits() Int {
-    out := 1
-    if int >= 10 {
-      out = countDigits(int / 10) + 1
-    }
-    return out
-  }
-
-  putIntStr(ptr Int) {
-    if this < 10 {
-      __storeByte(ptr, (this + 48).toByte())
-    } else {
-      __storeByte(ptr, ((this % 10) + 48).toByte())
-      putIntStr(ptr - 1, this / 10)
-    }
-  }
-}

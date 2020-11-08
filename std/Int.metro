@@ -1,0 +1,28 @@
+class Int {}
+
+impl ToString for Int {
+  toString() String {
+    len := this.countDigits()
+    str := __allocate(len + 4)
+    __storeInt(str, len)
+    this.putIntStr(str + len + 3)
+    return str
+  }
+
+  countDigits() Int {
+    out := 1
+    if this >= 10 {
+      out = (this / 10).countDigits() + 1
+    }
+    return out
+  }
+
+  putIntStr(ptr Int) {
+    if this < 10 {
+      __storeByte(ptr, (this + 48).toByte())
+    } else {
+      __storeByte(ptr, ((this % 10) + 48).toByte())
+      (this / 10).putIntStr(ptr - 1)
+    }
+  }
+}
