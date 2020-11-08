@@ -1,0 +1,61 @@
+const MURMUR_C1 = 0xcc9e2d51U
+const MURMUR_C2 = 0x1b873593U
+
+fn murmur3(seed UInt, key [UByte]) UInt {
+  remainder := key.length & 3U
+  bytes := key.length - remainder
+
+  k1 := 0U
+  hash := seed
+  i := 0U
+
+  while i < bytes {
+    k1  = key[i].toUInt()
+        | key[i + 1U].toUInt() << 8U
+        | key[i + 2U].toUInt() << 16U
+        | key[i + 3U].toUInt() << 24U
+    i = i + 4U
+
+    k1 = k1 * MURMUR_C1
+    k1 = k1 <% 15U
+    k1 = k1 * MURMUR_C2
+
+    hash = hash ^ k1
+    hash = hash <% 13U
+    hash = (hash * 5U) + 0xe6546b64U
+  }
+
+  k1 = 0
+
+  if remainder == 3U {
+    k1 = k1 ^ key[i + 2U].toUInt() << 16U
+  }
+  if remainder >= 2U {
+    k1 = k1 ^ key[i + 1U].toUInt() << 8U
+  }
+  if remainder >= 1U {
+    k1 = k1 ^ key[i].toUInt()
+
+    k1 = k1 * MURMUR_C1
+    k1 = k1 <% 15U
+    k1 = k1 * MURMUR_C2
+    hash = hash ^ k1
+  }
+
+  hash = hash ^ key.length
+
+  hash = hash ^ (hash >>> 16U)
+  hash = hash * 0x85ebca6bU
+  hash = hash ^ (hash >>> 13U)
+  hash = hash * 0xc2b2ae35U
+  hash = hash ^ (hash >>> 16U)
+
+  return hash
+}
+
+fn main() {
+  seed := 1U
+  str := "hello world"
+  hash := murmur3(seed, str.toUByteList())
+  File(FD_STDOUT).writeln("hash of '" + str + "' with seed " + seed.toString() + " = " + hash.toString())
+}
