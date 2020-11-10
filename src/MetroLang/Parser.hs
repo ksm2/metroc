@@ -284,7 +284,7 @@ block = liftM Block $ braces (many stmt)
 stmt :: Parser Stmt
 stmt =   liftM IfStmt ifParser
      <|> whileStmt
-     <|> liftM ReturnStmt returnStmt
+     <|> returnStmt
      <|> liftM ExprStmt expr
 
 ifParser :: Parser If
@@ -307,9 +307,16 @@ whileStmt =
       whileBlock <- block
       return $ WhileStmt cond whileBlock
 
-returnStmt :: Parser Expression
+returnStmt :: Parser Stmt
 returnStmt =
   do  reserved "return"
+      returnValue <- expr
+      condition <- optionMaybe returnCondition
+      return $ ReturnStmt returnValue condition
+
+returnCondition :: Parser Expression
+returnCondition =
+  do  reserved "if"
       expr
 
 expr :: Parser Expression

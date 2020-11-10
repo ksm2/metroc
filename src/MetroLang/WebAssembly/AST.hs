@@ -69,6 +69,7 @@ data ExportSpecifier = EMemory Identifier
 data Stmt = Local Identifier Valtype
           | Block Identifier [Stmt]
           | Loop Identifier [Stmt]
+          | Return Expr
           | Exp Expr
           | Seq [Stmt]
             deriving (Show)

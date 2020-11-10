@@ -127,10 +127,16 @@ stmt (Metro.WhileStmt cond whileBlock) =
                 condBr <- return $ WASM.Exp $ brIf whileLabel condExpr
                 return $ WASM.Block whileLabel $ [WASM.Loop continueLabel $ condBr:b ++ [WASM.Exp $ br continueLabel]]
 
-stmt (Metro.ReturnStmt e) =
+stmt (Metro.ReturnStmt e Nothing) =
   do  value <- expr e
       wasmEx <- return $ wasmExpr value
-      return $ WASM.Exp wasmEx
+      return $ WASM.Return wasmEx
+stmt (Metro.ReturnStmt e (Just c)) =
+  do  l <- label "return"
+      value <- expr e
+      cond <- ifCond l c
+      wasmEx <- return $ wasmExpr value
+      return $ WASM.Block l $ [cond, WASM.Return wasmEx]
 stmt (Metro.ExprStmt e) =
   do  value <- expr e
       wasmEx <- return $ wasmExpr value
