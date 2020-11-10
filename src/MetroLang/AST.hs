@@ -30,7 +30,8 @@ data InterfaceBlock = InterfaceBlock [MethodSignature] deriving Show
 -- Classes
 type ClassExtends = Type
 type Implements = [Type]
-data ClassBlock = ClassBlock [Method] deriving Show
+data ClassBlock = ClassBlock [Field] [Method] deriving Show
+data Field = Field Identifier Expression deriving Show
 data MethodSignature = MethodSignature Identifier Params ReturnType deriving (Show)
 data Method = Method MethodSignature Block deriving Show
 

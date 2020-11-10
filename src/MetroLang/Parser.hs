@@ -244,7 +244,23 @@ impls :: Parser Implements
 impls = option [] $ reserved "impl" >> (commaSep typeParser)
 
 classBlock :: Parser ClassBlock
-classBlock = liftM ClassBlock $ braces $ many method
+classBlock = braces classBlockContent
+
+classBlockContent :: Parser ClassBlock
+classBlockContent =
+  do  classFields <- fields
+      classMethods <- methods
+      return $ ClassBlock classFields classMethods
+
+fields :: Parser [Field]
+fields = many $ try field
+
+field :: Parser Field
+field =
+  do  fieldName <- identifier
+      reservedOp ":="
+      initializer <- expr
+      return $ Field fieldName initializer
 
 methodSignature :: Parser MethodSignature
 methodSignature =
@@ -252,6 +268,9 @@ methodSignature =
       methodParams <- params
       methodReturn <- returnType
       return $ MethodSignature methodName methodParams methodReturn
+
+methods :: Parser [Method]
+methods = many method
 
 method :: Parser Method
 method =

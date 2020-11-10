@@ -29,16 +29,16 @@ declaration (Metro.Const constName value) =
       return [WASM.Global constName (WASM.Imut (dataTypeToValtype valueType)) valueExpr]
 declaration (Metro.Enumeration _name _typeArgs _) = return []
 declaration (Metro.Interface _name _typeArgs _ _) = return []
-declaration (Metro.Class name _typeArgs pars _ _ body) =
+declaration (Metro.Class name _typeArgs pars _ _ (Metro.ClassBlock _ ms)) =
   do  setThisContext (Generic name [])
-      declareClass name (createClassInfo pars body)
-      classBlockDeclarations <- classBlock body
+      declareClass name (createClassInfo pars ms)
+      classBlockDeclarations <- methods ms
       constr <- constructor name pars
       return $ constr:classBlockDeclarations
-declaration (Metro.Impl _ targetType body) =
+declaration (Metro.Impl _ targetType (Metro.ClassBlock _ ms)) =
   do  setThisContext targetType
-      enhanceClass (show targetType) (createClassInfo [] body)
-      classBlock body
+      enhanceClass (show targetType) (createClassInfo [] ms)
+      methods ms
 declaration (Metro.Func fnName fnParams fnReturn body) =
   do  declareFunction fnName $ FunctionInfo (map getParamType fnParams) fnReturn
       p <- params fnParams
@@ -73,9 +73,6 @@ assignField (Metro.Par fieldName _) =
       return $ WASM.Exp $ i32Store (i32Add (getLocal "___ptr") (i32Const $ toInteger fieldOffset)) (getLocal fieldName)
 
 -- Classes
-classBlock :: Metro.ClassBlock -> Compiler [WASM.Declaration]
-classBlock (Metro.ClassBlock ms) = methods ms
-
 methods :: [Metro.Method] -> Compiler [WASM.Declaration]
 methods = many method
 

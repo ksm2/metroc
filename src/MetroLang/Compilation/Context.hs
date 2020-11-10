@@ -88,11 +88,11 @@ mergeClassInfo ci1 ci2 =
       ClassInfo fields2 methods2 = ci2
   in  ClassInfo (union fields1 fields2) (union methods1 methods2)
 
-createClassInfo :: [Param] -> ClassBlock -> ClassInfo
-createClassInfo classParams (ClassBlock body) =
+createClassInfo :: [Param] -> [Method] -> ClassInfo
+createClassInfo classParams classMethods =
   let fields = snd $ createClassFields $ reverse classParams
-      methods = readMethods body
-  in ClassInfo fields methods
+      methods = readMethods classMethods
+  in  ClassInfo fields methods
 
 createClassFields :: [Param] -> (Int, Map String Int)
 createClassFields [] = (0, empty)
