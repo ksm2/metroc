@@ -156,7 +156,12 @@ assignment :: Metro.Expression -> Metro.Expression -> Compiler Value
 assignment (Metro.VariableExpr i) e2 =
   do  f2 <- expr e2
       return $ Value TVoid $ setLocal i (wasmExpr f2)
-assignment _ _ = error "Bad variable assignment"
+assignment (Metro.Binary Metro.Chain Metro.ThisKeyword (Metro.VariableExpr fieldName)) e2 =
+  do  classType <- requireThisContext
+      fieldOffset <- getFieldOffset (show classType) fieldName
+      f2 <- expr e2
+      return $ Value TVoid $ i32Store (i32Add (getLocal "this") (i32Const $ toInteger fieldOffset)) (wasmExpr f2)
+assignment x _ = error $ "Bad variable assignment: " ++ (show x)
 
 binaryExprWasm :: Metro.BinOp -> Value -> Value -> Value
 binaryExprWasm Metro.LogicalOr v1 v2 = boolExpr "or" v1 v2
