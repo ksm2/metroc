@@ -10,6 +10,7 @@ import MetroLang.Compilation.Expressions
 import MetroLang.Compilation.Values
 import MetroLang.Types
 import qualified MetroLang.WebAssembly.AST as WASM
+import MetroLang.WebAssembly.MemoryInstr
 import MetroLang.WebAssembly.Utils
 
 compileModule :: Metro.Module -> Compiler WASM.Module
@@ -77,7 +78,7 @@ assignField (Metro.Par fieldName _) =
   do
     className <- requireThisContext
     fieldOffset <- getFieldOffset (show className) fieldName
-    return $ WASM.Exp $ i32Store (i32Add (getLocal "___ptr") (i32Const $ toInteger fieldOffset)) (getLocal fieldName)
+    return $ WASM.Exp $ storeInstr 32 fieldOffset (getLocal "___ptr") (getLocal fieldName)
 
 -- Classes
 methods :: [Metro.Method] -> Compiler [WASM.Declaration]

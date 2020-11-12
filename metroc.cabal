@@ -31,6 +31,7 @@ library
     MetroLang.Parser
     MetroLang.WebAssembly.AST
     MetroLang.WebAssembly.Generator
+    MetroLang.WebAssembly.MemoryInstr
     MetroLang.WebAssembly.Parser
     MetroLang.WebAssembly.Utils
     MetroLang.Compilation.Combinators

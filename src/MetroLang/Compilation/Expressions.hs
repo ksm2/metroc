@@ -7,6 +7,7 @@ import MetroLang.Compilation.Context
 import MetroLang.Compilation.Values
 import MetroLang.Types
 import qualified MetroLang.WebAssembly.AST as WASM
+import MetroLang.WebAssembly.MemoryInstr
 import MetroLang.WebAssembly.Utils
 
 exprs :: [Metro.Expression] -> Compiler [Value]
@@ -89,12 +90,12 @@ binaryExpr op e1 e2 =
 fieldAccess :: Value -> String -> Compiler Value
 fieldAccess (Value (Primitive TUInt) obj) "lowUWord" = return $ Value (Primitive TUWord) $ toWord obj
 fieldAccess (Value (Primitive TUInt) obj) "highUWord" = return $ Value (Primitive TUWord) $ i32Shru obj $ i32Const 16
-fieldAccess (Value (Primitive TString) obj) "length" = return $ Value (Primitive TInt) $ i32Load obj
-fieldAccess (Value (List _) obj) "length" = return $ Value (Primitive TUInt) $ i32Load obj
+fieldAccess (Value (Primitive TString) obj) "length" = return $ Value (Primitive TInt) $ loadInstr 32 Signed 0 obj
+fieldAccess (Value (List _) obj) "length" = return $ Value (Primitive TUInt) $ loadInstr 32 Unsigned 0 obj
 fieldAccess (Value (Generic className _) objExpr) fieldName =
   do
     fieldOffset <- getFieldOffset className fieldName
-    return $ Value (Primitive TInt) $ i32Load $ i32Add objExpr (i32Const $ toInteger fieldOffset)
+    return $ Value (Primitive TInt) $ loadInstr 32 Signed fieldOffset objExpr
 -- TODO: can only load Int
 fieldAccess (Value objType _) methodName = error $ "Unknown field " ++ methodName ++ " on primitive type " ++ show objType
 
@@ -132,12 +133,12 @@ listAccessExpr obj key =
           _ -> error "Can only access lists by index."
 
 load :: Type -> WASM.Expr -> Value
-load (Primitive TByte) n1 = Value (Primitive TByte) $ WASM.Method "load8_s" WASM.I32 [n1]
-load (Primitive TUByte) n1 = Value (Primitive TUByte) $ WASM.Method "load8_u" WASM.I32 [n1]
-load (Primitive TWord) n1 = Value (Primitive TWord) $ WASM.Method "load16_s" WASM.I32 [n1]
-load (Primitive TUWord) n1 = Value (Primitive TUWord) $ WASM.Method "load16_u" WASM.I32 [n1]
-load (Primitive TLong) n1 = Value (Primitive TLong) $ WASM.Method "load" WASM.I64 [n1]
-load (Primitive TULong) n1 = Value (Primitive TULong) $ WASM.Method "load" WASM.I64 [n1]
+load (Primitive TByte) n1 = Value (Primitive TByte) $ loadInstr 8 Signed 0 n1
+load (Primitive TUByte) n1 = Value (Primitive TUByte) $ loadInstr 8 Unsigned 0 n1
+load (Primitive TWord) n1 = Value (Primitive TWord) $ loadInstr 16 Signed 0 n1
+load (Primitive TUWord) n1 = Value (Primitive TUWord) $ loadInstr 16 Unsigned 0 n1
+load (Primitive TLong) n1 = Value (Primitive TLong) $ loadInstr 64 Signed 0 n1
+load (Primitive TULong) n1 = Value (Primitive TULong) $ loadInstr 64 Unsigned 0 n1
 load x n1 = Value x $ WASM.Method "load" WASM.I32 [n1]
 
 checkFunctionSignature :: Int -> String -> [Metro.Type] -> [Value] -> [WASM.Expr]
@@ -174,7 +175,7 @@ assignment (Metro.Binary Metro.Chain Metro.ThisKeyword (Metro.VariableExpr field
     classType <- requireThisContext
     fieldOffset <- getFieldOffset (show classType) fieldName
     f2 <- expr e2
-    return $ Value TVoid $ i32Store (i32Add (getLocal "this") (i32Const $ toInteger fieldOffset)) (wasmExpr f2)
+    return $ Value TVoid $ storeInstr 32 fieldOffset (getLocal "this") (wasmExpr f2)
 assignment x _ = error $ "Bad variable assignment: " ++ (show x)
 
 binaryExprWasm :: Metro.BinOp -> Value -> Value -> Value
