@@ -37,8 +37,19 @@ stmt (Exp e) = expr e
 expr :: Expr -> String
 expr (Instr s e) = wrap s $ map expr e
 expr (Method s o e) = wrap ((valtype o) ++ "." ++ s) $ map expr e
+expr (MemoryInstr s o off aln e) =
+  let cmd = ((valtype o) ++ "." ++ s)
+      instrProps = props [("offset", off), ("align", aln)]
+   in wrap (cmd ++ instrProps) $ map expr e
 expr (Lit i) = show i
 expr (Var iden) = identifier iden
+
+props :: [(String, Maybe Integer)] -> String
+props = concat . map prop
+
+prop :: (String, Maybe Integer) -> String
+prop (_, Nothing) = ""
+prop (key, (Just value)) = " " ++ key ++ "=" ++ (show value)
 
 params :: [Param] -> String
 params = unwords . map param

@@ -38,7 +38,7 @@ languageDef =
           "f32",
           "f64"
         ],
-      Token.reservedOpNames = ["(", ")", "$", "\"", "."]
+      Token.reservedOpNames = ["(", ")", "$", "\"", ".", "="]
     }
 
 lexer :: Token.GenTokenParser String u Identity
@@ -46,6 +46,9 @@ lexer = Token.makeTokenParser languageDef
 
 strIdentifier :: Parser String
 strIdentifier = Token.identifier lexer
+
+parens :: Parser a -> Parser a
+parens = Token.parens lexer
 
 identifier :: Parser Identifier
 identifier =
@@ -230,10 +233,7 @@ returnStmt =
     return $ Return e
 
 expStmt :: Parser Stmt
-expStmt =
-  do
-    e <- expr
-    return $ Exp e
+expStmt = liftM Exp expr
 
 exprs :: Parser [Expr]
 exprs = many expr
@@ -252,12 +252,68 @@ noParensExpr =
     return $ Instr fn []
 
 parensExpr :: Parser Expr
-parensExpr =
+parensExpr = parens instruction
+
+instruction :: Parser Expr
+instruction = try memoryInstrExpr <|> methodExpr <|> instrExpr
+
+memoryInstrExpr :: Parser Expr
+memoryInstrExpr =
   do
-    lparen
-    e <- (methodExpr <|> instrExpr)
-    rparen
-    return e
+    vt <- valtype
+    reservedOp "."
+    fn <- memoryOp
+    props <- instrProps
+    offset <- return $ props ! "offset"
+    align <- return $ props ! "align"
+    e <- exprs
+    return $ MemoryInstr fn vt offset align e
+
+memoryOp :: Parser String
+memoryOp = loadOp <|> storeOp
+
+loadOp :: Parser String
+loadOp =
+  do
+    prefix <- string "load"
+    suffix <- option "" signedBitWidth
+    whiteSpace
+    return $ prefix ++ suffix
+
+storeOp :: Parser String
+storeOp =
+  do
+    prefix <- string "store"
+    suffix <- option "" bitWidth
+    whiteSpace
+    return $ prefix ++ suffix
+
+signedBitWidth :: Parser String
+signedBitWidth =
+  do
+    bw <- bitWidth
+    _ <- char '_'
+    sign <- oneOf "su"
+    return $ bw ++ "_" ++ [sign]
+
+bitWidth :: Parser String
+bitWidth = string "8" <|> string "16" <|> string "32"
+
+(!) :: [(String, Integer)] -> String -> Maybe Integer
+(!) [] _ = Nothing
+(!) ((mapKey, mapValue) : mapTail) key =
+  if mapKey == key then Just mapValue else mapTail ! key
+
+instrProps :: Parser [(String, Integer)]
+instrProps = many instrProp
+
+instrProp :: Parser (String, Integer)
+instrProp =
+  do
+    key <- try strIdentifier
+    reservedOp "="
+    value <- integer
+    return $ (key, value)
 
 instrExpr :: Parser Expr
 instrExpr =
@@ -354,9 +410,6 @@ valtype =
     <|> (reserved "i64" >> return I64)
     <|> (reserved "f32" >> return F32)
     <|> (reserved "f64" >> return F64)
-
-lparen :: Parser ()
-lparen = reservedOp "("
 
 rparen :: Parser ()
 rparen = reservedOp ")"

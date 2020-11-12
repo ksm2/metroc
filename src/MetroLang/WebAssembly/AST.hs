@@ -73,9 +73,14 @@ data Stmt
 data Expr
   = Instr String [Expr]
   | Method String Valtype [Expr]
+  | MemoryInstr String Valtype Offset Align [Expr]
   | Lit Integer
   | Var Identifier
   deriving (Show)
+
+type Offset = Maybe Integer
+
+type Align = Maybe Integer
 
 data Param
   = Par Identifier Valtype
