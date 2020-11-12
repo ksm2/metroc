@@ -49,8 +49,7 @@ declaration (Metro.Func fnName fnParams fnReturn body) =
     p <- params fnParams
     r <- returnType fnReturn
     bb <- fnBlock body fnParams
-    s <- stmtSeq bb
-    return [WASM.Func fnName p r s]
+    return [WASM.Func fnName p r bb]
 
 importName :: Metro.ImportSpecifier -> Compiler String
 importName (Metro.FuncImport fnName _ _) = return fnName
@@ -71,7 +70,7 @@ constructor name pars =
     allocation <- return $ WASM.Exp $ setLocal "___ptr" $ call "__allocate" [sizeOfClass]
     fieldAssigns <- many assignField pars
     body <- return $ [WASM.Local "___ptr" WASM.I32, allocation] ++ fieldAssigns ++ [WASM.Exp $ getLocal "___ptr"]
-    return $ WASM.Func name p (Just (WASM.Res WASM.I32)) $ WASM.Seq body
+    return $ WASM.Func name p (Just (WASM.Res WASM.I32)) body
 
 assignField :: Metro.Param -> Compiler WASM.Stmt
 assignField (Metro.Par fieldName _) =
@@ -89,10 +88,9 @@ method (Metro.Method m@(Metro.MethodSignature _ methodParams _) b) =
   do
     signature <- methodSignature m
     bb <- fnBlock b methodParams
-    s <- stmtSeq bb
-    return $ signature s
+    return $ signature bb
 
-methodSignature :: Metro.MethodSignature -> Compiler (WASM.Stmt -> WASM.Declaration)
+methodSignature :: Metro.MethodSignature -> Compiler ([WASM.Stmt] -> WASM.Declaration)
 methodSignature (Metro.MethodSignature name methodParams methodReturn) =
   do
     className <- requireThisContext
@@ -102,9 +100,6 @@ methodSignature (Metro.MethodSignature name methodParams methodReturn) =
     return $ WASM.Func ((show className) ++ "." ++ name) (thisParam : pp) r
 
 -- Statements
-stmtSeq :: [WASM.Stmt] -> Compiler WASM.Stmt
-stmtSeq s = return $ WASM.Seq s
-
 fnBlock :: Metro.Block -> [Metro.Param] -> Compiler [WASM.Stmt]
 fnBlock (Metro.Block b) p =
   do
@@ -156,7 +151,7 @@ stmt (Metro.ExprStmt e) =
     value <- expr e
     wasmEx <- return $ wasmExpr value
     if (dataType value) /= TVoid
-      then return $ WASM.Seq [WASM.Exp wasmEx, WASM.Exp dropInstr]
+      then return $ WASM.Exp $ dropInstr wasmEx
       else return $ WASM.Exp wasmEx
 
 -- If

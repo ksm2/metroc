@@ -17,7 +17,7 @@ declaration (Memory iden i) = newline $ wrap "memory" [identifier iden, show i]
 declaration (Export e s) = wrap "export" [stringLiteral e, exportSpecifier s]
 declaration (Global i gt e) = wrap "global" [identifier i, globaltype gt, expr e]
 declaration (Data e s) = wrap "data" [expr e, toWasmStringLiteral s]
-declaration (Func iden p r s) = newline $ wrap "func" [identifier iden, params p, returnType r, stmt s]
+declaration (Func iden p r s) = newline $ wrap "func" [identifier iden, params p, returnType r, indent2 $ map stmt $ s]
 declaration (Start iden) = newline $ wrap "start" [identifier iden]
 
 importSpecifier :: ImportSpecifier -> String
@@ -33,7 +33,6 @@ stmt (Block iden s) = wrap "block" $ [identifier iden, indent2 $ map stmt s]
 stmt (Loop iden s) = wrap "loop" $ [identifier iden, indent2 $ map stmt s]
 stmt (Return e) = wrap "return" [expr e]
 stmt (Exp e) = expr e
-stmt (Seq s) = (indent2 . map stmt) s
 
 expr :: Expr -> String
 expr (Instr s e) = wrap s $ map expr e

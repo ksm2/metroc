@@ -31,6 +31,7 @@ languageDef =
           "(mut",
           "(param",
           "(result",
+          "(return",
           "(start",
           "i32",
           "i64",
@@ -144,7 +145,7 @@ funcDecl =
     iden <- identifier
     parsedParams <- params
     fnReturn <- returnType
-    body <- statement
+    body <- many statement
     rparen
     return $ Func iden parsedParams fnReturn body
 
@@ -187,16 +188,10 @@ funcExportSpecifier =
 
 statement :: Parser Stmt
 statement =
-  do
-    list <- (many1 statement')
-    -- If there's only one statement return it without using Seq.
-    return $ if length list == 1 then head list else Seq list
-
-statement' :: Parser Stmt
-statement' =
   localStmt
     <|> blockStmt
     <|> loopStmt
+    <|> returnStmt
     <|> expStmt
 
 localStmt :: Parser Stmt
@@ -225,6 +220,14 @@ loopStmt =
     s <- many1 statement
     rparen
     return $ Loop iden s
+
+returnStmt :: Parser Stmt
+returnStmt =
+  do
+    reserved "(return"
+    e <- expr
+    rparen
+    return $ Return e
 
 expStmt :: Parser Stmt
 expStmt =

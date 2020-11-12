@@ -47,8 +47,8 @@ brIf i cond = Instr "br_if" [Var i, i32Eqz cond]
 call :: Identifier -> [Expr] -> Expr
 call i args = Instr "call" $ (Var i) : args
 
-dropInstr :: Expr
-dropInstr = Instr "drop" []
+dropInstr :: Expr -> Expr
+dropInstr expr = Instr "drop" [expr]
 
 getLocal :: Identifier -> Expr
 getLocal i = Instr "get_local" [Var i]

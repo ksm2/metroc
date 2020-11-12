@@ -10,7 +10,7 @@ data Declaration
   | Export StringLiteral ExportSpecifier
   | Global Identifier Globaltype Expr
   | Data Expr Bytes
-  | Func Identifier [Param] ReturnType Stmt
+  | Func Identifier [Param] ReturnType [Stmt]
   | Start Identifier
   deriving (Show)
 
@@ -68,7 +68,6 @@ data Stmt
   | Loop Identifier [Stmt]
   | Return Expr
   | Exp Expr
-  | Seq [Stmt]
   deriving (Show)
 
 data Expr
