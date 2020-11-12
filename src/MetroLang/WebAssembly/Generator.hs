@@ -30,7 +30,7 @@ exportSpecifier (EFunc iden) = wrap "func" [identifier iden]
 stmt :: Stmt -> String
 stmt (Local iden vt) = wrap "local" [identifier iden, valtype vt]
 stmt (Block iden s) = wrap "block" $ [identifier iden, indent2 $ map stmt s]
-stmt (Loop iden s) = wrap "loop" $ [identifier iden,  indent2 $ map stmt s]
+stmt (Loop iden s) = wrap "loop" $ [identifier iden, indent2 $ map stmt s]
 stmt (Return e) = wrap "return" [expr e]
 stmt (Exp e) = expr e
 stmt (Seq s) = (indent2 . map stmt) s
@@ -84,7 +84,7 @@ newline :: String -> String
 newline str = '\n' : str
 
 wrap :: String -> [String] -> String
-wrap str content = parens $ str:content
+wrap str content = parens $ str : content
 
 parens :: [String] -> String
 parens s = if length s == 1 then head s else "(" ++ (unwords (filter (/= "") s)) ++ ")"
@@ -100,5 +100,6 @@ generateString = trimLines . generateModule
 
 generateFile :: String -> Module -> IO ()
 generateFile file ast =
-    do  program <- return $ generateString ast
-        writeFile file program
+  do
+    program <- return $ generateString ast
+    writeFile file program

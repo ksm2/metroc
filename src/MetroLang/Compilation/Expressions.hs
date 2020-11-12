@@ -1,13 +1,13 @@
-module MetroLang.Compilation.Expressions(exprs, expr) where
+module MetroLang.Compilation.Expressions (exprs, expr) where
 
-import MetroLang.AST as Metro (Type(..), PrimitiveType(..))
+import MetroLang.AST as Metro (PrimitiveType (..), Type (..))
 import qualified MetroLang.AST as Metro
-import qualified MetroLang.WebAssembly.AST as WASM
-import MetroLang.WebAssembly.Utils
 import MetroLang.Compilation.Combinators
 import MetroLang.Compilation.Context
 import MetroLang.Compilation.Values
 import MetroLang.Types
+import qualified MetroLang.WebAssembly.AST as WASM
+import MetroLang.WebAssembly.Utils
 
 exprs :: [Metro.Expression] -> Compiler [Value]
 exprs = many expr
@@ -20,38 +20,44 @@ falseValue = Value (Primitive TBool) $ i32Const 0
 
 expr :: Metro.Expression -> Compiler Value
 expr (Metro.VariableExpr varName) =
-  do  isConst <- hasConst varName
-      if isConst then
-        do  varType <- lookupConst varName
-            return $ Value varType $ getGlobal varName
-      else
-        do  varType <- lookupVariableType varName
-            return $ Value varType $ getLocal varName
+  do
+    isConst <- hasConst varName
+    if isConst
+      then do
+        varType <- lookupConst varName
+        return $ Value varType $ getGlobal varName
+      else do
+        varType <- lookupVariableType varName
+        return $ Value varType $ getLocal varName
 expr (Metro.BooleanLiteral True) = return trueValue
 expr (Metro.BooleanLiteral False) = return falseValue
 expr (Metro.NumberLiteral p n) = return $ Value (Primitive p) $ i32Const n
 expr (Metro.StringLiteral l) =
-  do  ptr <- registerString l
-      return $ Value (Primitive TString) $ i32Const (toInteger ptr)
+  do
+    ptr <- registerString l
+    return $ Value (Primitive TString) $ i32Const (toInteger ptr)
 expr (Metro.NullLiteral) = return $ Value TVoid $ i32Const 0
 expr (Metro.ThisKeyword) =
-  do  classType <- requireThisContext
-      return $ Value classType $ getLocal "this"
+  do
+    classType <- requireThisContext
+    return $ Value classType $ getLocal "this"
 expr (Metro.Unary op e) = unaryExpr op e
 expr (Metro.Binary op e1 e2) = binaryExpr op e1 e2
 expr (Metro.Call callee args) =
-  do  a <- arguments args
-      isConstructorCall <- classExists callee
-      if isConstructorCall
+  do
+    a <- arguments args
+    isConstructorCall <- classExists callee
+    if isConstructorCall
       then return $ Value (Generic callee []) $ call callee (map wasmExpr a)
       else functionCall callee a
 expr (Metro.ListAccess obj key) = listAccessExpr obj key
 
 functionCall :: String -> [Value] -> Compiler Value
 functionCall fnName args =
-  do  functionInfo <- lookupFunction fnName
-      wasmArgs <- return $ checkFunctionSignature 1 fnName (parameters functionInfo) args
-      return $ Value (returnDataType functionInfo) $ call fnName wasmArgs
+  do
+    functionInfo <- lookupFunction fnName
+    wasmArgs <- return $ checkFunctionSignature 1 fnName (parameters functionInfo) args
+    return $ Value (returnDataType functionInfo) $ call fnName wasmArgs
 
 unaryExpr :: Metro.UnaryOp -> Metro.Expression -> Compiler Value
 unaryExpr op e = expr e >>= \value -> return $ unaryExprWasm op value
@@ -65,20 +71,20 @@ unaryExprWasm Metro.LogicalNot _ = error "Can only apply 'not' on a Bool."
 binaryExpr :: Metro.BinOp -> Metro.Expression -> Metro.Expression -> Compiler Value
 binaryExpr Metro.Definition e1 e2 = definitionExpr e1 e2
 binaryExpr Metro.Assignment e1 e2 = assignment e1 e2
-
 binaryExpr Metro.Chain obj (Metro.VariableExpr fieldName) =
-  do  objValue <- expr obj
-      fieldAccess objValue fieldName
-
+  do
+    objValue <- expr obj
+    fieldAccess objValue fieldName
 binaryExpr Metro.Chain obj (Metro.Call methodName args) =
-  do  objValue <- expr obj
-      argValues <- arguments args
-      methodCall objValue methodName argValues
-
+  do
+    objValue <- expr obj
+    argValues <- arguments args
+    methodCall objValue methodName argValues
 binaryExpr op e1 e2 =
-  do  f1 <- expr e1
-      f2 <- expr e2
-      return $ binaryExprWasm op f1 f2
+  do
+    f1 <- expr e1
+    f2 <- expr e2
+    return $ binaryExprWasm op f1 f2
 
 fieldAccess :: Value -> String -> Compiler Value
 fieldAccess (Value (Primitive TUInt) obj) "lowUWord" = return $ Value (Primitive TUWord) $ toWord obj
@@ -86,9 +92,10 @@ fieldAccess (Value (Primitive TUInt) obj) "highUWord" = return $ Value (Primitiv
 fieldAccess (Value (Primitive TString) obj) "length" = return $ Value (Primitive TInt) $ i32Load obj
 fieldAccess (Value (List _) obj) "length" = return $ Value (Primitive TUInt) $ i32Load obj
 fieldAccess (Value (Generic className _) objExpr) fieldName =
-  do  fieldOffset <- getFieldOffset className fieldName
-      return $ Value (Primitive TInt) $ i32Load $ i32Add objExpr (i32Const $ toInteger fieldOffset)
-      -- TODO: can only load Int
+  do
+    fieldOffset <- getFieldOffset className fieldName
+    return $ Value (Primitive TInt) $ i32Load $ i32Add objExpr (i32Const $ toInteger fieldOffset)
+-- TODO: can only load Int
 fieldAccess (Value objType _) methodName = error $ "Unknown field " ++ methodName ++ " on primitive type " ++ show objType
 
 methodCall :: Value -> String -> [Value] -> Compiler Value
@@ -102,23 +109,27 @@ methodCall (Value (Primitive TUInt) obj) "toByte" [] = return $ Value (Primitive
 methodCall (Value (Primitive TString) obj) "toUByteList" [] = return $ Value (List (Primitive TUByte)) $ obj
 methodCall (Value (Primitive TString) obj) "asInt" [] = return $ Value (Primitive TInt) $ obj
 methodCall (Value objType obj) methodName args = classMethodCall (show objType) obj methodName args
+
 --methodCall (Value objType _) methodName args = error $ "Unknown method " ++ methodName ++ argsToInfo args ++ " on primitive type " ++ show objType
 
 classMethodCall :: String -> WASM.Expr -> String -> [Value] -> Compiler Value
 classMethodCall className obj methodName args =
-  do  method <- lookupClassMethod className methodName
-      wasmArgs <- return $ checkFunctionSignature 1 methodName (parameters method) args
-      return $ Value (returnDataType method) $ call (className ++ "." ++ methodName) $ obj:wasmArgs
+  do
+    method <- lookupClassMethod className methodName
+    wasmArgs <- return $ checkFunctionSignature 1 methodName (parameters method) args
+    return $ Value (returnDataType method) $ call (className ++ "." ++ methodName) $ obj : wasmArgs
 
 listAccessExpr :: Metro.Expression -> Metro.Expression -> Compiler Value
 listAccessExpr obj key =
-  do  Value keyType keyExpr <- expr key
-      if keyType /= Primitive TUInt
-      then  error "List access needs to be of type UInt."
-      else  do  Value objType objExpr <- expr obj
-                case objType of
-                  List listType -> return $ load listType $ i32Add (i32Const 4) $ i32Add objExpr $ i32Mul keyExpr $ i32Const $ toInteger (sizeOf listType)
-                  _ -> error "Can only access lists by index."
+  do
+    Value keyType keyExpr <- expr key
+    if keyType /= Primitive TUInt
+      then error "List access needs to be of type UInt."
+      else do
+        Value objType objExpr <- expr obj
+        case objType of
+          List listType -> return $ load listType $ i32Add (i32Const 4) $ i32Add objExpr $ i32Mul keyExpr $ i32Const $ toInteger (sizeOf listType)
+          _ -> error "Can only access lists by index."
 
 load :: Type -> WASM.Expr -> Value
 load (Primitive TByte) n1 = Value (Primitive TByte) $ WASM.Method "load8_s" WASM.I32 [n1]
@@ -131,11 +142,11 @@ load x n1 = Value x $ WASM.Method "load" WASM.I32 [n1]
 
 checkFunctionSignature :: Int -> String -> [Metro.Type] -> [Value] -> [WASM.Expr]
 checkFunctionSignature _ _ [] [] = []
-checkFunctionSignature no fnName (p:params) (a:args) =
+checkFunctionSignature no fnName (p : params) (a : args) =
   let Value dt ex = a
-  in  if p == dt
-      then ex:(checkFunctionSignature (no + 1) fnName params args)
-      else error $ "The " ++ (ordnum no) ++ " parameter type of \"" ++ fnName ++ "\" does not match: Expected " ++ (show p) ++ ", but was " ++ (show dt)
+   in if p == dt
+        then ex : (checkFunctionSignature (no + 1) fnName params args)
+        else error $ "The " ++ (ordnum no) ++ " parameter type of \"" ++ fnName ++ "\" does not match: Expected " ++ (show p) ++ ", but was " ++ (show dt)
 checkFunctionSignature _ fnName [] _ = error $ "Too many arguments provided to method \"" ++ fnName ++ "\""
 checkFunctionSignature _ fnName _ [] = error $ "Not enough arguments provided to method \"" ++ fnName ++ "\""
 
@@ -147,20 +158,23 @@ ordnum x = (show x) ++ "th"
 
 definitionExpr :: Metro.Expression -> Metro.Expression -> Compiler Value
 definitionExpr (Metro.VariableExpr varName) ex =
-  do  varValue <- expr ex
-      declareVariable varName (dataType varValue)
-      return $ Value TVoid $ setLocal varName (wasmExpr varValue)
+  do
+    varValue <- expr ex
+    declareVariable varName (dataType varValue)
+    return $ Value TVoid $ setLocal varName (wasmExpr varValue)
 definitionExpr _ _ = error "Bad variable declaration"
 
 assignment :: Metro.Expression -> Metro.Expression -> Compiler Value
 assignment (Metro.VariableExpr i) e2 =
-  do  f2 <- expr e2
-      return $ Value TVoid $ setLocal i (wasmExpr f2)
+  do
+    f2 <- expr e2
+    return $ Value TVoid $ setLocal i (wasmExpr f2)
 assignment (Metro.Binary Metro.Chain Metro.ThisKeyword (Metro.VariableExpr fieldName)) e2 =
-  do  classType <- requireThisContext
-      fieldOffset <- getFieldOffset (show classType) fieldName
-      f2 <- expr e2
-      return $ Value TVoid $ i32Store (i32Add (getLocal "this") (i32Const $ toInteger fieldOffset)) (wasmExpr f2)
+  do
+    classType <- requireThisContext
+    fieldOffset <- getFieldOffset (show classType) fieldName
+    f2 <- expr e2
+    return $ Value TVoid $ i32Store (i32Add (getLocal "this") (i32Const $ toInteger fieldOffset)) (wasmExpr f2)
 assignment x _ = error $ "Bad variable assignment: " ++ (show x)
 
 binaryExprWasm :: Metro.BinOp -> Value -> Value -> Value
@@ -188,6 +202,7 @@ binaryExprWasm Metro.Modulo v1 v2 = signedArithmeticExpr "rem" v1 v2
 binaryExprWasm Metro.Divide v1 v2 = signedArithmeticExpr "div" v1 v2
 binaryExprWasm Metro.Multiply v1 v2 = arithmeticExpr "mul" v1 v2
 binaryExprWasm op _ _ = error $ (show op) ++ " not implemented yet"
+
 --binaryExpr Metro.OptChain e1 e2 = TODO!
 --binaryExpr Metro.Chain e1 e2 = TODO!
 

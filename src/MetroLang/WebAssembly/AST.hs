@@ -4,14 +4,15 @@ import MetroLang.Bytes
 
 data Module = Mod [Declaration] deriving (Show)
 
-data Declaration = Import StringLiteral StringLiteral ImportSpecifier
-                 | Memory Identifier Integer
-                 | Export StringLiteral ExportSpecifier
-                 | Global Identifier Globaltype Expr
-                 | Data Expr Bytes
-                 | Func Identifier [Param] ReturnType Stmt
-                 | Start Identifier
-                   deriving (Show)
+data Declaration
+  = Import StringLiteral StringLiteral ImportSpecifier
+  | Memory Identifier Integer
+  | Export StringLiteral ExportSpecifier
+  | Global Identifier Globaltype Expr
+  | Data Expr Bytes
+  | Func Identifier [Param] ReturnType Stmt
+  | Start Identifier
+  deriving (Show)
 
 instance Eq Declaration where
   (Import a1 b1 _) == (Import a2 b2 _) = a1 == a2 && b1 == b2
@@ -30,59 +31,57 @@ instance Ord Declaration where
   (Import _ _ _) <= (Data _ _) = True
   (Import _ _ _) <= (Func _ _ _ _) = True
   (Import _ _ _) <= (Start _) = True
-
   (Memory _ _) <= (Memory _ _) = True
   (Memory _ _) <= (Export _ _) = True
   (Memory _ _) <= (Global _ _ _) = True
   (Memory _ _) <= (Data _ _) = True
   (Memory _ _) <= (Func _ _ _ _) = True
   (Memory _ _) <= (Start _) = True
-
   (Export _ _) <= (Export _ _) = True
   (Export _ _) <= (Global _ _ _) = True
   (Export _ _) <= (Data _ _) = True
   (Export _ _) <= (Func _ _ _ _) = True
   (Export _ _) <= (Start _) = True
-
   (Global _ _ _) <= (Global _ _ _) = True
   (Global _ _ _) <= (Data _ _) = True
   (Global _ _ _) <= (Func _ _ _ _) = True
   (Global _ _ _) <= (Start _) = True
-
   (Data _ _) <= (Data _ _) = True
   (Data _ _) <= (Func _ _ _ _) = True
   (Data _ _) <= (Start _) = True
-
   (Func _ _ _ _) <= (Func _ _ _ _) = True
   (Func _ _ _ _) <= (Start _) = True
-
   (Start _) <= (Start _) = True
   _ <= _ = False
 
 data ImportSpecifier = IFunc Identifier [Param] ReturnType
-                       deriving (Show)
+  deriving (Show)
 
-data ExportSpecifier = EMemory Identifier
-                     | EFunc Identifier
-                       deriving (Show)
+data ExportSpecifier
+  = EMemory Identifier
+  | EFunc Identifier
+  deriving (Show)
 
-data Stmt = Local Identifier Valtype
-          | Block Identifier [Stmt]
-          | Loop Identifier [Stmt]
-          | Return Expr
-          | Exp Expr
-          | Seq [Stmt]
-            deriving (Show)
+data Stmt
+  = Local Identifier Valtype
+  | Block Identifier [Stmt]
+  | Loop Identifier [Stmt]
+  | Return Expr
+  | Exp Expr
+  | Seq [Stmt]
+  deriving (Show)
 
-data Expr = Instr String [Expr]
-          | Method String Valtype [Expr]
-          | Lit Integer
-          | Var Identifier
-            deriving (Show)
+data Expr
+  = Instr String [Expr]
+  | Method String Valtype [Expr]
+  | Lit Integer
+  | Var Identifier
+  deriving (Show)
 
-data Param = Par Identifier Valtype
-           | AnonymousPar Valtype
-             deriving (Show)
+data Param
+  = Par Identifier Valtype
+  | AnonymousPar Valtype
+  deriving (Show)
 
 type ReturnType = Maybe Result
 
