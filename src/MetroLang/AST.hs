@@ -130,7 +130,7 @@ data PrimitiveType
   | TIntL
   | TUIntL
   | TFloat
-  | TDouble
+  | TFloatL
   | TChar
   | TString
   deriving (Enum, Show, Eq)

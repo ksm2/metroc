@@ -11,7 +11,7 @@ sizeOf (Primitive TUInt) = 4
 sizeOf (Primitive TIntL) = 8
 sizeOf (Primitive TUIntL) = 8
 sizeOf (Primitive TFloat) = 4
-sizeOf (Primitive TDouble) = 8
+sizeOf (Primitive TFloatL) = 8
 sizeOf (Primitive TString) = 4
 sizeOf _ = 0 -- TODO: Calculate size of other class
 

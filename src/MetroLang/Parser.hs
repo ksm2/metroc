@@ -513,7 +513,7 @@ primitiveTypeName =
     <|> (reserved "IntL" >> return TIntL)
     <|> (reserved "UIntL" >> return TUIntL)
     <|> (reserved "Float" >> return TFloat)
-    <|> (reserved "Double" >> return TDouble)
+    <|> (reserved "FloatL" >> return TFloatL)
     <|> (reserved "Char" >> return TChar)
     <|> (reserved "String" >> return TString)
 
