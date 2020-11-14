@@ -32,6 +32,7 @@ languageDef =
           "interface",
           "null",
           "return",
+          "static",
           "this",
           "true",
           "while"
@@ -185,7 +186,7 @@ classDeclaration =
     pars <- optionalParams
     extends <- classExtends
     implements <- impls
-    body <- classBlock
+    body <- classBody
     return $ Class name args pars extends implements body
 
 implDeclaration :: Parser Declaration
@@ -195,7 +196,7 @@ implDeclaration =
     interfaceType <- typeParser
     reserved "for"
     targetType <- typeParser
-    body <- classBlock
+    body <- classBody
     return $ Impl interfaceType targetType body
 
 funcDeclaration :: Parser Declaration
@@ -261,26 +262,29 @@ classExtends = option TVoid $ reserved "extends" >> typeParser
 impls :: Parser Implements
 impls = option [] $ reserved "impl" >> (commaSep typeParser)
 
-classBlock :: Parser ClassBlock
-classBlock = braces classBlockContent
+classBody :: Parser ClassBody
+classBody = liftM ClassBody $ braces classBodyDeclarations
 
-classBlockContent :: Parser ClassBlock
-classBlockContent =
-  do
-    classFields <- fields
-    classMethods <- methods
-    return $ ClassBlock classFields classMethods
+classBodyDeclarations :: Parser [ClassBodyDeclaration]
+classBodyDeclarations = many classBodyDeclaration
 
-fields :: Parser [Field]
-fields = many $ try field
+classBodyDeclaration :: Parser ClassBodyDeclaration
+classBodyDeclaration = try fieldDeclaration <|> staticMethodDeclaration <|> method
 
-field :: Parser Field
-field =
+fieldDeclaration :: Parser ClassBodyDeclaration
+fieldDeclaration =
   do
     fieldName <- identifier
     reservedOp ":="
     initializer <- expr
     return $ Field fieldName initializer
+
+staticMethodDeclaration :: Parser ClassBodyDeclaration
+staticMethodDeclaration =
+  do
+    reserved "static"
+    Method sig body <- method
+    return $ StaticMethod sig body
 
 methodSignature :: Parser MethodSignature
 methodSignature =
@@ -290,10 +294,7 @@ methodSignature =
     methodReturn <- returnType
     return $ MethodSignature methodName methodParams methodReturn
 
-methods :: Parser [Method]
-methods = many method
-
-method :: Parser Method
+method :: Parser ClassBodyDeclaration
 method =
   do
     signature <- methodSignature

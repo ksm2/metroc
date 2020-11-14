@@ -32,21 +32,21 @@ declaration (Metro.Const constName value) =
     return [WASM.Global constName (WASM.Imut (dataTypeToValtype valueType)) valueExpr]
 declaration (Metro.Enumeration _name _typeArgs _) = return []
 declaration (Metro.Interface _name _typeArgs _ _) = return []
-declaration (Metro.Class name _typeArgs pars _ _ (Metro.ClassBlock _ ms)) =
+declaration (Metro.Class name _typeArgs pars _ _ body) =
   do
     setThisContext (Generic name [])
-    declareClass name (createClassInfo pars ms)
-    classBlockDeclarations <- methods ms
+    declareClass name (createClassInfo pars body)
+    parsedBody <- classBody body
     constr <- constructor name pars
-    return $ constr : classBlockDeclarations
-declaration (Metro.Impl _ targetType (Metro.ClassBlock _ ms)) =
+    return $ constr : parsedBody
+declaration (Metro.Impl _ targetType body) =
   do
     setThisContext targetType
-    enhanceClass (show targetType) (createClassInfo [] ms)
-    methods ms
+    enhanceClass (show targetType) (createClassInfo [] body)
+    classBody body
 declaration (Metro.Func fnName fnParams fnReturn body) =
   do
-    declareFunction fnName $ FunctionInfo (map getParamType fnParams) fnReturn
+    declareFunction fnName $ FunctionInfo True (map getParamType fnParams) fnReturn
     p <- params fnParams
     r <- returnType fnReturn
     bb <- fnBlock body fnParams
@@ -58,7 +58,7 @@ importName (Metro.FuncImport fnName _ _) = return fnName
 importSpecifier :: Metro.ImportSpecifier -> Compiler WASM.ImportSpecifier
 importSpecifier (Metro.FuncImport fnName fnParams fnReturn) =
   do
-    declareFunction fnName $ FunctionInfo (map getParamType fnParams) fnReturn
+    declareFunction fnName $ FunctionInfo True (map getParamType fnParams) fnReturn
     p <- params fnParams
     r <- returnType fnReturn
     return $ WASM.IFunc fnName p r
@@ -81,24 +81,43 @@ assignField (Metro.Par fieldName _) =
     return $ WASM.Exp $ storeInstr 32 fieldOffset (getLocal "___ptr") (getLocal fieldName)
 
 -- Classes
-methods :: [Metro.Method] -> Compiler [WASM.Declaration]
-methods = many method
+classBody :: Metro.ClassBody -> Compiler [WASM.Declaration]
+classBody (Metro.ClassBody decls) = classBodyDeclarations decls
 
-method :: Metro.Method -> Compiler WASM.Declaration
-method (Metro.Method m@(Metro.MethodSignature _ methodParams _) b) =
+classBodyDeclarations :: [Metro.ClassBodyDeclaration] -> Compiler [WASM.Declaration]
+classBodyDeclarations = flatMany classBodyDeclaration
+
+data Owner = Static | Instance
+
+classBodyDeclaration :: Metro.ClassBodyDeclaration -> Compiler [WASM.Declaration]
+classBodyDeclaration (Metro.Method m b) = method Instance m b
+classBodyDeclaration (Metro.StaticMethod m b) = method Static m b
+classBodyDeclaration _ = return []
+
+method :: Owner -> Metro.MethodSignature -> Metro.Block -> Compiler [WASM.Declaration]
+method o m@(Metro.MethodSignature _ methodParams _) b =
   do
-    signature <- methodSignature m
+    signature <- methodSignature o m
     bb <- fnBlock b methodParams
-    return $ signature bb
+    return [signature bb]
 
-methodSignature :: Metro.MethodSignature -> Compiler ([WASM.Stmt] -> WASM.Declaration)
-methodSignature (Metro.MethodSignature name methodParams methodReturn) =
+methodSignature :: Owner -> Metro.MethodSignature -> Compiler ([WASM.Stmt] -> WASM.Declaration)
+methodSignature Instance (Metro.MethodSignature name methodParams methodReturn) =
   do
     className <- requireThisContext
     thisParam <- return $ WASM.Par "this" WASM.I32
     pp <- params methodParams
     r <- returnType methodReturn
-    return $ WASM.Func ((show className) ++ "." ++ name) (thisParam : pp) r
+    return $ WASM.Func (methodName className name) (thisParam : pp) r
+methodSignature Static (Metro.MethodSignature name methodParams methodReturn) =
+  do
+    className <- requireThisContext
+    pp <- params methodParams
+    r <- returnType methodReturn
+    return $ WASM.Func (methodName className name) pp r
+
+methodName :: Show a => a -> [Char] -> [Char]
+methodName className name = (show className) ++ "." ++ name
 
 -- Statements
 fnBlock :: Metro.Block -> [Metro.Param] -> Compiler [WASM.Stmt]

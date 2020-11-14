@@ -58,5 +58,5 @@ fn main() {
   str := "hello world"
   hash := murmur3(seed, str.toByteList())
 
-  File(FD_STDOUT).writeln("hash of '" + str + "' with seed " + seed.toString() + " = " + hash.toString() + " should be 1128525090")
+  File.stdout().writeln("hash of '" + str + "' with seed " + seed.toString() + " = " + hash.toString() + " should be 1128525090")
 }

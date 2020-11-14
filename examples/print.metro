@@ -1,10 +1,5 @@
 fn main() {
-  stdin := File(FD_STDIN)
-  str := stdin.read()
-
-  stdout := File(FD_STDOUT)
-  stdout.write(str)
-
-  stderr := File(FD_STDERR)
-  stderr.writeln("standard" + "error")
+  str := File.stdin().read()
+  File.stdout().write(str)
+  File.stderr().writeln("standard" + "error")
 }

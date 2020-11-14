@@ -28,8 +28,13 @@ expr (Metro.VariableExpr varName) =
         varType <- lookupConst varName
         return $ Value varType $ getGlobal varName
       else do
-        varType <- lookupVariableType varName
-        return $ Value varType $ getLocal varName
+        isClass <- classExists varName
+        if isClass
+          then do
+            return $ Value (TypeRef varName) $ i32Const 0
+          else do
+            varType <- lookupVariableType varName
+            return $ Value varType $ getLocal varName
 expr (Metro.BooleanLiteral True) = return trueValue
 expr (Metro.BooleanLiteral False) = return falseValue
 expr (Metro.NumberLiteral p n)
@@ -155,9 +160,17 @@ methodCall (Value (Primitive TUInt) obj) "toUIntL" [] = return $ convertTo TUInt
 methodCall (Value (Primitive TUInt) obj) "toByte" [] = return $ convertTo TUInt TByte obj
 methodCall (Value (Primitive TUInt) obj) "toWord" [] = return $ convertTo TUInt TWord obj
 methodCall (Value (Primitive TString) obj) "toByteList" [] = return $ Value (List (Primitive TByte)) $ obj
+methodCall (Value (TypeRef className) _) methodName args = staticClassMethodCall className methodName args
 methodCall (Value objType obj) methodName args = classMethodCall (show objType) obj methodName args
 
 --methodCall (Value objType _) methodName args = error $ "Unknown method " ++ methodName ++ argsToInfo args ++ " on primitive type " ++ show objType
+
+staticClassMethodCall :: String -> String -> [Value] -> Compiler Value
+staticClassMethodCall className methodName args =
+  do
+    method <- lookupClassMethod className methodName
+    wasmArgs <- return $ checkFunctionSignature 1 methodName (parameters method) args
+    return $ Value (returnDataType method) $ call (className ++ "." ++ methodName) wasmArgs
 
 classMethodCall :: String -> WASM.Expr -> String -> [Value] -> Compiler Value
 classMethodCall className obj methodName args =

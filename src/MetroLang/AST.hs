@@ -7,8 +7,8 @@ data Declaration
   | Const Identifier Expression
   | Enumeration Identifier TypeArgs [EnumItem]
   | Interface Identifier TypeArgs InterfaceExtends InterfaceBlock
-  | Class Identifier TypeArgs Params ClassExtends Implements ClassBlock
-  | Impl Type Type ClassBlock
+  | Class Identifier TypeArgs Params ClassExtends Implements ClassBody
+  | Impl Type Type ClassBody
   | Func Identifier Params ReturnType Block
   deriving (Show)
 
@@ -34,13 +34,15 @@ type ClassExtends = Type
 
 type Implements = [Type]
 
-data ClassBlock = ClassBlock [Field] [Method] deriving (Show)
+data ClassBody = ClassBody [ClassBodyDeclaration] deriving (Show)
 
-data Field = Field Identifier Expression deriving (Show)
+data ClassBodyDeclaration
+  = Method MethodSignature Block
+  | StaticMethod MethodSignature Block
+  | Field Identifier Expression
+  deriving (Show)
 
 data MethodSignature = MethodSignature Identifier Params ReturnType deriving (Show)
-
-data Method = Method MethodSignature Block deriving (Show)
 
 data Block = Block [Stmt] deriving (Show)
 
@@ -118,6 +120,7 @@ data Type
   | Primitive PrimitiveType
   | List Type
   | Generic String TypeArgs
+  | TypeRef String
 
 data PrimitiveType
   = TBool
@@ -166,6 +169,7 @@ instance Eq Type where
   Primitive a == Primitive b = a == b
   List a == List b = a == b
   Generic a1 a2 == Generic b1 b2 = a1 == b1 && a2 == b2
+  TypeRef a == TypeRef b = a == b
   _ == _ = False
 
 instance Show Type where
@@ -174,6 +178,7 @@ instance Show Type where
   show (List t) = "[" ++ (show t) ++ "]"
   show (Generic s []) = s
   show (Generic s args) = s ++ "<" ++ (joinArgs args) ++ ">"
+  show (TypeRef s) = s
 
 joinArgs :: (Show a) => [a] -> String
 joinArgs [] = ""

@@ -25,7 +25,8 @@ data ClassInfo = ClassInfo
   deriving (Show)
 
 data FunctionInfo = FunctionInfo
-  { parameters :: [Type],
+  { static :: Bool,
+    parameters :: [Type],
     returnDataType :: Type
   }
   deriving (Show)
@@ -101,10 +102,10 @@ mergeClassInfo ci1 ci2 =
       ClassInfo fields2 methods2 = ci2
    in ClassInfo (union fields1 fields2) (union methods1 methods2)
 
-createClassInfo :: [Param] -> [Method] -> ClassInfo
-createClassInfo classParams classMethods =
+createClassInfo :: [Param] -> ClassBody -> ClassInfo
+createClassInfo classParams classBody =
   let fields = snd $ createClassFields $ reverse classParams
-      methods = readMethods classMethods
+      methods = readClassBody classBody
    in ClassInfo fields methods
 
 createClassFields :: [Param] -> (Int, Map String Int)
@@ -114,17 +115,25 @@ createClassFields ((Par fieldName t) : params) =
       newOffset = (sizeOf t) + offset
    in (newOffset, insert fieldName offset existingMap)
 
-readMethods :: [Method] -> Map String FunctionInfo
+readClassBody :: ClassBody -> Map String FunctionInfo
+readClassBody (ClassBody decls) = readMethods decls
+
+readMethods :: [ClassBodyDeclaration] -> Map String FunctionInfo
 readMethods [] = empty
 readMethods (m : ms) =
-  let (Method (MethodSignature methodName methodParams methodReturn) _) = m
-      previousMap = readMethods ms
-   in insert methodName (createFunctionInfo methodParams methodReturn) previousMap
+  case m of
+    Method sig _ -> insertMethod False sig $ readMethods ms
+    StaticMethod sig _ -> insertMethod True sig $ readMethods ms
+    _ -> readMethods ms
 
-createFunctionInfo :: [Param] -> ReturnType -> FunctionInfo
-createFunctionInfo params returnType =
+insertMethod :: Bool -> MethodSignature -> Map Identifier FunctionInfo -> Map Identifier FunctionInfo
+insertMethod isStatic (MethodSignature methodName methodParams methodReturn) ms =
+  insert methodName (createFunctionInfo isStatic methodParams methodReturn) ms
+
+createFunctionInfo :: Bool -> [Param] -> ReturnType -> FunctionInfo
+createFunctionInfo isStatic params returnType =
   let paramTypes = map getParamType params
-   in FunctionInfo paramTypes returnType
+   in FunctionInfo isStatic paramTypes returnType
 
 getParamType :: Param -> Type
 getParamType (Par _ t) = t
@@ -225,15 +234,15 @@ lookupVariableTypeInScopes varName ((Scope x) : xs) =
 builtInFunctions :: Map String FunctionInfo
 builtInFunctions =
   fromList
-    [ ("__storeByte", FunctionInfo [Primitive TInt, Primitive TByte] TVoid),
-      ("__loadByte", FunctionInfo [Primitive TInt] (Primitive TByte)),
-      ("__storeIntXS", FunctionInfo [Primitive TInt, Primitive TIntXS] TVoid),
-      ("__loadIntXS", FunctionInfo [Primitive TInt] (Primitive TIntXS)),
-      ("__storeInt", FunctionInfo [Primitive TInt, Primitive TInt] TVoid),
-      ("__loadInt", FunctionInfo [Primitive TInt] (Primitive TInt)),
-      ("__storeIntL", FunctionInfo [Primitive TInt, Primitive TIntL] TVoid),
-      ("__loadIntL", FunctionInfo [Primitive TInt] (Primitive TIntL)),
-      ("__allocate", FunctionInfo [Primitive TInt] (Primitive TInt))
+    [ ("__storeByte", FunctionInfo True [Primitive TInt, Primitive TByte] TVoid),
+      ("__loadByte", FunctionInfo True [Primitive TInt] (Primitive TByte)),
+      ("__storeIntXS", FunctionInfo True [Primitive TInt, Primitive TIntXS] TVoid),
+      ("__loadIntXS", FunctionInfo True [Primitive TInt] (Primitive TIntXS)),
+      ("__storeInt", FunctionInfo True [Primitive TInt, Primitive TInt] TVoid),
+      ("__loadInt", FunctionInfo True [Primitive TInt] (Primitive TInt)),
+      ("__storeIntL", FunctionInfo True [Primitive TInt, Primitive TIntL] TVoid),
+      ("__loadIntL", FunctionInfo True [Primitive TInt] (Primitive TIntL)),
+      ("__allocate", FunctionInfo True [Primitive TInt] (Primitive TInt))
     ]
 
 -- | runCompiler executes the compilation of a module
