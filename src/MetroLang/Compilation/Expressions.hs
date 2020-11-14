@@ -91,7 +91,7 @@ strToPrimitiveType "UWord" = Just $ Primitive TUWord
 strToPrimitiveType "Int" = Just $ Primitive TInt
 strToPrimitiveType "UInt" = Just $ Primitive TUInt
 strToPrimitiveType "IntL" = Just $ Primitive TIntL
-strToPrimitiveType "ULong" = Just $ Primitive TULong
+strToPrimitiveType "UIntL" = Just $ Primitive TUIntL
 strToPrimitiveType "Float" = Just $ Primitive TFloat
 strToPrimitiveType "Double" = Just $ Primitive TDouble
 strToPrimitiveType "Char" = Just $ Primitive TChar
@@ -183,7 +183,7 @@ load (Primitive TUByte) n1 = Value (Primitive TUByte) $ loadInstr 8 Unsigned 0 n
 load (Primitive TIntS) n1 = Value (Primitive TIntS) $ loadInstr 16 Signed 0 n1
 load (Primitive TUWord) n1 = Value (Primitive TUWord) $ loadInstr 16 Unsigned 0 n1
 load (Primitive TIntL) n1 = Value (Primitive TIntL) $ loadInstr 64 Signed 0 n1
-load (Primitive TULong) n1 = Value (Primitive TULong) $ loadInstr 64 Unsigned 0 n1
+load (Primitive TUIntL) n1 = Value (Primitive TUIntL) $ loadInstr 64 Unsigned 0 n1
 load x n1 = Value x $ WASM.Method "load" WASM.I32 [n1]
 
 checkFunctionSignature :: Int -> String -> [Metro.Type] -> [Value] -> [WASM.Expr]
@@ -264,7 +264,7 @@ comparingExpr op (Value (Primitive TUWord) e1) (Value (Primitive TUWord) e2) = V
 comparingExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
 comparingExpr op (Value (Primitive TUInt) e1) (Value (Primitive TUInt) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
 comparingExpr op (Value (Primitive TIntL) e1) (Value (Primitive TIntL) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I64 [e1, e2]
-comparingExpr op (Value (Primitive TULong) e1) (Value (Primitive TULong) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I64 [e1, e2]
+comparingExpr op (Value (Primitive TUIntL) e1) (Value (Primitive TUIntL) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I64 [e1, e2]
 comparingExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
 
 arithmeticExpr :: String -> Value -> Value -> Value
@@ -275,7 +275,7 @@ arithmeticExpr op (Value (Primitive TUWord) e1) (Value (Primitive TUWord) e2) = 
 arithmeticExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TInt) $ WASM.Method op WASM.I32 [e1, e2]
 arithmeticExpr op (Value (Primitive TUInt) e1) (Value (Primitive TUInt) e2) = Value (Primitive TUInt) $ WASM.Method op WASM.I32 [e1, e2]
 arithmeticExpr op (Value (Primitive TIntL) e1) (Value (Primitive TIntL) e2) = Value (Primitive TIntL) $ WASM.Method op WASM.I64 [e1, e2]
-arithmeticExpr op (Value (Primitive TULong) e1) (Value (Primitive TULong) e2) = Value (Primitive TULong) $ WASM.Method op WASM.I64 [e1, e2]
+arithmeticExpr op (Value (Primitive TUIntL) e1) (Value (Primitive TUIntL) e2) = Value (Primitive TUIntL) $ WASM.Method op WASM.I64 [e1, e2]
 arithmeticExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
 
 signedArithmeticExpr :: String -> Value -> Value -> Value
@@ -286,7 +286,7 @@ signedArithmeticExpr op (Value (Primitive TUWord) e1) (Value (Primitive TUWord) 
 signedArithmeticExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TInt) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
 signedArithmeticExpr op (Value (Primitive TUInt) e1) (Value (Primitive TUInt) e2) = Value (Primitive TUInt) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
 signedArithmeticExpr op (Value (Primitive TIntL) e1) (Value (Primitive TIntL) e2) = Value (Primitive TIntL) $ WASM.Method (op ++ "_s") WASM.I64 [e1, e2]
-signedArithmeticExpr op (Value (Primitive TULong) e1) (Value (Primitive TULong) e2) = Value (Primitive TULong) $ WASM.Method (op ++ "_u") WASM.I64 [e1, e2]
+signedArithmeticExpr op (Value (Primitive TUIntL) e1) (Value (Primitive TUIntL) e2) = Value (Primitive TUIntL) $ WASM.Method (op ++ "_u") WASM.I64 [e1, e2]
 signedArithmeticExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
 
 toIntXS :: WASM.Expr -> WASM.Expr

@@ -468,7 +468,7 @@ suffixToPrimitiveType "UW" = TUWord
 suffixToPrimitiveType "W" = TIntS
 suffixToPrimitiveType "U" = TUInt
 suffixToPrimitiveType "" = TInt
-suffixToPrimitiveType "UL" = TULong
+suffixToPrimitiveType "UL" = TUIntL
 suffixToPrimitiveType "L" = TIntL
 suffixToPrimitiveType _ = error "Unexpected number suffix"
 
@@ -511,7 +511,7 @@ primitiveTypeName =
     <|> (reserved "Int" >> return TInt)
     <|> (reserved "UInt" >> return TUInt)
     <|> (reserved "IntL" >> return TIntL)
-    <|> (reserved "ULong" >> return TULong)
+    <|> (reserved "UIntL" >> return TUIntL)
     <|> (reserved "Float" >> return TFloat)
     <|> (reserved "Double" >> return TDouble)
     <|> (reserved "Char" >> return TChar)
