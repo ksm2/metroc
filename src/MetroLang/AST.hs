@@ -124,7 +124,7 @@ data PrimitiveType
   | TIntXS
   | TByte
   | TIntS
-  | TUWord
+  | TWord
   | TInt
   | TUInt
   | TIntL

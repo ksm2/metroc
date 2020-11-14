@@ -464,7 +464,7 @@ integerLiteral =
 suffixToPrimitiveType :: String -> PrimitiveType
 suffixToPrimitiveType "UB" = TByte
 suffixToPrimitiveType "B" = TIntXS
-suffixToPrimitiveType "UW" = TUWord
+suffixToPrimitiveType "UW" = TWord
 suffixToPrimitiveType "W" = TIntS
 suffixToPrimitiveType "U" = TUInt
 suffixToPrimitiveType "" = TInt
@@ -507,7 +507,7 @@ primitiveTypeName =
     <|> (reserved "IntXS" >> return TIntXS)
     <|> (reserved "Byte" >> return TByte)
     <|> (reserved "IntS" >> return TIntS)
-    <|> (reserved "UWord" >> return TUWord)
+    <|> (reserved "Word" >> return TWord)
     <|> (reserved "Int" >> return TInt)
     <|> (reserved "UInt" >> return TUInt)
     <|> (reserved "IntL" >> return TIntL)
