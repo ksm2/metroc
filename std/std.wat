@@ -5,6 +5,16 @@
 
   (global $__allocationOffset (mut i32) (i32.const 2056))
 
+  ;; Stores a Byte at the given location
+  (func $__storeByte (param $location i32) (param $value i32)
+    (i32.store8 (get_local $location) (get_local $value))
+  )
+
+  ;; Loads a Byte at the given location
+  (func $__loadByte (param $location i32) (result i32)
+    (i32.load8_u (get_local $location))
+  )
+
   ;; Stores a IntXS at the given location
   (func $__storeIntXS (param $location i32) (param $value i32)
     (i32.store8 (get_local $location) (get_local $value))

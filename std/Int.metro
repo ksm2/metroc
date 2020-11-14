@@ -19,9 +19,9 @@ impl ToString for Int {
 
   putIntStr(ptr Int) {
     if this < 10 {
-      __storeIntXS(ptr, (this + 48).toIntXS())
+      __storeByte(ptr, (this + 48) as Byte)
     } else {
-      __storeIntXS(ptr, ((this % 10) + 48).toIntXS())
+      __storeByte(ptr, ((this % 10) + 48) as Byte)
       (this / 10).putIntStr(ptr - 1)
     }
   }

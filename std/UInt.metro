@@ -19,9 +19,9 @@ impl ToString for UInt {
 
   putIntStr(ptr Int) {
     if this < 10U {
-      __storeIntXS(ptr, (this + 48U).toIntXS())
+      __storeByte(ptr, (this + 48U) as Byte)
     } else {
-      __storeIntXS(ptr, ((this % 10U) + 48U).toIntXS())
+      __storeByte(ptr, ((this % 10U) + 48U) as Byte)
       (this / 10U).putIntStr(ptr - 1)
     }
   }

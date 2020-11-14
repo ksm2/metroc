@@ -14,6 +14,8 @@ module MetroLang.WebAssembly.Utils
     i32Eq,
     i32Add,
     i32Mul,
+    i32RemS,
+    i32RemU,
     i32And,
     i32Or,
     i32Sub,
@@ -21,6 +23,7 @@ module MetroLang.WebAssembly.Utils
     i32WrapI64,
     i64Const,
     i64ExtendI32S,
+    i64ExtendI32U,
   )
 where
 
@@ -90,6 +93,12 @@ i32Sub n1 n2 = Method "sub" I32 [n1, n2]
 i32Mul :: Expr -> Expr -> Expr
 i32Mul n1 n2 = Method "mul" I32 [n1, n2]
 
+i32RemS :: Expr -> Expr -> Expr
+i32RemS n1 n2 = Method "rem_s" I32 [n1, n2]
+
+i32RemU :: Expr -> Expr -> Expr
+i32RemU n1 n2 = Method "rem_u" I32 [n1, n2]
+
 i32Shru :: Expr -> Expr -> Expr
 i32Shru n1 n2 = Method "shr_u" I32 [n1, n2]
 
@@ -101,3 +110,6 @@ i64Const num = Method "const" I64 [Lit num]
 
 i64ExtendI32S :: Expr -> Expr
 i64ExtendI32S n = Method "extend_i32_s" I64 [n]
+
+i64ExtendI32U :: Expr -> Expr
+i64ExtendI32U n = Method "extend_i32_u" I64 [n]

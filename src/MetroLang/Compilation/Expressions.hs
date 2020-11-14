@@ -136,7 +136,7 @@ binaryExpr op e1 e2 =
     return $ binaryExprWasm op f1 f2
 
 fieldAccess :: Value -> String -> Compiler Value
-fieldAccess (Value (Primitive TUInt) obj) "lowWord" = return $ Value (Primitive TWord) $ toIntS obj
+fieldAccess (Value (Primitive TUInt) obj) "lowWord" = return $ convertTo TUInt TWord obj
 fieldAccess (Value (Primitive TUInt) obj) "highWord" = return $ Value (Primitive TWord) $ i32Shru obj $ i32Const 16
 fieldAccess (Value (Primitive TString) obj) "length" = return $ Value (Primitive TInt) $ loadInstr 32 Signed 0 obj
 fieldAccess (Value (List _) obj) "length" = return $ Value (Primitive TUInt) $ loadInstr 32 Unsigned 0 obj
@@ -148,13 +148,12 @@ fieldAccess (Value (Generic className _) objExpr) fieldName =
 fieldAccess (Value objType _) methodName = error $ "Unknown field " ++ methodName ++ " on primitive type " ++ show objType
 
 methodCall :: Value -> String -> [Value] -> Compiler Value
-methodCall (Value (Primitive TByte) obj) "toWord" [] = return $ Value (Primitive TWord) obj
-methodCall (Value (Primitive TByte) obj) "toUInt" [] = return $ Value (Primitive TUInt) obj
-methodCall (Value (Primitive TWord) obj) "toUInt" [] = return $ Value (Primitive TUInt) obj
-methodCall (Value (Primitive TInt) obj) "toIntL" [] = return $ Value (Primitive TIntL) $ i64ExtendI32S obj
-methodCall (Value (Primitive TInt) obj) "toIntS" [] = return $ Value (Primitive TIntS) $ toIntS obj
-methodCall (Value (Primitive TInt) obj) "toIntXS" [] = return $ Value (Primitive TIntXS) $ toIntXS obj
-methodCall (Value (Primitive TUInt) obj) "toIntXS" [] = return $ Value (Primitive TIntXS) $ toIntXS obj
+methodCall (Value (Primitive TInt) obj) "toIntL" [] = return $ convertTo TInt TIntL obj
+methodCall (Value (Primitive TInt) obj) "toIntS" [] = return $ convertTo TInt TIntS obj
+methodCall (Value (Primitive TInt) obj) "toIntXS" [] = return $ convertTo TInt TIntXS obj
+methodCall (Value (Primitive TUInt) obj) "toUIntL" [] = return $ convertTo TUInt TUIntL obj
+methodCall (Value (Primitive TUInt) obj) "toByte" [] = return $ convertTo TUInt TByte obj
+methodCall (Value (Primitive TUInt) obj) "toWord" [] = return $ convertTo TUInt TWord obj
 methodCall (Value (Primitive TString) obj) "toByteList" [] = return $ Value (List (Primitive TByte)) $ obj
 methodCall (Value objType obj) methodName args = classMethodCall (show objType) obj methodName args
 
@@ -235,10 +234,10 @@ binaryExprWasm Metro.Is _e1 _e2 = falseValue -- TODO!
 binaryExprWasm Metro.Unequal (Value _ e1) (Value _ e2) = Value (Primitive TBool) $ i32Eqz (i32Eq e1 e2)
 binaryExprWasm Metro.Equal (Value _ e1) (Value _ e2) = Value (Primitive TBool) $ i32Eq e1 e2
 binaryExprWasm Metro.Add (Value (Primitive TString) e1) (Value (Primitive TString) e2) = Value (Primitive TString) $ call "__concat" [e1, e2]
-binaryExprWasm Metro.LessThan v1 v2 = comparingExpr "lt" v1 v2
-binaryExprWasm Metro.LessThanOrEqual v1 v2 = comparingExpr "le" v1 v2
-binaryExprWasm Metro.GreaterThan v1 v2 = comparingExpr "gt" v1 v2
-binaryExprWasm Metro.GreaterThanOrEqual v1 v2 = comparingExpr "ge" v1 v2
+binaryExprWasm Metro.LessThan v1 v2 = signedComparingExpr "lt" v1 v2
+binaryExprWasm Metro.LessThanOrEqual v1 v2 = signedComparingExpr "le" v1 v2
+binaryExprWasm Metro.GreaterThan v1 v2 = signedComparingExpr "gt" v1 v2
+binaryExprWasm Metro.GreaterThanOrEqual v1 v2 = signedComparingExpr "ge" v1 v2
 binaryExprWasm Metro.RotateLeft v1 v2 = arithmeticExpr "rotl" v1 v2
 binaryExprWasm Metro.RotateRight v1 v2 = arithmeticExpr "rotr" v1 v2
 binaryExprWasm Metro.ShiftLeft v1 v2 = arithmeticExpr "shl" v1 v2
@@ -258,44 +257,81 @@ boolExpr :: String -> Value -> Value -> Value
 boolExpr op (Value (Primitive TBool) e1) (Value (Primitive TBool) e2) = Value (Primitive TBool) $ WASM.Method op WASM.I32 [e1, e2]
 boolExpr op _ _ = error $ "Can only apply '" ++ op ++ "' on two Bools."
 
+signedComparingExpr :: String -> Value -> Value -> Value
+signedComparingExpr op (Value (Primitive left) e1) (Value (Primitive right) e2)
+  | isSignedType left && isSignedType right = comparingExpr (op ++ "_s") (Value (Primitive left) e1) (Value (Primitive right) e2)
+  | isUnsignedType left && isUnsignedType right = comparingExpr (op ++ "_u") (Value (Primitive left) e1) (Value (Primitive right) e2)
+signedComparingExpr _ _ _ = error "Cannot perform signed operation on mixed signed/unsigned type"
+
 comparingExpr :: String -> Value -> Value -> Value
-comparingExpr op (Value (Primitive TIntXS) e1) (Value (Primitive TIntXS) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
-comparingExpr op (Value (Primitive TByte) e1) (Value (Primitive TByte) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
-comparingExpr op (Value (Primitive TIntS) e1) (Value (Primitive TIntS) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
-comparingExpr op (Value (Primitive TWord) e1) (Value (Primitive TWord) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
-comparingExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
-comparingExpr op (Value (Primitive TUInt) e1) (Value (Primitive TUInt) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
-comparingExpr op (Value (Primitive TIntL) e1) (Value (Primitive TIntL) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I64 [e1, e2]
-comparingExpr op (Value (Primitive TUIntL) e1) (Value (Primitive TUIntL) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I64 [e1, e2]
+comparingExpr op (Value (Primitive left) e1) (Value (Primitive right) e2)
+  | left == right = Value (Primitive TBool) $ WASM.Method op (dataTypeToValtype (Metro.Primitive right)) [e1, e2]
+  | left < right = Value (Primitive TBool) $ WASM.Method op (dataTypeToValtype (Metro.Primitive right)) [convertToExpr left right e1, e2]
+  | left > right = Value (Primitive TBool) $ WASM.Method op (dataTypeToValtype (Metro.Primitive left)) [e1, convertToExpr right left e2]
 comparingExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
 
 arithmeticExpr :: String -> Value -> Value -> Value
-arithmeticExpr op (Value (Primitive TIntXS) e1) (Value (Primitive TIntXS) e2) = Value (Primitive TIntXS) $ toIntXS $ WASM.Method op WASM.I32 [e1, e2]
-arithmeticExpr op (Value (Primitive TByte) e1) (Value (Primitive TByte) e2) = Value (Primitive TByte) $ toIntXS $ WASM.Method op WASM.I32 [e1, e2]
-arithmeticExpr op (Value (Primitive TIntS) e1) (Value (Primitive TIntS) e2) = Value (Primitive TIntS) $ toIntS $ WASM.Method op WASM.I32 [e1, e2]
-arithmeticExpr op (Value (Primitive TWord) e1) (Value (Primitive TWord) e2) = Value (Primitive TWord) $ toIntS $ WASM.Method op WASM.I32 [e1, e2]
-arithmeticExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TInt) $ WASM.Method op WASM.I32 [e1, e2]
-arithmeticExpr op (Value (Primitive TUInt) e1) (Value (Primitive TUInt) e2) = Value (Primitive TUInt) $ WASM.Method op WASM.I32 [e1, e2]
-arithmeticExpr op (Value (Primitive TIntL) e1) (Value (Primitive TIntL) e2) = Value (Primitive TIntL) $ WASM.Method op WASM.I64 [e1, e2]
-arithmeticExpr op (Value (Primitive TUIntL) e1) (Value (Primitive TUIntL) e2) = Value (Primitive TUIntL) $ WASM.Method op WASM.I64 [e1, e2]
+arithmeticExpr op (Value (Primitive left) e1) (Value (Primitive right) e2)
+  | left == right = maskTo right $ WASM.Method op (dataTypeToValtype (Metro.Primitive right)) [e1, e2]
+  | left < right = maskTo right $ WASM.Method op (dataTypeToValtype (Metro.Primitive right)) [convertToExpr left right e1, e2]
+  | left > right = maskTo left $ WASM.Method op (dataTypeToValtype (Metro.Primitive left)) [e1, convertToExpr right left e2]
 arithmeticExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
 
 signedArithmeticExpr :: String -> Value -> Value -> Value
-signedArithmeticExpr op (Value (Primitive TIntXS) e1) (Value (Primitive TIntXS) e2) = Value (Primitive TIntXS) $ toIntXS $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
-signedArithmeticExpr op (Value (Primitive TByte) e1) (Value (Primitive TByte) e2) = Value (Primitive TByte) $ toIntXS $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
-signedArithmeticExpr op (Value (Primitive TIntS) e1) (Value (Primitive TIntS) e2) = Value (Primitive TIntS) $ toIntS $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
-signedArithmeticExpr op (Value (Primitive TWord) e1) (Value (Primitive TWord) e2) = Value (Primitive TWord) $ toIntS $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
-signedArithmeticExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TInt) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
-signedArithmeticExpr op (Value (Primitive TUInt) e1) (Value (Primitive TUInt) e2) = Value (Primitive TUInt) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
-signedArithmeticExpr op (Value (Primitive TIntL) e1) (Value (Primitive TIntL) e2) = Value (Primitive TIntL) $ WASM.Method (op ++ "_s") WASM.I64 [e1, e2]
-signedArithmeticExpr op (Value (Primitive TUIntL) e1) (Value (Primitive TUIntL) e2) = Value (Primitive TUIntL) $ WASM.Method (op ++ "_u") WASM.I64 [e1, e2]
-signedArithmeticExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
+signedArithmeticExpr op (Value (Primitive left) e1) (Value (Primitive right) e2)
+  | isSignedType left && isSignedType right = arithmeticExpr (op ++ "_s") (Value (Primitive left) e1) (Value (Primitive right) e2)
+  | isUnsignedType left && isUnsignedType right = arithmeticExpr (op ++ "_u") (Value (Primitive left) e1) (Value (Primitive right) e2)
+signedArithmeticExpr _ _ _ = error "Cannot perform signed operation on mixed signed/unsigned type"
 
-toIntXS :: WASM.Expr -> WASM.Expr
-toIntXS e = i32And (i32Const 0xFF) e
+maskTo :: Metro.PrimitiveType -> WASM.Expr -> Value
+maskTo dest = (Value $ Metro.Primitive dest) . (maskToExpr dest)
 
-toIntS :: WASM.Expr -> WASM.Expr
-toIntS e = i32And (i32Const 0xFFFF) e
+maskToExpr :: Metro.PrimitiveType -> WASM.Expr -> WASM.Expr
+maskToExpr TByte = i32And (i32Const 0xFF)
+maskToExpr TIntXS = i32And (i32Const 0xFF)
+maskToExpr TWord = i32And (i32Const 0xFFFF)
+maskToExpr TIntS = i32And (i32Const 0xFFFF)
+maskToExpr _ = id
+
+convertTo :: Metro.PrimitiveType -> Metro.PrimitiveType -> WASM.Expr -> Value
+convertTo src dest = (Value $ Metro.Primitive dest) . (convertToExpr src dest)
+
+convertToExpr :: Metro.PrimitiveType -> Metro.PrimitiveType -> WASM.Expr -> WASM.Expr
+convertToExpr src TUIntL
+  | src <= TInt = i64ExtendI32U
+  | src <= TUInt = i64ExtendI32U
+  | otherwise = error $ "Cannot convert " ++ (show src) ++ " to UIntL"
+convertToExpr src TIntL
+  | src <= TInt = i64ExtendI32S
+  | src <= TUInt = i64ExtendI32S
+  | otherwise = error $ "Cannot convert " ++ (show src) ++ " to IntL"
+convertToExpr src dest
+  | src == dest = id
+  | src < dest = id
+  | src > dest = maskToExpr dest
+  | src == unsigned dest = id
+  | otherwise = error $ "Cannot convert " ++ (show src) ++ " to " ++ (show dest)
+
+unsigned :: Metro.PrimitiveType -> Metro.PrimitiveType
+unsigned TIntXS = TByte
+unsigned TByte = TIntXS
+unsigned TIntS = TWord
+unsigned TWord = TIntS
+unsigned TInt = TUInt
+unsigned TUInt = TInt
+unsigned TIntL = TUIntL
+unsigned TUIntL = TIntL
+unsigned e = e
+
+isSignedType :: Metro.PrimitiveType -> Bool
+isSignedType TByte = False
+isSignedType TWord = False
+isSignedType TUInt = False
+isSignedType TUIntL = False
+isSignedType _ = True
+
+isUnsignedType :: Metro.PrimitiveType -> Bool
+isUnsignedType = not . isSignedType
 
 arguments :: Metro.Arguments -> Compiler [Value]
 arguments (Metro.Args e) = exprs e

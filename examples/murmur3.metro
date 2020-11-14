@@ -10,10 +10,10 @@ fn murmur3(seed UInt, key [Byte]) UInt {
   i := 0U
 
   while i < bytes {
-    k1  = key[i].toUInt()
-        | key[i + 1U].toUInt() << 8U
-        | key[i + 2U].toUInt() << 16U
-        | key[i + 3U].toUInt() << 24U
+    k1  = key[i]
+        | key[i + 1U] << 8U
+        | key[i + 2U] << 16U
+        | key[i + 3U] << 24U
     i = i + 4U
 
     k1 = k1 * MURMUR_C1
@@ -28,13 +28,13 @@ fn murmur3(seed UInt, key [Byte]) UInt {
   k1 = 0
 
   if remainder == 3U {
-    k1 = k1 ^ key[i + 2U].toUInt() << 16U
+    k1 = k1 ^ key[i + 2U] << 16U
   }
   if remainder >= 2U {
-    k1 = k1 ^ key[i + 1U].toUInt() << 8U
+    k1 = k1 ^ key[i + 1U] << 8U
   }
   if remainder >= 1U {
-    k1 = k1 ^ key[i].toUInt()
+    k1 = k1 ^ key[i]
 
     k1 = k1 * MURMUR_C1
     k1 = k1 <% 15U
@@ -57,5 +57,6 @@ fn main() {
   seed := 1U
   str := "hello world"
   hash := murmur3(seed, str.toByteList())
-  File(FD_STDOUT).writeln("hash of '" + str + "' with seed " + seed.toString() + " = " + hash.toString())
+
+  File(FD_STDOUT).writeln("hash of '" + str + "' with seed " + seed.toString() + " = " + hash.toString() + " should be 1128525090")
 }
