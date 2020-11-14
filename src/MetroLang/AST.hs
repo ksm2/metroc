@@ -127,7 +127,7 @@ data PrimitiveType
   | TUWord
   | TInt
   | TUInt
-  | TLong
+  | TIntL
   | TULong
   | TFloat
   | TDouble

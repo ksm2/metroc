@@ -469,7 +469,7 @@ suffixToPrimitiveType "W" = TIntS
 suffixToPrimitiveType "U" = TUInt
 suffixToPrimitiveType "" = TInt
 suffixToPrimitiveType "UL" = TULong
-suffixToPrimitiveType "L" = TLong
+suffixToPrimitiveType "L" = TIntL
 suffixToPrimitiveType _ = error "Unexpected number suffix"
 
 decodeStringLiteral :: String -> String
@@ -510,7 +510,7 @@ primitiveTypeName =
     <|> (reserved "UWord" >> return TUWord)
     <|> (reserved "Int" >> return TInt)
     <|> (reserved "UInt" >> return TUInt)
-    <|> (reserved "Long" >> return TLong)
+    <|> (reserved "IntL" >> return TIntL)
     <|> (reserved "ULong" >> return TULong)
     <|> (reserved "Float" >> return TFloat)
     <|> (reserved "Double" >> return TDouble)

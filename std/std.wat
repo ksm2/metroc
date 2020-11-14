@@ -25,13 +25,13 @@
     (i32.load (get_local $location))
   )
 
-  ;; Stores a Long at the given location
-  (func $__storeLong (param $location i32) (param $value i64)
+  ;; Stores a IntL at the given location
+  (func $__storeIntL (param $location i32) (param $value i64)
     (i64.store (get_local $location) (get_local $value))
   )
 
-  ;; Loads a Long at the given location
-  (func $__loadLong (param $location i32) (result i64)
+  ;; Loads a IntL at the given location
+  (func $__loadIntL (param $location i32) (result i64)
     (i64.load (get_local $location))
   )
 

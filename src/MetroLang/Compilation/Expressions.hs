@@ -90,7 +90,7 @@ strToPrimitiveType "IntS" = Just $ Primitive TIntS
 strToPrimitiveType "UWord" = Just $ Primitive TUWord
 strToPrimitiveType "Int" = Just $ Primitive TInt
 strToPrimitiveType "UInt" = Just $ Primitive TUInt
-strToPrimitiveType "Long" = Just $ Primitive TLong
+strToPrimitiveType "IntL" = Just $ Primitive TIntL
 strToPrimitiveType "ULong" = Just $ Primitive TULong
 strToPrimitiveType "Float" = Just $ Primitive TFloat
 strToPrimitiveType "Double" = Just $ Primitive TDouble
@@ -149,7 +149,7 @@ methodCall :: Value -> String -> [Value] -> Compiler Value
 methodCall (Value (Primitive TUByte) obj) "toUWord" [] = return $ Value (Primitive TUWord) obj
 methodCall (Value (Primitive TUByte) obj) "toUInt" [] = return $ Value (Primitive TUInt) obj
 methodCall (Value (Primitive TUWord) obj) "toUInt" [] = return $ Value (Primitive TUInt) obj
-methodCall (Value (Primitive TInt) obj) "toLong" [] = return $ Value (Primitive TLong) $ i64ExtendI32S obj
+methodCall (Value (Primitive TInt) obj) "toIntL" [] = return $ Value (Primitive TIntL) $ i64ExtendI32S obj
 methodCall (Value (Primitive TInt) obj) "toIntS" [] = return $ Value (Primitive TIntS) $ toIntS obj
 methodCall (Value (Primitive TInt) obj) "toIntXS" [] = return $ Value (Primitive TIntXS) $ toIntXS obj
 methodCall (Value (Primitive TUInt) obj) "toIntXS" [] = return $ Value (Primitive TIntXS) $ toIntXS obj
@@ -182,7 +182,7 @@ load (Primitive TIntXS) n1 = Value (Primitive TIntXS) $ loadInstr 8 Signed 0 n1
 load (Primitive TUByte) n1 = Value (Primitive TUByte) $ loadInstr 8 Unsigned 0 n1
 load (Primitive TIntS) n1 = Value (Primitive TIntS) $ loadInstr 16 Signed 0 n1
 load (Primitive TUWord) n1 = Value (Primitive TUWord) $ loadInstr 16 Unsigned 0 n1
-load (Primitive TLong) n1 = Value (Primitive TLong) $ loadInstr 64 Signed 0 n1
+load (Primitive TIntL) n1 = Value (Primitive TIntL) $ loadInstr 64 Signed 0 n1
 load (Primitive TULong) n1 = Value (Primitive TULong) $ loadInstr 64 Unsigned 0 n1
 load x n1 = Value x $ WASM.Method "load" WASM.I32 [n1]
 
@@ -263,7 +263,7 @@ comparingExpr op (Value (Primitive TIntS) e1) (Value (Primitive TIntS) e2) = Val
 comparingExpr op (Value (Primitive TUWord) e1) (Value (Primitive TUWord) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
 comparingExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
 comparingExpr op (Value (Primitive TUInt) e1) (Value (Primitive TUInt) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
-comparingExpr op (Value (Primitive TLong) e1) (Value (Primitive TLong) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I64 [e1, e2]
+comparingExpr op (Value (Primitive TIntL) e1) (Value (Primitive TIntL) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I64 [e1, e2]
 comparingExpr op (Value (Primitive TULong) e1) (Value (Primitive TULong) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I64 [e1, e2]
 comparingExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
 
@@ -274,7 +274,7 @@ arithmeticExpr op (Value (Primitive TIntS) e1) (Value (Primitive TIntS) e2) = Va
 arithmeticExpr op (Value (Primitive TUWord) e1) (Value (Primitive TUWord) e2) = Value (Primitive TUWord) $ toIntS $ WASM.Method op WASM.I32 [e1, e2]
 arithmeticExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TInt) $ WASM.Method op WASM.I32 [e1, e2]
 arithmeticExpr op (Value (Primitive TUInt) e1) (Value (Primitive TUInt) e2) = Value (Primitive TUInt) $ WASM.Method op WASM.I32 [e1, e2]
-arithmeticExpr op (Value (Primitive TLong) e1) (Value (Primitive TLong) e2) = Value (Primitive TLong) $ WASM.Method op WASM.I64 [e1, e2]
+arithmeticExpr op (Value (Primitive TIntL) e1) (Value (Primitive TIntL) e2) = Value (Primitive TIntL) $ WASM.Method op WASM.I64 [e1, e2]
 arithmeticExpr op (Value (Primitive TULong) e1) (Value (Primitive TULong) e2) = Value (Primitive TULong) $ WASM.Method op WASM.I64 [e1, e2]
 arithmeticExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
 
@@ -285,7 +285,7 @@ signedArithmeticExpr op (Value (Primitive TIntS) e1) (Value (Primitive TIntS) e2
 signedArithmeticExpr op (Value (Primitive TUWord) e1) (Value (Primitive TUWord) e2) = Value (Primitive TUWord) $ toIntS $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
 signedArithmeticExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TInt) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
 signedArithmeticExpr op (Value (Primitive TUInt) e1) (Value (Primitive TUInt) e2) = Value (Primitive TUInt) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
-signedArithmeticExpr op (Value (Primitive TLong) e1) (Value (Primitive TLong) e2) = Value (Primitive TLong) $ WASM.Method (op ++ "_s") WASM.I64 [e1, e2]
+signedArithmeticExpr op (Value (Primitive TIntL) e1) (Value (Primitive TIntL) e2) = Value (Primitive TIntL) $ WASM.Method (op ++ "_s") WASM.I64 [e1, e2]
 signedArithmeticExpr op (Value (Primitive TULong) e1) (Value (Primitive TULong) e2) = Value (Primitive TULong) $ WASM.Method (op ++ "_u") WASM.I64 [e1, e2]
 signedArithmeticExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
 

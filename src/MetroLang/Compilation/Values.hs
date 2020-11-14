@@ -12,5 +12,5 @@ data Value = Value
 dataTypeToValtype :: Type -> Valtype
 dataTypeToValtype (Primitive TDouble) = F64
 dataTypeToValtype (Primitive TFloat) = F32
-dataTypeToValtype (Primitive TLong) = I64
+dataTypeToValtype (Primitive TIntL) = I64
 dataTypeToValtype _ = I32

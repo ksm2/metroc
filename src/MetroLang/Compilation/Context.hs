@@ -229,8 +229,8 @@ builtInFunctions =
       ("__loadIntXS", FunctionInfo [Primitive TInt] (Primitive TIntXS)),
       ("__storeInt", FunctionInfo [Primitive TInt, Primitive TInt] TVoid),
       ("__loadInt", FunctionInfo [Primitive TInt] (Primitive TInt)),
-      ("__storeLong", FunctionInfo [Primitive TInt, Primitive TLong] TVoid),
-      ("__loadLong", FunctionInfo [Primitive TInt] (Primitive TLong)),
+      ("__storeIntL", FunctionInfo [Primitive TInt, Primitive TIntL] TVoid),
+      ("__loadIntL", FunctionInfo [Primitive TInt] (Primitive TIntL)),
       ("__allocate", FunctionInfo [Primitive TInt] (Primitive TInt))
     ]
 
