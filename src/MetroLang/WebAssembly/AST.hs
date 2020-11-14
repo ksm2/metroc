@@ -74,6 +74,7 @@ data Expr
   = Instr String [Expr]
   | Method String Valtype [Expr]
   | MemoryInstr String Valtype Offset Align [Expr]
+  | Select Expr Expr Expr
   | Lit Integer
   | Var Identifier
   deriving (Show)

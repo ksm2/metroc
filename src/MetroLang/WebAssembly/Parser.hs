@@ -32,6 +32,7 @@ languageDef =
           "(param",
           "(result",
           "(return",
+          "select",
           "(start",
           "i32",
           "i64",
@@ -255,7 +256,7 @@ parensExpr :: Parser Expr
 parensExpr = parens instruction
 
 instruction :: Parser Expr
-instruction = try memoryInstrExpr <|> methodExpr <|> instrExpr
+instruction = selectExpr <|> try memoryInstrExpr <|> methodExpr <|> instrExpr
 
 memoryInstrExpr :: Parser Expr
 memoryInstrExpr =
@@ -330,6 +331,15 @@ methodExpr =
     fn <- strIdentifier
     e <- exprs
     return $ Method fn vt e
+
+selectExpr :: Parser Expr
+selectExpr =
+  do
+    reserved "select"
+    left <- expr
+    right <- expr
+    cond <- expr
+    return $ Select left right cond
 
 litExpr :: Parser Expr
 litExpr =

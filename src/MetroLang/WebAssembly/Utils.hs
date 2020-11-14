@@ -4,6 +4,7 @@ module MetroLang.WebAssembly.Utils
     brIf,
     call,
     dropInstr,
+    select,
     getLocal,
     setLocal,
     getGlobal,
@@ -46,6 +47,9 @@ brIf i cond = Instr "br_if" [Var i, i32Eqz cond]
 
 call :: Identifier -> [Expr] -> Expr
 call i args = Instr "call" $ (Var i) : args
+
+select :: Expr -> Expr -> Expr -> Expr
+select left right cond = Select left right cond
 
 dropInstr :: Expr -> Expr
 dropInstr expr = Instr "drop" [expr]

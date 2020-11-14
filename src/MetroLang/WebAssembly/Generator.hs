@@ -41,6 +41,7 @@ expr (MemoryInstr s o off aln e) =
   let cmd = ((valtype o) ++ "." ++ s)
       instrProps = props [("offset", off), ("align", aln)]
    in wrap (cmd ++ instrProps) $ map expr e
+expr (Select left right cond) = wrap "select" [expr left, expr right, expr cond]
 expr (Lit i) = show i
 expr (Var iden) = identifier iden
 
