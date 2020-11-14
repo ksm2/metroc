@@ -1,7 +1,7 @@
 const MURMUR_C1 = 0xcc9e2d51U
 const MURMUR_C2 = 0x1b873593U
 
-fn murmur3(seed UInt, key [UByte]) UInt {
+fn murmur3(seed UInt, key [Byte]) UInt {
   remainder := key.length & 3U
   bytes := key.length - remainder
 
@@ -56,6 +56,6 @@ fn murmur3(seed UInt, key [UByte]) UInt {
 fn main() {
   seed := 1U
   str := "hello world"
-  hash := murmur3(seed, str.toUByteList())
+  hash := murmur3(seed, str.toByteList())
   File(FD_STDOUT).writeln("hash of '" + str + "' with seed " + seed.toString() + " = " + hash.toString())
 }

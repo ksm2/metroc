@@ -85,7 +85,7 @@ Nothing ?? f = f
 strToPrimitiveType :: String -> Maybe Type
 strToPrimitiveType "Bool" = Just $ Primitive TBool
 strToPrimitiveType "IntXS" = Just $ Primitive TIntXS
-strToPrimitiveType "UByte" = Just $ Primitive TUByte
+strToPrimitiveType "Byte" = Just $ Primitive TByte
 strToPrimitiveType "IntS" = Just $ Primitive TIntS
 strToPrimitiveType "UWord" = Just $ Primitive TUWord
 strToPrimitiveType "Int" = Just $ Primitive TInt
@@ -146,14 +146,14 @@ fieldAccess (Value (Generic className _) objExpr) fieldName =
 fieldAccess (Value objType _) methodName = error $ "Unknown field " ++ methodName ++ " on primitive type " ++ show objType
 
 methodCall :: Value -> String -> [Value] -> Compiler Value
-methodCall (Value (Primitive TUByte) obj) "toUWord" [] = return $ Value (Primitive TUWord) obj
-methodCall (Value (Primitive TUByte) obj) "toUInt" [] = return $ Value (Primitive TUInt) obj
+methodCall (Value (Primitive TByte) obj) "toUWord" [] = return $ Value (Primitive TUWord) obj
+methodCall (Value (Primitive TByte) obj) "toUInt" [] = return $ Value (Primitive TUInt) obj
 methodCall (Value (Primitive TUWord) obj) "toUInt" [] = return $ Value (Primitive TUInt) obj
 methodCall (Value (Primitive TInt) obj) "toIntL" [] = return $ Value (Primitive TIntL) $ i64ExtendI32S obj
 methodCall (Value (Primitive TInt) obj) "toIntS" [] = return $ Value (Primitive TIntS) $ toIntS obj
 methodCall (Value (Primitive TInt) obj) "toIntXS" [] = return $ Value (Primitive TIntXS) $ toIntXS obj
 methodCall (Value (Primitive TUInt) obj) "toIntXS" [] = return $ Value (Primitive TIntXS) $ toIntXS obj
-methodCall (Value (Primitive TString) obj) "toUByteList" [] = return $ Value (List (Primitive TUByte)) $ obj
+methodCall (Value (Primitive TString) obj) "toByteList" [] = return $ Value (List (Primitive TByte)) $ obj
 methodCall (Value objType obj) methodName args = classMethodCall (show objType) obj methodName args
 
 --methodCall (Value objType _) methodName args = error $ "Unknown method " ++ methodName ++ argsToInfo args ++ " on primitive type " ++ show objType
@@ -179,7 +179,7 @@ listAccessExpr obj key =
 
 load :: Type -> WASM.Expr -> Value
 load (Primitive TIntXS) n1 = Value (Primitive TIntXS) $ loadInstr 8 Signed 0 n1
-load (Primitive TUByte) n1 = Value (Primitive TUByte) $ loadInstr 8 Unsigned 0 n1
+load (Primitive TByte) n1 = Value (Primitive TByte) $ loadInstr 8 Unsigned 0 n1
 load (Primitive TIntS) n1 = Value (Primitive TIntS) $ loadInstr 16 Signed 0 n1
 load (Primitive TUWord) n1 = Value (Primitive TUWord) $ loadInstr 16 Unsigned 0 n1
 load (Primitive TIntL) n1 = Value (Primitive TIntL) $ loadInstr 64 Signed 0 n1
@@ -258,7 +258,7 @@ boolExpr op _ _ = error $ "Can only apply '" ++ op ++ "' on two Bools."
 
 comparingExpr :: String -> Value -> Value -> Value
 comparingExpr op (Value (Primitive TIntXS) e1) (Value (Primitive TIntXS) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
-comparingExpr op (Value (Primitive TUByte) e1) (Value (Primitive TUByte) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
+comparingExpr op (Value (Primitive TByte) e1) (Value (Primitive TByte) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
 comparingExpr op (Value (Primitive TIntS) e1) (Value (Primitive TIntS) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
 comparingExpr op (Value (Primitive TUWord) e1) (Value (Primitive TUWord) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
 comparingExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TBool) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
@@ -269,7 +269,7 @@ comparingExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op 
 
 arithmeticExpr :: String -> Value -> Value -> Value
 arithmeticExpr op (Value (Primitive TIntXS) e1) (Value (Primitive TIntXS) e2) = Value (Primitive TIntXS) $ toIntXS $ WASM.Method op WASM.I32 [e1, e2]
-arithmeticExpr op (Value (Primitive TUByte) e1) (Value (Primitive TUByte) e2) = Value (Primitive TUByte) $ toIntXS $ WASM.Method op WASM.I32 [e1, e2]
+arithmeticExpr op (Value (Primitive TByte) e1) (Value (Primitive TByte) e2) = Value (Primitive TByte) $ toIntXS $ WASM.Method op WASM.I32 [e1, e2]
 arithmeticExpr op (Value (Primitive TIntS) e1) (Value (Primitive TIntS) e2) = Value (Primitive TIntS) $ toIntS $ WASM.Method op WASM.I32 [e1, e2]
 arithmeticExpr op (Value (Primitive TUWord) e1) (Value (Primitive TUWord) e2) = Value (Primitive TUWord) $ toIntS $ WASM.Method op WASM.I32 [e1, e2]
 arithmeticExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TInt) $ WASM.Method op WASM.I32 [e1, e2]
@@ -280,7 +280,7 @@ arithmeticExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op
 
 signedArithmeticExpr :: String -> Value -> Value -> Value
 signedArithmeticExpr op (Value (Primitive TIntXS) e1) (Value (Primitive TIntXS) e2) = Value (Primitive TIntXS) $ toIntXS $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
-signedArithmeticExpr op (Value (Primitive TUByte) e1) (Value (Primitive TUByte) e2) = Value (Primitive TUByte) $ toIntXS $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
+signedArithmeticExpr op (Value (Primitive TByte) e1) (Value (Primitive TByte) e2) = Value (Primitive TByte) $ toIntXS $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
 signedArithmeticExpr op (Value (Primitive TIntS) e1) (Value (Primitive TIntS) e2) = Value (Primitive TIntS) $ toIntS $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
 signedArithmeticExpr op (Value (Primitive TUWord) e1) (Value (Primitive TUWord) e2) = Value (Primitive TUWord) $ toIntS $ WASM.Method (op ++ "_u") WASM.I32 [e1, e2]
 signedArithmeticExpr op (Value (Primitive TInt) e1) (Value (Primitive TInt) e2) = Value (Primitive TInt) $ WASM.Method (op ++ "_s") WASM.I32 [e1, e2]
