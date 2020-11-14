@@ -19,7 +19,7 @@ fn __memcpy(destination Int, source Int, size Int) {
     __memcpy(destination + 8, source + 8, size - 8)
   } else if size != 0 {
     // Copy one byte
-    __storeByte(destination, __loadByte(source))
+    __storeIntXS(destination, __loadIntXS(source))
     __memcpy(destination + 1, source + 1, size - 1)
   }
 }

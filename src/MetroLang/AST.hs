@@ -121,7 +121,7 @@ data Type
 
 data PrimitiveType
   = TBool
-  | TByte
+  | TIntXS
   | TUByte
   | TWord
   | TUWord
