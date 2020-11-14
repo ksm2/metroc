@@ -44,6 +44,7 @@ expr (Metro.ThisKeyword) =
     return $ Value classType $ getLocal "this"
 expr (Metro.Unary op e) = unaryExpr op e
 expr (Metro.Binary op e1 e2) = binaryExpr op e1 e2
+expr (Metro.As e1 e2) = asExpr e1 e2
 expr (Metro.Call callee args) =
   do
     a <- arguments args
@@ -59,6 +60,51 @@ functionCall fnName args =
     functionInfo <- lookupFunction fnName
     wasmArgs <- return $ checkFunctionSignature 1 fnName (parameters functionInfo) args
     return $ Value (returnDataType functionInfo) $ call fnName wasmArgs
+
+asExpr :: Metro.Expression -> Metro.Expression -> Compiler Value
+asExpr e (Metro.VariableExpr typeIdentifier) =
+  do
+    actualType <- strToType typeIdentifier
+    Value _ f <- expr e
+    return $ Value actualType f
+asExpr _ _ = error "Cannot cast to the given right-hand side value."
+
+strToType :: String -> Compiler Type
+strToType str =
+  do
+    isPrimitive <- return $ strToPrimitiveType str
+    isClass <- strToClass str
+    case isPrimitive ?? isClass of
+      Just x -> return x
+      Nothing -> error $ "Not a valid type reference: " ++ str
+
+(??) :: Maybe a -> Maybe a -> Maybe a
+(Just x) ?? _ = Just x
+Nothing ?? f = f
+
+strToPrimitiveType :: String -> Maybe Type
+strToPrimitiveType "Bool" = Just $ Primitive TBool
+strToPrimitiveType "Byte" = Just $ Primitive TByte
+strToPrimitiveType "UByte" = Just $ Primitive TUByte
+strToPrimitiveType "Word" = Just $ Primitive TWord
+strToPrimitiveType "UWord" = Just $ Primitive TUWord
+strToPrimitiveType "Int" = Just $ Primitive TInt
+strToPrimitiveType "UInt" = Just $ Primitive TUInt
+strToPrimitiveType "Long" = Just $ Primitive TLong
+strToPrimitiveType "ULong" = Just $ Primitive TULong
+strToPrimitiveType "Float" = Just $ Primitive TFloat
+strToPrimitiveType "Double" = Just $ Primitive TDouble
+strToPrimitiveType "Char" = Just $ Primitive TChar
+strToPrimitiveType "String" = Just $ Primitive TString
+strToPrimitiveType _ = Nothing
+
+strToClass :: String -> Compiler (Maybe Type)
+strToClass className =
+  do
+    isClass <- classExists className
+    if isClass
+      then return $ Just $ Generic className []
+      else return Nothing
 
 unaryExpr :: Metro.UnaryOp -> Metro.Expression -> Compiler Value
 unaryExpr op e = expr e >>= \value -> return $ unaryExprWasm op value
@@ -108,7 +154,6 @@ methodCall (Value (Primitive TInt) obj) "toWord" [] = return $ Value (Primitive 
 methodCall (Value (Primitive TInt) obj) "toByte" [] = return $ Value (Primitive TByte) $ toByte obj
 methodCall (Value (Primitive TUInt) obj) "toByte" [] = return $ Value (Primitive TByte) $ toByte obj
 methodCall (Value (Primitive TString) obj) "toUByteList" [] = return $ Value (List (Primitive TUByte)) $ obj
-methodCall (Value (Primitive TString) obj) "asInt" [] = return $ Value (Primitive TInt) $ obj
 methodCall (Value objType obj) methodName args = classMethodCall (show objType) obj methodName args
 
 --methodCall (Value objType _) methodName args = error $ "Unknown method " ++ methodName ++ argsToInfo args ++ " on primitive type " ++ show objType

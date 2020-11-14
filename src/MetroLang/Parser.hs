@@ -17,7 +17,8 @@ languageDef =
       Token.identStart = letter <|> oneOf "_",
       Token.identLetter = alphaNum <|> oneOf "_",
       Token.reservedNames =
-        [ "class",
+        [ "as",
+          "class",
           "const",
           "else",
           "enum",
@@ -377,7 +378,8 @@ operators =
     ],
     [ Infix (reservedOp "==" >> return (Binary Equal)) AssocLeft,
       Infix (reservedOp "!=" >> return (Binary Unequal)) AssocLeft,
-      Infix (reservedOp "is" >> return (Binary Is)) AssocLeft
+      Infix (reservedOp "is" >> return (Binary Is)) AssocLeft,
+      Infix (reservedOp "as" >> return As) AssocLeft
     ],
     [ Infix (reservedOp "&" >> return (Binary BitwiseAnd)) AssocLeft,
       Infix (reservedOp "^" >> return (Binary BitwiseXor)) AssocLeft,

@@ -103,6 +103,7 @@ data Expression
   | Binary BinOp Expression Expression
   | Call Identifier Arguments
   | ListAccess Expression Expression
+  | As Expression Expression
   deriving (Show)
 
 data Arguments = Args [Expression] deriving (Show)

@@ -32,12 +32,12 @@ fn __memcpy(destination Int, source Int, size Int) {
  * @returns Left and right concatenated
  */
 fn __concat(str1 String, str2 String) String {
-  length1 := __loadInt(str1.asInt())
-  length2 := __loadInt(str2.asInt())
+  length1 := __loadInt(str1 as Int)
+  length2 := __loadInt(str2 as Int)
   ptr := __allocate(length1 + length2 + 4)
   __storeInt(ptr, length1 + length2)
-  __memcpy(ptr + 4, str1.asInt() + 4, length1)
-  __memcpy(ptr + length1 + 4, str2.asInt() + 4, length2)
+  __memcpy(ptr + 4, (str1 as Int) + 4, length1)
+  __memcpy(ptr + length1 + 4, (str2 as Int) + 4, length2)
 
   return ptr
 }
