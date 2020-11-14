@@ -32,7 +32,9 @@ expr (Metro.VariableExpr varName) =
         return $ Value varType $ getLocal varName
 expr (Metro.BooleanLiteral True) = return trueValue
 expr (Metro.BooleanLiteral False) = return falseValue
-expr (Metro.NumberLiteral p n) = return $ Value (Primitive p) $ i32Const n
+expr (Metro.NumberLiteral p n)
+  | dataTypeToValtype (Metro.Primitive p) == WASM.I64 = return $ Value (Primitive p) $ i64Const n
+  | otherwise = return $ Value (Primitive p) $ i32Const n
 expr (Metro.StringLiteral l) =
   do
     ptr <- registerString l

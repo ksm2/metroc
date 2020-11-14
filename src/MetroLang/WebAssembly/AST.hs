@@ -97,4 +97,4 @@ type StringLiteral = String
 
 data Globaltype = Imut Valtype | Mut Valtype deriving (Show)
 
-data Valtype = I32 | I64 | F32 | F64 deriving (Show)
+data Valtype = I32 | I64 | F32 | F64 deriving (Show, Eq)
