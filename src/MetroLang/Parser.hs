@@ -451,21 +451,21 @@ integerLiteral =
     suffix <-
       option "" $
         choice
-          [ try $ symbol "UB",
-            try $ symbol "UW",
+          [ try $ symbol "XS",
             try $ symbol "UL",
             symbol "U",
             symbol "B",
             symbol "W",
+            symbol "S",
             symbol "L"
           ]
     return $ NumberLiteral (suffixToPrimitiveType suffix) int
 
 suffixToPrimitiveType :: String -> PrimitiveType
-suffixToPrimitiveType "UB" = TByte
-suffixToPrimitiveType "B" = TIntXS
-suffixToPrimitiveType "UW" = TWord
-suffixToPrimitiveType "W" = TIntS
+suffixToPrimitiveType "B" = TByte
+suffixToPrimitiveType "XS" = TIntXS
+suffixToPrimitiveType "W" = TWord
+suffixToPrimitiveType "S" = TIntS
 suffixToPrimitiveType "U" = TUInt
 suffixToPrimitiveType "" = TInt
 suffixToPrimitiveType "UL" = TUIntL
