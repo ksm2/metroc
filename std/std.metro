@@ -15,11 +15,11 @@ interface ToString {
 fn __memcpy(destination Int, source Int, size Int) {
   if size >= 8 {
     // Copy 8 bytes
-    __storeLong(destination, __loadLong(source))
+    __storeIntL(destination, __loadIntL(source))
     __memcpy(destination + 8, source + 8, size - 8)
   } else if size != 0 {
     // Copy one byte
-    __storeByte(destination, __loadByte(source))
+    __storeIntXS(destination, __loadIntXS(source))
     __memcpy(destination + 1, source + 1, size - 1)
   }
 }

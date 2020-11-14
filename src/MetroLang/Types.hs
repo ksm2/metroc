@@ -4,14 +4,14 @@ import MetroLang.AST
 
 sizeOf :: Type -> Int
 sizeOf (Primitive TBool) = 1
+sizeOf (Primitive TIntXS) = 1
 sizeOf (Primitive TByte) = 1
-sizeOf (Primitive TUByte) = 1
 sizeOf (Primitive TInt) = 4
 sizeOf (Primitive TUInt) = 4
-sizeOf (Primitive TLong) = 8
-sizeOf (Primitive TULong) = 8
+sizeOf (Primitive TIntL) = 8
+sizeOf (Primitive TUIntL) = 8
 sizeOf (Primitive TFloat) = 4
-sizeOf (Primitive TDouble) = 8
+sizeOf (Primitive TFloatL) = 8
 sizeOf (Primitive TString) = 4
 sizeOf _ = 0 -- TODO: Calculate size of other class
 

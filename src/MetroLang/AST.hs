@@ -121,16 +121,16 @@ data Type
 
 data PrimitiveType
   = TBool
+  | TIntXS
   | TByte
-  | TUByte
+  | TIntS
   | TWord
-  | TUWord
   | TInt
   | TUInt
-  | TLong
-  | TULong
+  | TIntL
+  | TUIntL
   | TFloat
-  | TDouble
+  | TFloatL
   | TChar
   | TString
   deriving (Enum, Show, Eq)

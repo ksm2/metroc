@@ -451,25 +451,25 @@ integerLiteral =
     suffix <-
       option "" $
         choice
-          [ try $ symbol "UB",
-            try $ symbol "UW",
+          [ try $ symbol "XS",
             try $ symbol "UL",
             symbol "U",
             symbol "B",
             symbol "W",
+            symbol "S",
             symbol "L"
           ]
     return $ NumberLiteral (suffixToPrimitiveType suffix) int
 
 suffixToPrimitiveType :: String -> PrimitiveType
-suffixToPrimitiveType "UB" = TUByte
 suffixToPrimitiveType "B" = TByte
-suffixToPrimitiveType "UW" = TUWord
+suffixToPrimitiveType "XS" = TIntXS
 suffixToPrimitiveType "W" = TWord
+suffixToPrimitiveType "S" = TIntS
 suffixToPrimitiveType "U" = TUInt
 suffixToPrimitiveType "" = TInt
-suffixToPrimitiveType "UL" = TULong
-suffixToPrimitiveType "L" = TLong
+suffixToPrimitiveType "UL" = TUIntL
+suffixToPrimitiveType "L" = TIntL
 suffixToPrimitiveType _ = error "Unexpected number suffix"
 
 decodeStringLiteral :: String -> String
@@ -504,16 +504,16 @@ primitiveType =
 primitiveTypeName :: Parser PrimitiveType
 primitiveTypeName =
   (reserved "Bool" >> return TBool)
+    <|> (reserved "IntXS" >> return TIntXS)
     <|> (reserved "Byte" >> return TByte)
-    <|> (reserved "UByte" >> return TUByte)
+    <|> (reserved "IntS" >> return TIntS)
     <|> (reserved "Word" >> return TWord)
-    <|> (reserved "UWord" >> return TUWord)
     <|> (reserved "Int" >> return TInt)
     <|> (reserved "UInt" >> return TUInt)
-    <|> (reserved "Long" >> return TLong)
-    <|> (reserved "ULong" >> return TULong)
+    <|> (reserved "IntL" >> return TIntL)
+    <|> (reserved "UIntL" >> return TUIntL)
     <|> (reserved "Float" >> return TFloat)
-    <|> (reserved "Double" >> return TDouble)
+    <|> (reserved "FloatL" >> return TFloatL)
     <|> (reserved "Char" >> return TChar)
     <|> (reserved "String" >> return TString)
 
