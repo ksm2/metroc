@@ -465,7 +465,7 @@ suffixToPrimitiveType :: String -> PrimitiveType
 suffixToPrimitiveType "UB" = TUByte
 suffixToPrimitiveType "B" = TIntXS
 suffixToPrimitiveType "UW" = TUWord
-suffixToPrimitiveType "W" = TWord
+suffixToPrimitiveType "W" = TIntS
 suffixToPrimitiveType "U" = TUInt
 suffixToPrimitiveType "" = TInt
 suffixToPrimitiveType "UL" = TULong
@@ -506,7 +506,7 @@ primitiveTypeName =
   (reserved "Bool" >> return TBool)
     <|> (reserved "IntXS" >> return TIntXS)
     <|> (reserved "UByte" >> return TUByte)
-    <|> (reserved "Word" >> return TWord)
+    <|> (reserved "IntS" >> return TIntS)
     <|> (reserved "UWord" >> return TUWord)
     <|> (reserved "Int" >> return TInt)
     <|> (reserved "UInt" >> return TUInt)
