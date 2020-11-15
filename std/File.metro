@@ -25,7 +25,7 @@ class File(fileHandle Int) {
 
   write(text String) {
     unsafe {
-      ((text as Int) + 4).store(0)
+      Int.store((text as Int) + 4, 0)
       text.length.store(4)
       fd_write(this.fileHandle, 0, 1, 20)
     }
@@ -35,8 +35,8 @@ class File(fileHandle Int) {
     unsafe {
       // Allocate enough space
       pos := __allocate(1028)
-      (pos + 4).store(0)
-      (1024).store(4)
+      Int.store(pos + 4, 0)
+      Int.store(1024, 4)
       fd_read(this.fileHandle, 0, 1, 8)
 
       // Prefix string with its length

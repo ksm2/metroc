@@ -19,9 +19,9 @@ impl ToString for Int {
 
   unsafe putIntStr(ptr Int) {
     if this < 10 {
-      ((this + 48) as Byte).store(ptr)
+      Byte.store((this + 48) as Byte, ptr)
     } else {
-      ((this % 10 + 48) as Byte).store(ptr)
+      Byte.store((this % 10 + 48) as Byte, ptr)
       (this / 10).putIntStr(ptr - 1)
     }
   }

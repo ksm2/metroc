@@ -175,6 +175,7 @@ methodCall (Value objType obj) methodName args = classMethodCall (show objType) 
 
 staticClassMethodCall :: Type -> String -> [Value] -> Compiler Value
 staticClassMethodCall (Primitive p) "load" [arg0] = return $ Value (Primitive p) $ loadInstr p 0 (wasmExpr arg0)
+staticClassMethodCall (Primitive p) "store" [arg0, arg1] = return $ Value TVoid $ storeInstr p 0 (wasmExpr arg1) (wasmExpr arg0)
 staticClassMethodCall typeRef methodName args =
   do
     method <- lookupClassMethod (show typeRef) methodName

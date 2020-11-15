@@ -19,9 +19,9 @@ impl ToString for UInt {
 
   unsafe putIntStr(ptr Int) {
     if this < 10U {
-      ((this + 48U) as Byte).store(ptr)
+      Byte.store((this + 48U) as Byte, ptr)
     } else {
-      (((this % 10U) + 48U) as Byte).store(ptr)
+      Byte.store((this % 10U + 48U) as Byte, ptr)
       (this / 10U).putIntStr(ptr - 1)
     }
   }
