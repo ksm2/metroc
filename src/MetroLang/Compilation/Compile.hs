@@ -71,17 +71,17 @@ constructor name pars =
   do
     p <- params pars
     sizeOfClass <- return $ i32Const $ toInteger $ calculateSizeOfClass pars
-    allocation <- return $ WASM.Exp $ setLocal "___ptr" $ call "__allocate" [sizeOfClass]
+    allocation <- return $ setLocal "___ptr" $ call "__allocate" [sizeOfClass]
     fieldAssigns <- many assignField pars
-    body <- return $ [WASM.Local "___ptr" WASM.I32, allocation] ++ fieldAssigns ++ [WASM.Exp $ getLocal "___ptr"]
+    body <- return $ [WASM.Local "___ptr" WASM.I32, allocation] ++ fieldAssigns ++ [getLocal "___ptr"]
     return $ WASM.Func name p (Just (WASM.Res WASM.I32)) body
 
-assignField :: Metro.Param -> Compiler WASM.Stmt
+assignField :: Metro.Param -> Compiler WASM.Expr
 assignField (Metro.Par fieldName _) =
   do
     className <- requireThisContext
     fieldOffset <- getFieldOffset (show className) fieldName
-    return $ WASM.Exp $ storeInstr TInt fieldOffset (getLocal "___ptr") (getLocal fieldName)
+    return $ storeInstr TInt fieldOffset (getLocal "___ptr") (getLocal fieldName)
 
 -- Classes
 classBody :: Metro.ClassBody -> Compiler [WASM.Declaration]
@@ -104,7 +104,7 @@ method o m@(Metro.MethodSignature _ _ methodParams _) b =
     bb <- fnBlock b methodParams
     return [signature bb]
 
-methodSignature :: Owner -> Metro.MethodSignature -> Compiler ([WASM.Stmt] -> WASM.Declaration)
+methodSignature :: Owner -> Metro.MethodSignature -> Compiler ([WASM.Expr] -> WASM.Declaration)
 methodSignature Instance (Metro.MethodSignature _safety name methodParams methodReturn) =
   do
     className <- requireThisContext
@@ -123,7 +123,7 @@ methodName :: Show a => a -> [Char] -> [Char]
 methodName className name = (show className) ++ "." ++ name
 
 -- Statements
-fnBlock :: Metro.Block -> [Metro.Param] -> Compiler [WASM.Stmt]
+fnBlock :: Metro.Block -> [Metro.Param] -> Compiler [WASM.Expr]
 fnBlock (Metro.Block b) p =
   do
     pushScope p
@@ -138,13 +138,13 @@ isNotParam fnParams (varName, _) = not $ any (paramNameEquals varName) fnParams
 paramNameEquals :: String -> Metro.Param -> Bool
 paramNameEquals expected (Metro.Par actual _) = expected == actual
 
-block :: Metro.Block -> Compiler [WASM.Stmt]
+block :: Metro.Block -> Compiler [WASM.Expr]
 block (Metro.Block b) = stmts b
 
-stmts :: [Metro.Stmt] -> Compiler [WASM.Stmt]
+stmts :: [Metro.Stmt] -> Compiler [WASM.Expr]
 stmts = flatMany stmt
 
-stmt :: Metro.Stmt -> Compiler [WASM.Stmt]
+stmt :: Metro.Stmt -> Compiler [WASM.Expr]
 stmt (Metro.IfStmt i) = ifStmt i
 stmt (Metro.WhileStmt cond whileBlock) =
   do
@@ -155,8 +155,8 @@ stmt (Metro.WhileStmt cond whileBlock) =
         whileLabel <- label "while"
         continueLabel <- label "continue"
         b <- block whileBlock
-        condBr <- return $ WASM.Exp $ brIf whileLabel condExpr
-        return [WASM.Block whileLabel Nothing $ [WASM.Loop continueLabel $ condBr : b ++ [WASM.Exp $ br continueLabel]]]
+        condBr <- return $ brIf whileLabel condExpr
+        return [WASM.Block whileLabel Nothing $ [WASM.Loop continueLabel $ condBr : b ++ [br continueLabel]]]
 stmt (Metro.ReturnStmt e Nothing) =
   do
     value <- expr e
@@ -175,20 +175,20 @@ stmt (Metro.ExprStmt e) =
     value <- expr e
     wasmEx <- return $ wasmExpr value
     if (dataType value) /= TVoid
-      then return [WASM.Exp $ dropInstr wasmEx]
-      else return [WASM.Exp wasmEx]
+      then return [dropInstr wasmEx]
+      else return [wasmEx]
 
 -- If
-ifStmt :: Metro.If -> Compiler [WASM.Stmt]
+ifStmt :: Metro.If -> Compiler [WASM.Expr]
 ifStmt (Metro.If cond thenBlock Nothing) = thenStmt cond thenBlock []
 ifStmt (Metro.If cond thenBlock (Just e)) =
   do
     l <- label "else"
-    t <- thenStmt cond thenBlock [WASM.Exp $ br l]
+    t <- thenStmt cond thenBlock [br l]
     f <- elseStmt e
     return [WASM.Block l Nothing $ t ++ f]
 
-thenStmt :: Metro.Expression -> Metro.Block -> [WASM.Stmt] -> Compiler [WASM.Stmt]
+thenStmt :: Metro.Expression -> Metro.Block -> [WASM.Expr] -> Compiler [WASM.Expr]
 thenStmt cond thenBlock elseCond =
   do
     l <- label "if"
@@ -196,16 +196,16 @@ thenStmt cond thenBlock elseCond =
     b <- block thenBlock
     return [WASM.Block l Nothing $ (c : b) ++ elseCond]
 
-elseStmt :: Metro.Else -> Compiler [WASM.Stmt]
+elseStmt :: Metro.Else -> Compiler [WASM.Expr]
 elseStmt (Metro.ElseStmt b) = block b
 elseStmt (Metro.ElseIfStmt i) = ifStmt i
 
-ifCond :: String -> Metro.Expression -> Compiler WASM.Stmt
+ifCond :: String -> Metro.Expression -> Compiler WASM.Expr
 ifCond i cond =
   do
     value <- expr cond
     case value of
-      Value (Primitive TBool) wasmCond -> return $ WASM.Exp $ brIf i wasmCond
+      Value (Primitive TBool) wasmCond -> return $ brIf i wasmCond
       _ -> error "The if condition must be of type Bool."
 
 label :: String -> Compiler String
@@ -221,10 +221,10 @@ returnType :: Metro.ReturnType -> Compiler WASM.ReturnType
 returnType TVoid = return Nothing
 returnType rt = return $ Just $ WASM.Res $ dataTypeToValtype rt
 
-makeLocalStmts :: [(Metro.Identifier, Metro.Type)] -> [WASM.Stmt]
+makeLocalStmts :: [(Metro.Identifier, Metro.Type)] -> [WASM.Expr]
 makeLocalStmts = map makeLocalStmt
 
-makeLocalStmt :: (Metro.Identifier, Metro.Type) -> WASM.Stmt
+makeLocalStmt :: (Metro.Identifier, Metro.Type) -> WASM.Expr
 makeLocalStmt (i, dt) = WASM.Local i $ dataTypeToValtype dt
 
 compiling :: (a -> Compiler WASM.Module) -> a -> WASM.Module

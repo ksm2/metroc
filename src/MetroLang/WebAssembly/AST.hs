@@ -10,7 +10,7 @@ data Declaration
   | Export StringLiteral ExportSpecifier
   | Global Identifier Globaltype Expr
   | Data Expr Bytes
-  | Func Identifier [Param] ReturnType [Stmt]
+  | Func Identifier [Param] ReturnType [Expr]
   | Start Identifier
   deriving (Show)
 
@@ -62,16 +62,12 @@ data ExportSpecifier
   | EFunc Identifier
   deriving (Show)
 
-data Stmt
-  = Local Identifier Valtype
-  | Block Identifier ReturnType [Stmt]
-  | Loop Identifier [Stmt]
-  | Return Expr
-  | Exp Expr
-  deriving (Show)
-
 data Expr
-  = Instr String [Expr]
+  = Local Identifier Valtype
+  | Block Identifier ReturnType [Expr]
+  | Loop Identifier [Expr]
+  | Return Expr
+  | Instr String [Expr]
   | Method String Valtype [Expr]
   | MemoryInstr String Valtype Offset Align [Expr]
   | Select Expr Expr Expr

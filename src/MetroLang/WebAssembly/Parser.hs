@@ -149,7 +149,7 @@ funcDecl =
     iden <- identifier
     parsedParams <- params
     fnReturn <- returnType
-    body <- many statement
+    body <- many expr
     rparen
     return $ Func iden parsedParams fnReturn body
 
@@ -190,16 +190,22 @@ funcExportSpecifier =
     rparen
     return $ EFunc iden
 
-statement :: Parser Stmt
-statement =
-  localStmt
-    <|> blockStmt
-    <|> loopStmt
-    <|> returnStmt
-    <|> expStmt
+exprs :: Parser [Expr]
+exprs = many expr
 
-localStmt :: Parser Stmt
-localStmt =
+expr :: Parser Expr
+expr =
+  localExpr
+    <|> blockExpr
+    <|> loopExpr
+    <|> returnExpr
+    <|> litExpr
+    <|> varExpr
+    <|> noParensExpr
+    <|> parensExpr
+
+localExpr :: Parser Expr
+localExpr =
   do
     reserved "(local"
     iden <- identifier
@@ -207,45 +213,32 @@ localStmt =
     rparen
     return $ Local iden vt
 
-blockStmt :: Parser Stmt
-blockStmt =
+blockExpr :: Parser Expr
+blockExpr =
   do
     reserved "(block"
     iden <- identifier
     rt <- returnType
-    s <- many1 statement
+    s <- many1 expr
     rparen
     return $ Block iden rt s
 
-loopStmt :: Parser Stmt
-loopStmt =
+loopExpr :: Parser Expr
+loopExpr =
   do
     reserved "(loop"
     iden <- identifier
-    s <- many1 statement
+    s <- many1 expr
     rparen
     return $ Loop iden s
 
-returnStmt :: Parser Stmt
-returnStmt =
+returnExpr :: Parser Expr
+returnExpr =
   do
     reserved "(return"
     e <- expr
     rparen
     return $ Return e
-
-expStmt :: Parser Stmt
-expStmt = liftM Exp expr
-
-exprs :: Parser [Expr]
-exprs = many expr
-
-expr :: Parser Expr
-expr =
-  litExpr
-    <|> varExpr
-    <|> noParensExpr
-    <|> parensExpr
 
 noParensExpr :: Parser Expr
 noParensExpr =
