@@ -406,6 +406,23 @@ operators =
     [ Infix (reservedOp "and" >> return (Binary LogicalAnd)) AssocLeft,
       Infix (reservedOp "or" >> return (Binary LogicalOr)) AssocLeft
     ],
+    [ Infix (reservedOp "*=" >> return (Binary AssignMultiply)) AssocLeft,
+      Infix (reservedOp "/=" >> return (Binary AssignDivide)) AssocLeft,
+      Infix (reservedOp "%=" >> return (Binary AssignModulo)) AssocLeft
+    ],
+    [ Infix (reservedOp "+=" >> return (Binary AssignAdd)) AssocLeft,
+      Infix (reservedOp "-=" >> return (Binary AssignSubtract)) AssocLeft
+    ],
+    [ Infix (reservedOp ">>=" >> return (Binary AssignShiftRight)) AssocLeft,
+      Infix (reservedOp "<<=" >> return (Binary AssignShiftLeft)) AssocLeft
+    ],
+    [ Infix (reservedOp "%>=" >> return (Binary AssignRotateRight)) AssocLeft,
+      Infix (reservedOp "<%=" >> return (Binary AssignRotateLeft)) AssocLeft
+    ],
+    [ Infix (reservedOp "&=" >> return (Binary AssignBitwiseAnd)) AssocLeft,
+      Infix (reservedOp "^=" >> return (Binary AssignBitwiseXor)) AssocLeft,
+      Infix (reservedOp "|=" >> return (Binary AssignBitwiseOr)) AssocLeft
+    ],
     [ Infix (reservedOp ":=" >> return (Binary Definition)) AssocLeft,
       Infix (reservedOp "=" >> return (Binary Assignment)) AssocLeft
     ]

@@ -14,41 +14,41 @@ fn murmur3(seed UInt, key [Byte]) UInt {
         | key[i + 1U] << 8U
         | key[i + 2U] << 16U
         | key[i + 3U] << 24U
-    i = i + 4U
+    i += 4U
 
-    k1 = k1 * MURMUR_C1
-    k1 = k1 <% 15U
-    k1 = k1 * MURMUR_C2
+    k1 *= MURMUR_C1
+    k1 <%= 15U
+    k1 *= MURMUR_C2
 
-    hash = hash ^ k1
-    hash = hash <% 13U
-    hash = (hash * 5U) + 0xe6546b64U
+    hash ^= k1
+    hash <%= 13U
+    hash = hash * 5U + 0xe6546b64U
   }
 
   k1 = 0
 
   if remainder == 3U {
-    k1 = k1 ^ key[i + 2U] << 16U
+    k1 ^= key[i + 2U] << 16U
   }
   if remainder >= 2U {
-    k1 = k1 ^ key[i + 1U] << 8U
+    k1 ^= key[i + 1U] << 8U
   }
   if remainder >= 1U {
-    k1 = k1 ^ key[i]
+    k1 ^= key[i]
 
-    k1 = k1 * MURMUR_C1
-    k1 = k1 <% 15U
-    k1 = k1 * MURMUR_C2
-    hash = hash ^ k1
+    k1 *= MURMUR_C1
+    k1 <%= 15U
+    k1 *= MURMUR_C2
+    hash ^= k1
   }
 
-  hash = hash ^ key.length
+  hash ^= key.length
 
-  hash = hash ^ (hash >> 16U)
-  hash = hash * 0x85ebca6bU
-  hash = hash ^ (hash >> 13U)
-  hash = hash * 0xc2b2ae35U
-  hash = hash ^ (hash >> 16U)
+  hash ^= (hash >> 16U)
+  hash *= 0x85ebca6bU
+  hash ^= (hash >> 13U)
+  hash *= 0xc2b2ae35U
+  hash ^= (hash >> 16U)
 
   return hash
 }

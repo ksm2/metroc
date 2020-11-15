@@ -66,6 +66,18 @@ data Else
 data BinOp
   = Assignment
   | Definition
+  | AssignBitwiseOr
+  | AssignBitwiseXor
+  | AssignBitwiseAnd
+  | AssignRotateLeft
+  | AssignRotateRight
+  | AssignShiftLeft
+  | AssignShiftRight
+  | AssignSubtract
+  | AssignAdd
+  | AssignModulo
+  | AssignDivide
+  | AssignMultiply
   | LogicalOr
   | LogicalAnd
   | BitwiseOr

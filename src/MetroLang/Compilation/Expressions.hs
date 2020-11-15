@@ -32,8 +32,7 @@ expr (Metro.VariableExpr varName) =
         case refType of
           Just theType -> return $ Value (TypeRef theType) $ i32Const 0
           Nothing -> do
-            varType <- lookupVariableType varName
-            return $ Value varType $ getLocal varName
+            localVarExpr varName
 expr (Metro.BooleanLiteral True) = return trueValue
 expr (Metro.BooleanLiteral False) = return falseValue
 expr (Metro.NumberLiteral p n)
@@ -118,6 +117,12 @@ strToClass className =
       then return $ Just $ Generic className []
       else return Nothing
 
+localVarExpr :: String -> Compiler Value
+localVarExpr varName =
+  do
+    varType <- lookupVariableType varName
+    return $ Value varType $ getLocal varName
+
 unaryExpr :: Metro.UnaryOp -> Metro.Expression -> Compiler Value
 unaryExpr op e = expr e >>= \value -> return $ unaryExprWasm op value
 
@@ -130,6 +135,18 @@ unaryExprWasm Metro.LogicalNot _ = error "Can only apply 'not' on a Bool."
 binaryExpr :: Metro.BinOp -> Metro.Expression -> Metro.Expression -> Compiler Value
 binaryExpr Metro.Definition e1 e2 = definitionExpr e1 e2
 binaryExpr Metro.Assignment e1 e2 = assignment e1 e2
+binaryExpr Metro.AssignBitwiseOr e1 e2 = assignmentOp Metro.BitwiseOr e1 e2
+binaryExpr Metro.AssignBitwiseXor e1 e2 = assignmentOp Metro.BitwiseXor e1 e2
+binaryExpr Metro.AssignBitwiseAnd e1 e2 = assignmentOp Metro.BitwiseAnd e1 e2
+binaryExpr Metro.AssignRotateLeft e1 e2 = assignmentOp Metro.RotateLeft e1 e2
+binaryExpr Metro.AssignRotateRight e1 e2 = assignmentOp Metro.RotateRight e1 e2
+binaryExpr Metro.AssignShiftLeft e1 e2 = assignmentOp Metro.ShiftLeft e1 e2
+binaryExpr Metro.AssignShiftRight e1 e2 = assignmentOp Metro.ShiftRight e1 e2
+binaryExpr Metro.AssignSubtract e1 e2 = assignmentOp Metro.Subtract e1 e2
+binaryExpr Metro.AssignAdd e1 e2 = assignmentOp Metro.Add e1 e2
+binaryExpr Metro.AssignModulo e1 e2 = assignmentOp Metro.Modulo e1 e2
+binaryExpr Metro.AssignDivide e1 e2 = assignmentOp Metro.Divide e1 e2
+binaryExpr Metro.AssignMultiply e1 e2 = assignmentOp Metro.Multiply e1 e2
 binaryExpr Metro.Chain obj (Metro.VariableExpr fieldName) =
   do
     objValue <- expr obj
@@ -230,17 +247,37 @@ definitionExpr (Metro.VariableExpr varName) ex =
 definitionExpr _ _ = error "Bad variable declaration"
 
 assignment :: Metro.Expression -> Metro.Expression -> Compiler Value
-assignment (Metro.VariableExpr i) e2 =
+assignment left right =
   do
-    f2 <- expr e2
-    return $ Value TVoid $ setLocal i (wasmExpr f2)
-assignment (Metro.Binary Metro.Chain Metro.ThisKeyword (Metro.VariableExpr fieldName)) e2 =
+    parsedLeft <- leftHandSideSetter left
+    parsedRight <- expr right
+    return $ Value TVoid $ parsedLeft (wasmExpr parsedRight)
+
+assignmentOp :: Metro.BinOp -> Metro.Expression -> Metro.Expression -> Compiler Value
+assignmentOp op left right =
+  do
+    setterLeft <- leftHandSideSetter left
+    getterLeft <- leftHandSideGetter left
+    parsedRight <- expr right
+    return $ Value TVoid $ setterLeft $ wasmExpr $ binaryExprWasm op getterLeft parsedRight
+
+leftHandSideGetter :: Metro.Expression -> Compiler Value
+leftHandSideGetter (Metro.VariableExpr varName) = localVarExpr varName
+leftHandSideGetter (Metro.Binary Metro.Chain Metro.ThisKeyword (Metro.VariableExpr fieldName)) =
   do
     classType <- requireThisContext
     fieldOffset <- getFieldOffset (show classType) fieldName
-    f2 <- expr e2
-    return $ Value TVoid $ storeInstr TInt fieldOffset (getLocal "this") (wasmExpr f2)
-assignment x _ = error $ "Bad variable assignment: " ++ (show x)
+    return $ Value (Primitive TInt) $ loadInstr TInt fieldOffset (getLocal "this")
+leftHandSideGetter _ = error "Not a valid left-hand side assignment expression."
+
+leftHandSideSetter :: Metro.Expression -> Compiler (WASM.Expr -> WASM.Expr)
+leftHandSideSetter (Metro.VariableExpr i) = return $ setLocal i
+leftHandSideSetter (Metro.Binary Metro.Chain Metro.ThisKeyword (Metro.VariableExpr fieldName)) =
+  do
+    classType <- requireThisContext
+    fieldOffset <- getFieldOffset (show classType) fieldName
+    return $ storeInstr TInt fieldOffset (getLocal "this")
+leftHandSideSetter _ = error "Not a valid left-hand side assignment expression."
 
 binaryExprWasm :: Metro.BinOp -> Value -> Value -> Value
 binaryExprWasm Metro.LogicalOr v1 v2 = boolExpr "or" v1 v2
