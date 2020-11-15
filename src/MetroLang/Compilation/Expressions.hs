@@ -190,6 +190,9 @@ methodCall (Value (Primitive p) obj) "toWord" [] = return $ convertTo p TWord ob
 methodCall (Value (Primitive p) obj) "toUInt" [] = return $ convertTo p TUInt obj
 methodCall (Value (Primitive p) obj) "toUIntL" [] = return $ convertTo p TUIntL obj
 methodCall (Value (Primitive p) obj) "store" [arg0] = return $ Value TVoid $ storeInstr p 0 (wasmExpr arg0) obj
+methodCall (Value (Primitive p) obj) "countLeadingZeros" [] = return $ clz p obj
+methodCall (Value (Primitive p) obj) "countTrailingZeros" [] = return $ ctz p obj
+methodCall (Value (Primitive p) obj) "countOnes" [] = return $ popcnt p obj
 methodCall (Value (Primitive TString) obj) "toByteList" [] = return $ Value (List (Primitive TByte)) $ obj
 methodCall (Value (TypeRef typeRef) _) methodName args = staticClassMethodCall typeRef methodName args
 methodCall (Value objType obj) methodName args = classMethodCall (show objType) obj methodName args
@@ -211,6 +214,26 @@ classMethodCall className obj methodName args =
     method <- lookupClassMethod className methodName
     wasmArgs <- return $ checkFunctionSignature 1 methodName (parameters method) args
     return $ Value (returnDataType method) $ call (className ++ "." ++ methodName) $ obj : wasmArgs
+
+clz :: Metro.PrimitiveType -> WASM.Expr -> Value
+clz p e
+  | p == TByte || p == TIntXS = Value (Primitive TByte) $ WASM.Method "clz" WASM.I32 [i32Shl (i32Const 24) e]
+  | p == TWord || p == TIntS = Value (Primitive TByte) $ WASM.Method "clz" WASM.I32 [i32Shl (i32Const 16) e]
+  | p == TUInt || p == TInt = Value (Primitive TByte) $ WASM.Method "clz" WASM.I32 [e]
+  | p == TUIntL || p == TIntL = Value (Primitive TByte) $ WASM.Method "clz" WASM.I64 [e]
+  | otherwise = error $ "Cannot count leading zeros for " ++ (show p)
+
+ctz :: Metro.PrimitiveType -> WASM.Expr -> Value
+ctz p e
+  | p <= TUInt || p <= TInt = Value (Primitive TByte) $ WASM.Method "ctz" WASM.I32 [e]
+  | p == TUIntL || p == TIntL = Value (Primitive TByte) $ WASM.Method "ctz" WASM.I64 [e]
+  | otherwise = error $ "Cannot count trailing zeros for " ++ (show p)
+
+popcnt :: Metro.PrimitiveType -> WASM.Expr -> Value
+popcnt p e
+  | p <= TUInt || p <= TInt = Value (Primitive TByte) $ WASM.Method "popcnt" WASM.I32 [e]
+  | p == TUIntL || p == TIntL = Value (Primitive TByte) $ WASM.Method "popcnt" WASM.I64 [e]
+  | otherwise = error $ "Cannot count ones for " ++ (show p)
 
 listAccessExpr :: Metro.Expression -> Metro.Expression -> Compiler Value
 listAccessExpr obj key =

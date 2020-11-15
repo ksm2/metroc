@@ -20,6 +20,7 @@ module MetroLang.WebAssembly.Utils
     i32Or,
     i32Xor,
     i32Sub,
+    i32Shl,
     i32Shru,
     i32WrapI64,
     i64Const,
@@ -103,6 +104,9 @@ i32RemS n1 n2 = Method "rem_s" I32 [n1, n2]
 
 i32RemU :: Expr -> Expr -> Expr
 i32RemU n1 n2 = Method "rem_u" I32 [n1, n2]
+
+i32Shl :: Expr -> Expr -> Expr
+i32Shl n1 n2 = Method "shl" I32 [n1, n2]
 
 i32Shru :: Expr -> Expr -> Expr
 i32Shru n1 n2 = Method "shr_u" I32 [n1, n2]
