@@ -154,30 +154,16 @@ data PrimitiveType
   deriving (Bounded, Enum, Show, Eq)
 
 instance Ord PrimitiveType where
-  -- Signed
-  TIntXS <= TIntXS = True
-  TIntXS <= TIntS = True
-  TIntXS <= TInt = True
-  TIntXS <= TIntL = True
-  TIntS <= TIntS = True
-  TIntS <= TInt = True
-  TIntS <= TIntL = True
-  TInt <= TInt = True
-  TInt <= TIntL = True
-  TIntL <= TIntL = True
-  -- Unsigned
-  TByte <= TByte = True
-  TByte <= TWord = True
-  TByte <= TUInt = True
-  TByte <= TUIntL = True
-  TWord <= TWord = True
-  TWord <= TUInt = True
-  TWord <= TUIntL = True
-  TUInt <= TUInt = True
-  TUInt <= TUIntL = True
-  TUIntL <= TUIntL = True
-  -- Otherwise
-  _ <= _ = False
+  a <= b
+    | a == b = True
+    | a == TIntXS = b >= TIntS
+    | a == TIntS = b >= TInt
+    | a == TInt = b >= TIntL
+    | a == TByte = b >= TWord
+    | a == TWord = b >= TUInt
+    | a == TUInt = b >= TUIntL
+    | a == TFloat = b >= TFloatL
+    | otherwise = False
 
 instance Eq Type where
   TVoid == TVoid = True
