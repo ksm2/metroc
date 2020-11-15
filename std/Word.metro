@@ -1,0 +1,19 @@
+class Word {
+  countLeadingOnes() Byte {
+    return (~this).countLeadingZeros()
+  }
+
+  countTrailingOnes() Byte {
+    return (~this).countTrailingZeros()
+  }
+
+  countZeros() Byte {
+    return (~this).countOnes()
+  }
+}
+
+impl ToString for Word {
+  toString() String {
+    return (this as UInt).toString()
+  }
+}

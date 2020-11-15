@@ -30,11 +30,13 @@ metroToWat inFile outFile =
     stdMetro <- return $ Metro.parseString "std.metro" $(embedStringFile "std/std.metro")
     intMetro <- return $ Metro.parseString "Int.metro" $(embedStringFile "std/Int.metro")
     uintMetro <- return $ Metro.parseString "UInt.metro" $(embedStringFile "std/UInt.metro")
+    wordMetro <- return $ Metro.parseString "Word.metro" $(embedStringFile "std/Word.metro")
+    byteMetro <- return $ Metro.parseString "Byte.metro" $(embedStringFile "std/Byte.metro")
     fileMetro <- return $ Metro.parseString "File.metro" $(embedStringFile "std/File.metro")
 
     -- Compile program and output WebAssembly Text format
     ast <- Metro.parseFile inFile
-    wasm <- return $ compile $ foldl Metro.merge stdMetro [intMetro, uintMetro, fileMetro, ast]
+    wasm <- return $ compile $ foldl Metro.merge stdMetro [intMetro, uintMetro, wordMetro, byteMetro, fileMetro, ast]
     generateFile outFile $ WASM.merge stdWasm wasm
 
 -- | runWat runs a WebAssembly Text format file

@@ -1,11 +1,11 @@
 fn printDetails(num Int) {
   File.stdout().writeln("Number:          " + num.toString())
-  File.stdout().writeln("Leading ones:    " + (num.countLeadingOnes() as UInt).toString())
-  File.stdout().writeln("Leading zeros:   " + (num.countLeadingZeros() as UInt).toString())
-  File.stdout().writeln("Trailing ones:   " + (num.countTrailingOnes() as UInt).toString())
-  File.stdout().writeln("Trailing zeros:  " + (num.countTrailingZeros() as UInt).toString())
-  File.stdout().writeln("Ones:            " + (num.countOnes() as UInt).toString())
-  File.stdout().writeln("Zeros:           " + (num.countZeros() as UInt).toString())
+  File.stdout().writeln("Leading ones:    " + num.countLeadingOnes().toString())
+  File.stdout().writeln("Leading zeros:   " + num.countLeadingZeros().toString())
+  File.stdout().writeln("Trailing ones:   " + num.countTrailingOnes().toString())
+  File.stdout().writeln("Trailing zeros:  " + num.countTrailingZeros().toString())
+  File.stdout().writeln("Ones:            " + num.countOnes().toString())
+  File.stdout().writeln("Zeros:           " + num.countZeros().toString())
   File.stdout().writeln("")
 }
 
