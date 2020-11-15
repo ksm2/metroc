@@ -64,7 +64,6 @@ languageDef =
           ">=",
           ">",
           ">>",
-          ">>>",
           "<",
           "<<",
           "%>",
@@ -384,8 +383,7 @@ operators =
     [ Infix (reservedOp "+" >> return (Binary Add)) AssocLeft,
       Infix (reservedOp "-" >> return (Binary Subtract)) AssocLeft
     ],
-    [ Infix (reservedOp ">>>" >> return (Binary UnsignedShiftRight)) AssocLeft,
-      Infix (reservedOp ">>" >> return (Binary ShiftRight)) AssocLeft,
+    [ Infix (reservedOp ">>" >> return (Binary ShiftRight)) AssocLeft,
       Infix (reservedOp "<<" >> return (Binary ShiftLeft)) AssocLeft
     ],
     [ Infix (reservedOp "%>" >> return (Binary RotateRight)) AssocLeft,

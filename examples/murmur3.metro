@@ -44,11 +44,11 @@ fn murmur3(seed UInt, key [Byte]) UInt {
 
   hash = hash ^ key.length
 
-  hash = hash ^ (hash >>> 16U)
+  hash = hash ^ (hash >> 16U)
   hash = hash * 0x85ebca6bU
-  hash = hash ^ (hash >>> 13U)
+  hash = hash ^ (hash >> 13U)
   hash = hash * 0xc2b2ae35U
-  hash = hash ^ (hash >>> 16U)
+  hash = hash ^ (hash >> 16U)
 
   return hash
 }

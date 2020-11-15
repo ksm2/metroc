@@ -82,7 +82,6 @@ data BinOp
   | RotateRight
   | ShiftLeft
   | ShiftRight
-  | UnsignedShiftRight
   | Subtract
   | Add
   | Modulo
