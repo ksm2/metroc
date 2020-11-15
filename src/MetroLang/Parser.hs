@@ -320,6 +320,7 @@ stmt =
   liftM IfStmt ifParser
     <|> whileStmt
     <|> returnStmt
+    <|> unsafeStmt
     <|> liftM ExprStmt expr
 
 ifParser :: Parser If
@@ -358,6 +359,13 @@ returnCondition =
   do
     reserved "if"
     expr
+
+unsafeStmt :: Parser Stmt
+unsafeStmt =
+  do
+    reserved "unsafe"
+    unsafeBlock <- block
+    return $ UnsafeStmt unsafeBlock
 
 expr :: Parser Expression
 expr = buildExpressionParser operators term

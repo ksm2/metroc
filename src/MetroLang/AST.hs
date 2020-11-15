@@ -53,6 +53,7 @@ data Stmt
   | WhileStmt Expression Block
   | ReturnStmt Expression (Maybe Expression)
   | ExprStmt Expression
+  | UnsafeStmt Block
   deriving (Show)
 
 data If = If Expression Block (Maybe Else) deriving (Show)

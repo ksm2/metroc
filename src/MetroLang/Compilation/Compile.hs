@@ -140,9 +140,9 @@ block :: Metro.Block -> Compiler [WASM.Stmt]
 block (Metro.Block b) = stmts b
 
 stmts :: [Metro.Stmt] -> Compiler [WASM.Stmt]
-stmts = many stmt
+stmts = flatMany stmt
 
-stmt :: Metro.Stmt -> Compiler WASM.Stmt
+stmt :: Metro.Stmt -> Compiler [WASM.Stmt]
 stmt (Metro.IfStmt i) = ifStmt i
 stmt (Metro.WhileStmt cond whileBlock) =
   do
@@ -154,48 +154,49 @@ stmt (Metro.WhileStmt cond whileBlock) =
         continueLabel <- label "continue"
         b <- block whileBlock
         condBr <- return $ WASM.Exp $ brIf whileLabel condExpr
-        return $ WASM.Block whileLabel $ [WASM.Loop continueLabel $ condBr : b ++ [WASM.Exp $ br continueLabel]]
+        return [WASM.Block whileLabel $ [WASM.Loop continueLabel $ condBr : b ++ [WASM.Exp $ br continueLabel]]]
 stmt (Metro.ReturnStmt e Nothing) =
   do
     value <- expr e
     wasmEx <- return $ wasmExpr value
-    return $ WASM.Return wasmEx
+    return [WASM.Return wasmEx]
 stmt (Metro.ReturnStmt e (Just c)) =
   do
     l <- label "return"
     value <- expr e
     cond <- ifCond l c
     wasmEx <- return $ wasmExpr value
-    return $ WASM.Block l $ [cond, WASM.Return wasmEx]
+    return [WASM.Block l $ [cond, WASM.Return wasmEx]]
+stmt (Metro.UnsafeStmt body) = block body
 stmt (Metro.ExprStmt e) =
   do
     value <- expr e
     wasmEx <- return $ wasmExpr value
     if (dataType value) /= TVoid
-      then return $ WASM.Exp $ dropInstr wasmEx
-      else return $ WASM.Exp wasmEx
+      then return [WASM.Exp $ dropInstr wasmEx]
+      else return [WASM.Exp wasmEx]
 
 -- If
-ifStmt :: Metro.If -> Compiler WASM.Stmt
+ifStmt :: Metro.If -> Compiler [WASM.Stmt]
 ifStmt (Metro.If cond thenBlock Nothing) = thenStmt cond thenBlock []
 ifStmt (Metro.If cond thenBlock (Just e)) =
   do
     l <- label "else"
     t <- thenStmt cond thenBlock [WASM.Exp $ br l]
     f <- elseStmt e
-    return $ WASM.Block l $ t : f
+    return [WASM.Block l $ t ++ f]
 
-thenStmt :: Metro.Expression -> Metro.Block -> [WASM.Stmt] -> Compiler WASM.Stmt
+thenStmt :: Metro.Expression -> Metro.Block -> [WASM.Stmt] -> Compiler [WASM.Stmt]
 thenStmt cond thenBlock elseCond =
   do
     l <- label "if"
     c <- ifCond l cond
     b <- block thenBlock
-    return $ WASM.Block l $ (c : b) ++ elseCond
+    return [WASM.Block l $ (c : b) ++ elseCond]
 
 elseStmt :: Metro.Else -> Compiler [WASM.Stmt]
 elseStmt (Metro.ElseStmt b) = block b
-elseStmt (Metro.ElseIfStmt i) = (ifStmt i) >>= \x -> return [x]
+elseStmt (Metro.ElseIfStmt i) = ifStmt i
 
 ifCond :: String -> Metro.Expression -> Compiler WASM.Stmt
 ifCond i cond =

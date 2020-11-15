@@ -1,10 +1,12 @@
 impl ToString for Int {
   toString() String {
     len := this.countDigits()
-    str := __allocate(len + 4)
-    len.store(str)
-    this.putIntStr(str + len + 3)
-    return str
+    unsafe {
+      str := __allocate(len + 4)
+      len.store(str)
+      this.putIntStr(str + len + 3)
+      return str
+    }
   }
 
   countDigits() Int {

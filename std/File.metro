@@ -24,22 +24,26 @@ class File(fileHandle Int) {
   }
 
   write(text String) {
-    ((text as Int) + 4).store(0)
-    text.length.store(4)
-    fd_write(this.fileHandle, 0, 1, 20)
+    unsafe {
+      ((text as Int) + 4).store(0)
+      text.length.store(4)
+      fd_write(this.fileHandle, 0, 1, 20)
+    }
   }
 
   read() String {
-    // Allocate enough space
-    pos := __allocate(1028)
-    (pos + 4).store(0)
-    (1024).store(4)
-    fd_read(this.fileHandle, 0, 1, 8)
+    unsafe {
+      // Allocate enough space
+      pos := __allocate(1028)
+      (pos + 4).store(0)
+      (1024).store(4)
+      fd_read(this.fileHandle, 0, 1, 8)
 
-    // Prefix string with its length
-    length := Int.load(8)
-    length.store(pos)
+      // Prefix string with its length
+      length := Int.load(8)
+      length.store(pos)
 
-    return pos
+      return pos
+    }
   }
 }
