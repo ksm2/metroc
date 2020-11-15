@@ -12,7 +12,7 @@ interface ToString {
  * @param source - The source pointer in memory
  * @param size - The number of bytes to copy
  */
-fn __memcpy(destination Int, source Int, size Int) {
+unsafe fn __memcpy(destination Int, source Int, size Int) {
   if size >= 8 {
     // Copy 8 bytes
     IntL.load(source).store(destination)
@@ -31,7 +31,7 @@ fn __memcpy(destination Int, source Int, size Int) {
  * @param str2 - The right string
  * @returns Left and right concatenated
  */
-fn __concat(str1 String, str2 String) String {
+unsafe fn __concat(str1 String, str2 String) String {
   length1 := Int.load(str1 as Int)
   length2 := Int.load(str2 as Int)
   outputLength := length1 + length2

@@ -26,6 +26,7 @@ data ClassInfo = ClassInfo
 
 data FunctionInfo = FunctionInfo
   { static :: Bool,
+    unsafe :: Bool,
     parameters :: [Type],
     returnDataType :: Type
   }
@@ -127,13 +128,13 @@ readMethods (m : ms) =
     _ -> readMethods ms
 
 insertMethod :: Bool -> MethodSignature -> Map Identifier FunctionInfo -> Map Identifier FunctionInfo
-insertMethod isStatic (MethodSignature methodName methodParams methodReturn) ms =
-  insert methodName (createFunctionInfo isStatic methodParams methodReturn) ms
+insertMethod isStatic (MethodSignature methodSafety methodName methodParams methodReturn) ms =
+  insert methodName (createFunctionInfo isStatic (methodSafety == Unsafe) methodParams methodReturn) ms
 
-createFunctionInfo :: Bool -> [Param] -> ReturnType -> FunctionInfo
-createFunctionInfo isStatic params returnType =
+createFunctionInfo :: Bool -> Bool -> [Param] -> ReturnType -> FunctionInfo
+createFunctionInfo isStatic isUnsafe params returnType =
   let paramTypes = map getParamType params
-   in FunctionInfo isStatic paramTypes returnType
+   in FunctionInfo isStatic isUnsafe paramTypes returnType
 
 getParamType :: Param -> Type
 getParamType (Par _ t) = t
@@ -244,14 +245,14 @@ createClassInfoForPrimitiveType p =
 primitiveMethods :: PrimitiveType -> Map String FunctionInfo
 primitiveMethods p =
   fromList
-    [ ("load", FunctionInfo True [Primitive TInt] (Primitive p)),
-      ("store", FunctionInfo False [Primitive TInt] (TVoid))
+    [ ("load", FunctionInfo True True [Primitive TInt] (Primitive p)),
+      ("store", FunctionInfo False True [Primitive TInt] (TVoid))
     ]
 
 builtInFunctions :: Map String FunctionInfo
 builtInFunctions =
   fromList
-    [ ("__allocate", FunctionInfo True [Primitive TInt] (Primitive TInt))
+    [ ("__allocate", FunctionInfo True True [Primitive TInt] (Primitive TInt))
     ]
 
 -- | runCompiler executes the compilation of a module

@@ -9,8 +9,10 @@ data Declaration
   | Interface Identifier TypeArgs InterfaceExtends InterfaceBlock
   | Class Identifier TypeArgs Params ClassExtends Implements ClassBody
   | Impl Type Type ClassBody
-  | Func Identifier Params ReturnType Block
+  | Func Safety Identifier Params ReturnType Block
   deriving (Show)
+
+data Safety = Safe | Unsafe deriving (Show, Eq)
 
 type Params = [Param]
 
@@ -42,7 +44,7 @@ data ClassBodyDeclaration
   | Field Identifier Expression
   deriving (Show)
 
-data MethodSignature = MethodSignature Identifier Params ReturnType deriving (Show)
+data MethodSignature = MethodSignature Safety Identifier Params ReturnType deriving (Show)
 
 data Block = Block [Stmt] deriving (Show)
 

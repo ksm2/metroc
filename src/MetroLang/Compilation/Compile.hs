@@ -44,9 +44,10 @@ declaration (Metro.Impl _ targetType body) =
     setThisContext targetType
     enhanceClass (show targetType) (createClassInfo [] body)
     classBody body
-declaration (Metro.Func fnName fnParams fnReturn body) =
+declaration (Metro.Func fnSafety fnName fnParams fnReturn body) =
   do
-    declareFunction fnName $ FunctionInfo True (map getParamType fnParams) fnReturn
+    isUnsafe <- return $ fnSafety == Metro.Unsafe
+    declareFunction fnName $ FunctionInfo True isUnsafe (map getParamType fnParams) fnReturn
     p <- params fnParams
     r <- returnType fnReturn
     bb <- fnBlock body fnParams
@@ -58,7 +59,7 @@ importName (Metro.FuncImport fnName _ _) = return fnName
 importSpecifier :: Metro.ImportSpecifier -> Compiler WASM.ImportSpecifier
 importSpecifier (Metro.FuncImport fnName fnParams fnReturn) =
   do
-    declareFunction fnName $ FunctionInfo True (map getParamType fnParams) fnReturn
+    declareFunction fnName $ FunctionInfo True False (map getParamType fnParams) fnReturn
     p <- params fnParams
     r <- returnType fnReturn
     return $ WASM.IFunc fnName p r
@@ -95,21 +96,21 @@ classBodyDeclaration (Metro.StaticMethod m b) = method Static m b
 classBodyDeclaration _ = return []
 
 method :: Owner -> Metro.MethodSignature -> Metro.Block -> Compiler [WASM.Declaration]
-method o m@(Metro.MethodSignature _ methodParams _) b =
+method o m@(Metro.MethodSignature _ _ methodParams _) b =
   do
     signature <- methodSignature o m
     bb <- fnBlock b methodParams
     return [signature bb]
 
 methodSignature :: Owner -> Metro.MethodSignature -> Compiler ([WASM.Stmt] -> WASM.Declaration)
-methodSignature Instance (Metro.MethodSignature name methodParams methodReturn) =
+methodSignature Instance (Metro.MethodSignature _safety name methodParams methodReturn) =
   do
     className <- requireThisContext
     thisParam <- return $ WASM.Par "this" WASM.I32
     pp <- params methodParams
     r <- returnType methodReturn
     return $ WASM.Func (methodName className name) (thisParam : pp) r
-methodSignature Static (Metro.MethodSignature name methodParams methodReturn) =
+methodSignature Static (Metro.MethodSignature _safety name methodParams methodReturn) =
   do
     className <- requireThisContext
     pp <- params methodParams

@@ -15,7 +15,7 @@ impl ToString for Int {
     return out
   }
 
-  putIntStr(ptr Int) {
+  unsafe putIntStr(ptr Int) {
     if this < 10 {
       ((this + 48) as Byte).store(ptr)
     } else {

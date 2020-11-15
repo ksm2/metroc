@@ -35,6 +35,7 @@ languageDef =
           "static",
           "this",
           "true",
+          "unsafe",
           "while"
         ],
       Token.reservedOpNames =
@@ -202,12 +203,21 @@ implDeclaration =
 funcDeclaration :: Parser Declaration
 funcDeclaration =
   do
+    fnSafety <- safety
     reserved "fn"
     fnName <- identifier
     fnParams <- params
     fnReturn <- returnType
     body <- block
-    return $ Func fnName fnParams fnReturn body
+    return $ Func fnSafety fnName fnParams fnReturn body
+
+safety :: Parser Safety
+safety =
+  do
+    maybeUnsafe <- optionMaybe $ reserved "unsafe"
+    case maybeUnsafe of
+      Just _ -> return Unsafe
+      Nothing -> return Safe
 
 optionalParams :: Parser Params
 optionalParams = option [] params
@@ -289,10 +299,11 @@ staticMethodDeclaration =
 methodSignature :: Parser MethodSignature
 methodSignature =
   do
+    methodSafety <- safety
     methodName <- identifier
     methodParams <- params
     methodReturn <- returnType
-    return $ MethodSignature methodName methodParams methodReturn
+    return $ MethodSignature methodSafety methodName methodParams methodReturn
 
 method :: Parser ClassBodyDeclaration
 method =

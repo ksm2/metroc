@@ -15,7 +15,7 @@ impl ToString for UInt {
     return out
   }
 
-  putIntStr(ptr Int) {
+  unsafe putIntStr(ptr Int) {
     if this < 10U {
       ((this + 48U) as Byte).store(ptr)
     } else {
