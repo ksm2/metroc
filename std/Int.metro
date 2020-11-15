@@ -1,10 +1,8 @@
-class Int {}
-
 impl ToString for Int {
   toString() String {
     len := this.countDigits()
     str := __allocate(len + 4)
-    __storeInt(str, len)
+    len.store(str)
     this.putIntStr(str + len + 3)
     return str
   }
@@ -19,9 +17,9 @@ impl ToString for Int {
 
   putIntStr(ptr Int) {
     if this < 10 {
-      __storeByte(ptr, (this + 48) as Byte)
+      ((this + 48) as Byte).store(ptr)
     } else {
-      __storeByte(ptr, ((this % 10) + 48) as Byte)
+      ((this % 10 + 48) as Byte).store(ptr)
       (this / 10).putIntStr(ptr - 1)
     }
   }

@@ -15,11 +15,11 @@ interface ToString {
 fn __memcpy(destination Int, source Int, size Int) {
   if size >= 8 {
     // Copy 8 bytes
-    __storeIntL(destination, __loadIntL(source))
+    IntL.load(source).store(destination)
     __memcpy(destination + 8, source + 8, size - 8)
   } else if size != 0 {
     // Copy one byte
-    __storeIntXS(destination, __loadIntXS(source))
+    Byte.load(source).store(destination)
     __memcpy(destination + 1, source + 1, size - 1)
   }
 }
@@ -32,12 +32,13 @@ fn __memcpy(destination Int, source Int, size Int) {
  * @returns Left and right concatenated
  */
 fn __concat(str1 String, str2 String) String {
-  length1 := __loadInt(str1 as Int)
-  length2 := __loadInt(str2 as Int)
-  ptr := __allocate(length1 + length2 + 4)
-  __storeInt(ptr, length1 + length2)
+  length1 := Int.load(str1 as Int)
+  length2 := Int.load(str2 as Int)
+  outputLength := length1 + length2
+  ptr := __allocate(outputLength + 4)
+  outputLength.store(ptr)
   __memcpy(ptr + 4, (str1 as Int) + 4, length1)
   __memcpy(ptr + length1 + 4, (str2 as Int) + 4, length2)
 
-  return ptr
+  return ptr as String
 }

@@ -24,21 +24,21 @@ class File(fileHandle Int) {
   }
 
   write(text String) {
-    __storeInt(0, (text as Int) + 4)
-    __storeInt(4, text.length)
+    ((text as Int) + 4).store(0)
+    text.length.store(4)
     fd_write(this.fileHandle, 0, 1, 20)
   }
 
   read() String {
     // Allocate enough space
     pos := __allocate(1028)
-    __storeInt(0, pos + 4)
-    __storeInt(4, 1024)
+    (pos + 4).store(0)
+    (1024).store(4)
     fd_read(this.fileHandle, 0, 1, 8)
 
     // Prefix string with its length
-    length := __loadInt(8)
-    __storeInt(pos, length)
+    length := Int.load(8)
+    length.store(pos)
 
     return pos
   }

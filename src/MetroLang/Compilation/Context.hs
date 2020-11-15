@@ -231,18 +231,27 @@ lookupVariableTypeInScopes varName ((Scope x) : xs) =
     then (x ! varName)
     else lookupVariableTypeInScopes varName xs
 
+primitiveTypes :: [PrimitiveType]
+primitiveTypes = [minBound .. maxBound]
+
+builtInTypes :: Map String ClassInfo
+builtInTypes = fromList $ map createClassInfoForPrimitiveType primitiveTypes
+
+createClassInfoForPrimitiveType :: PrimitiveType -> (String, ClassInfo)
+createClassInfoForPrimitiveType p =
+  (tail (show p), ClassInfo empty $ primitiveMethods p)
+
+primitiveMethods :: PrimitiveType -> Map String FunctionInfo
+primitiveMethods p =
+  fromList
+    [ ("load", FunctionInfo True [Primitive TInt] (Primitive p)),
+      ("store", FunctionInfo False [Primitive TInt] (TVoid))
+    ]
+
 builtInFunctions :: Map String FunctionInfo
 builtInFunctions =
   fromList
-    [ ("__storeByte", FunctionInfo True [Primitive TInt, Primitive TByte] TVoid),
-      ("__loadByte", FunctionInfo True [Primitive TInt] (Primitive TByte)),
-      ("__storeIntXS", FunctionInfo True [Primitive TInt, Primitive TIntXS] TVoid),
-      ("__loadIntXS", FunctionInfo True [Primitive TInt] (Primitive TIntXS)),
-      ("__storeInt", FunctionInfo True [Primitive TInt, Primitive TInt] TVoid),
-      ("__loadInt", FunctionInfo True [Primitive TInt] (Primitive TInt)),
-      ("__storeIntL", FunctionInfo True [Primitive TInt, Primitive TIntL] TVoid),
-      ("__loadIntL", FunctionInfo True [Primitive TInt] (Primitive TIntL)),
-      ("__allocate", FunctionInfo True [Primitive TInt] (Primitive TInt))
+    [ ("__allocate", FunctionInfo True [Primitive TInt] (Primitive TInt))
     ]
 
 -- | runCompiler executes the compilation of a module
@@ -255,7 +264,7 @@ runCompiler cb =
             strings = empty,
             thisContext = TVoid,
             consts = empty,
-            classes = empty,
+            classes = builtInTypes,
             functions = builtInFunctions,
             scope = []
           }

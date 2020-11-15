@@ -78,7 +78,7 @@ assignField (Metro.Par fieldName _) =
   do
     className <- requireThisContext
     fieldOffset <- getFieldOffset (show className) fieldName
-    return $ WASM.Exp $ storeInstr 32 fieldOffset (getLocal "___ptr") (getLocal fieldName)
+    return $ WASM.Exp $ storeInstr TInt fieldOffset (getLocal "___ptr") (getLocal fieldName)
 
 -- Classes
 classBody :: Metro.ClassBody -> Compiler [WASM.Declaration]

@@ -28,11 +28,10 @@ expr (Metro.VariableExpr varName) =
         varType <- lookupConst varName
         return $ Value varType $ getGlobal varName
       else do
-        isClass <- classExists varName
-        if isClass
-          then do
-            return $ Value (TypeRef varName) $ i32Const 0
-          else do
+        refType <- strToTypeMaybe varName
+        case refType of
+          Just theType -> return $ Value (TypeRef theType) $ i32Const 0
+          Nothing -> do
             varType <- lookupVariableType varName
             return $ Value varType $ getLocal varName
 expr (Metro.BooleanLiteral True) = return trueValue
@@ -79,11 +78,17 @@ asExpr _ _ = error "Cannot cast to the given right-hand side value."
 strToType :: String -> Compiler Type
 strToType str =
   do
-    isPrimitive <- return $ strToPrimitiveType str
-    isClass <- strToClass str
-    case isPrimitive ?? isClass of
+    maybeType <- strToTypeMaybe str
+    case maybeType of
       Just x -> return x
       Nothing -> error $ "Not a valid type reference: " ++ str
+
+strToTypeMaybe :: String -> Compiler (Maybe Type)
+strToTypeMaybe str =
+  do
+    isPrimitive <- return $ strToPrimitiveType str
+    isClass <- strToClass str
+    return $ isPrimitive ?? isClass
 
 (??) :: Maybe a -> Maybe a -> Maybe a
 (Just x) ?? _ = Just x
@@ -143,34 +148,38 @@ binaryExpr op e1 e2 =
 fieldAccess :: Value -> String -> Compiler Value
 fieldAccess (Value (Primitive TUInt) obj) "lowWord" = return $ convertTo TUInt TWord obj
 fieldAccess (Value (Primitive TUInt) obj) "highWord" = return $ Value (Primitive TWord) $ i32Shru obj $ i32Const 16
-fieldAccess (Value (Primitive TString) obj) "length" = return $ Value (Primitive TInt) $ loadInstr 32 Signed 0 obj
-fieldAccess (Value (List _) obj) "length" = return $ Value (Primitive TUInt) $ loadInstr 32 Unsigned 0 obj
+fieldAccess (Value (Primitive TString) obj) "length" = return $ Value (Primitive TInt) $ loadInstr TInt 0 obj
+fieldAccess (Value (List _) obj) "length" = return $ Value (Primitive TUInt) $ loadInstr TUInt 0 obj
 fieldAccess (Value (Generic className _) objExpr) fieldName =
   do
     fieldOffset <- getFieldOffset className fieldName
-    return $ Value (Primitive TInt) $ loadInstr 32 Signed fieldOffset objExpr
+    return $ Value (Primitive TInt) $ loadInstr TInt fieldOffset objExpr
 -- TODO: can only load Int
 fieldAccess (Value objType _) methodName = error $ "Unknown field " ++ methodName ++ " on primitive type " ++ show objType
 
 methodCall :: Value -> String -> [Value] -> Compiler Value
-methodCall (Value (Primitive TInt) obj) "toIntL" [] = return $ convertTo TInt TIntL obj
-methodCall (Value (Primitive TInt) obj) "toIntS" [] = return $ convertTo TInt TIntS obj
-methodCall (Value (Primitive TInt) obj) "toIntXS" [] = return $ convertTo TInt TIntXS obj
-methodCall (Value (Primitive TUInt) obj) "toUIntL" [] = return $ convertTo TUInt TUIntL obj
-methodCall (Value (Primitive TUInt) obj) "toByte" [] = return $ convertTo TUInt TByte obj
-methodCall (Value (Primitive TUInt) obj) "toWord" [] = return $ convertTo TUInt TWord obj
+methodCall (Value (Primitive p) obj) "toIntXS" [] = return $ convertTo p TIntXS obj
+methodCall (Value (Primitive p) obj) "toIntS" [] = return $ convertTo p TIntS obj
+methodCall (Value (Primitive p) obj) "toInt" [] = return $ convertTo p TInt obj
+methodCall (Value (Primitive p) obj) "toIntL" [] = return $ convertTo p TIntL obj
+methodCall (Value (Primitive p) obj) "toByte" [] = return $ convertTo p TByte obj
+methodCall (Value (Primitive p) obj) "toWord" [] = return $ convertTo p TWord obj
+methodCall (Value (Primitive p) obj) "toUInt" [] = return $ convertTo p TUInt obj
+methodCall (Value (Primitive p) obj) "toUIntL" [] = return $ convertTo p TUIntL obj
+methodCall (Value (Primitive p) obj) "store" [arg0] = return $ Value TVoid $ storeInstr p 0 (wasmExpr arg0) obj
 methodCall (Value (Primitive TString) obj) "toByteList" [] = return $ Value (List (Primitive TByte)) $ obj
-methodCall (Value (TypeRef className) _) methodName args = staticClassMethodCall className methodName args
+methodCall (Value (TypeRef typeRef) _) methodName args = staticClassMethodCall typeRef methodName args
 methodCall (Value objType obj) methodName args = classMethodCall (show objType) obj methodName args
 
 --methodCall (Value objType _) methodName args = error $ "Unknown method " ++ methodName ++ argsToInfo args ++ " on primitive type " ++ show objType
 
-staticClassMethodCall :: String -> String -> [Value] -> Compiler Value
-staticClassMethodCall className methodName args =
+staticClassMethodCall :: Type -> String -> [Value] -> Compiler Value
+staticClassMethodCall (Primitive p) "load" [arg0] = return $ Value (Primitive p) $ loadInstr p 0 (wasmExpr arg0)
+staticClassMethodCall typeRef methodName args =
   do
-    method <- lookupClassMethod className methodName
+    method <- lookupClassMethod (show typeRef) methodName
     wasmArgs <- return $ checkFunctionSignature 1 methodName (parameters method) args
-    return $ Value (returnDataType method) $ call (className ++ "." ++ methodName) wasmArgs
+    return $ Value (returnDataType method) $ call ((show typeRef) ++ "." ++ methodName) wasmArgs
 
 classMethodCall :: String -> WASM.Expr -> String -> [Value] -> Compiler Value
 classMethodCall className obj methodName args =
@@ -192,12 +201,7 @@ listAccessExpr obj key =
           _ -> error "Can only access lists by index."
 
 load :: Type -> WASM.Expr -> Value
-load (Primitive TIntXS) n1 = Value (Primitive TIntXS) $ loadInstr 8 Signed 0 n1
-load (Primitive TByte) n1 = Value (Primitive TByte) $ loadInstr 8 Unsigned 0 n1
-load (Primitive TIntS) n1 = Value (Primitive TIntS) $ loadInstr 16 Signed 0 n1
-load (Primitive TWord) n1 = Value (Primitive TWord) $ loadInstr 16 Unsigned 0 n1
-load (Primitive TIntL) n1 = Value (Primitive TIntL) $ loadInstr 64 Signed 0 n1
-load (Primitive TUIntL) n1 = Value (Primitive TUIntL) $ loadInstr 64 Unsigned 0 n1
+load (Primitive p) n1 = Value (Primitive p) $ loadInstr p 0 n1
 load x n1 = Value x $ WASM.Method "load" WASM.I32 [n1]
 
 checkFunctionSignature :: Int -> String -> [Metro.Type] -> [Value] -> [WASM.Expr]
@@ -234,7 +238,7 @@ assignment (Metro.Binary Metro.Chain Metro.ThisKeyword (Metro.VariableExpr field
     classType <- requireThisContext
     fieldOffset <- getFieldOffset (show classType) fieldName
     f2 <- expr e2
-    return $ Value TVoid $ storeInstr 32 fieldOffset (getLocal "this") (wasmExpr f2)
+    return $ Value TVoid $ storeInstr TInt fieldOffset (getLocal "this") (wasmExpr f2)
 assignment x _ = error $ "Bad variable assignment: " ++ (show x)
 
 binaryExprWasm :: Metro.BinOp -> Value -> Value -> Value
@@ -324,27 +328,6 @@ convertToExpr src dest
   | src > dest = maskToExpr dest
   | src == unsigned dest = id
   | otherwise = error $ "Cannot convert " ++ (show src) ++ " to " ++ (show dest)
-
-unsigned :: Metro.PrimitiveType -> Metro.PrimitiveType
-unsigned TIntXS = TByte
-unsigned TByte = TIntXS
-unsigned TIntS = TWord
-unsigned TWord = TIntS
-unsigned TInt = TUInt
-unsigned TUInt = TInt
-unsigned TIntL = TUIntL
-unsigned TUIntL = TIntL
-unsigned e = e
-
-isSignedType :: Metro.PrimitiveType -> Bool
-isSignedType TByte = False
-isSignedType TWord = False
-isSignedType TUInt = False
-isSignedType TUIntL = False
-isSignedType _ = True
-
-isUnsignedType :: Metro.PrimitiveType -> Bool
-isUnsignedType = not . isSignedType
 
 arguments :: Metro.Arguments -> Compiler [Value]
 arguments (Metro.Args e) = exprs e

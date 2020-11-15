@@ -120,7 +120,7 @@ data Type
   | Primitive PrimitiveType
   | List Type
   | Generic String TypeArgs
-  | TypeRef String
+  | TypeRef Type
 
 data PrimitiveType
   = TBool
@@ -136,7 +136,7 @@ data PrimitiveType
   | TFloatL
   | TChar
   | TString
-  deriving (Enum, Show, Eq)
+  deriving (Bounded, Enum, Show, Eq)
 
 instance Ord PrimitiveType where
   -- Signed
@@ -178,7 +178,7 @@ instance Show Type where
   show (List t) = "[" ++ (show t) ++ "]"
   show (Generic s []) = s
   show (Generic s args) = s ++ "<" ++ (joinArgs args) ++ ">"
-  show (TypeRef s) = s
+  show (TypeRef s) = (show s) ++ " ref"
 
 joinArgs :: (Show a) => [a] -> String
 joinArgs [] = ""
