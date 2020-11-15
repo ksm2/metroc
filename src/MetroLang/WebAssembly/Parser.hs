@@ -212,9 +212,10 @@ blockStmt =
   do
     reserved "(block"
     iden <- identifier
+    rt <- returnType
     s <- many1 statement
     rparen
-    return $ Block iden s
+    return $ Block iden rt s
 
 loopStmt :: Parser Stmt
 loopStmt =

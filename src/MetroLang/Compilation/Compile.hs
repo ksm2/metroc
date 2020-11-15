@@ -156,7 +156,7 @@ stmt (Metro.WhileStmt cond whileBlock) =
         continueLabel <- label "continue"
         b <- block whileBlock
         condBr <- return $ WASM.Exp $ brIf whileLabel condExpr
-        return [WASM.Block whileLabel $ [WASM.Loop continueLabel $ condBr : b ++ [WASM.Exp $ br continueLabel]]]
+        return [WASM.Block whileLabel Nothing $ [WASM.Loop continueLabel $ condBr : b ++ [WASM.Exp $ br continueLabel]]]
 stmt (Metro.ReturnStmt e Nothing) =
   do
     value <- expr e
@@ -168,7 +168,7 @@ stmt (Metro.ReturnStmt e (Just c)) =
     value <- expr e
     cond <- ifCond l c
     wasmEx <- return $ wasmExpr value
-    return [WASM.Block l $ [cond, WASM.Return wasmEx]]
+    return [WASM.Block l Nothing $ [cond, WASM.Return wasmEx]]
 stmt (Metro.UnsafeStmt body) = block body
 stmt (Metro.ExprStmt e) =
   do
@@ -186,7 +186,7 @@ ifStmt (Metro.If cond thenBlock (Just e)) =
     l <- label "else"
     t <- thenStmt cond thenBlock [WASM.Exp $ br l]
     f <- elseStmt e
-    return [WASM.Block l $ t ++ f]
+    return [WASM.Block l Nothing $ t ++ f]
 
 thenStmt :: Metro.Expression -> Metro.Block -> [WASM.Stmt] -> Compiler [WASM.Stmt]
 thenStmt cond thenBlock elseCond =
@@ -194,7 +194,7 @@ thenStmt cond thenBlock elseCond =
     l <- label "if"
     c <- ifCond l cond
     b <- block thenBlock
-    return [WASM.Block l $ (c : b) ++ elseCond]
+    return [WASM.Block l Nothing $ (c : b) ++ elseCond]
 
 elseStmt :: Metro.Else -> Compiler [WASM.Stmt]
 elseStmt (Metro.ElseStmt b) = block b

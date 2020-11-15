@@ -64,7 +64,7 @@ data ExportSpecifier
 
 data Stmt
   = Local Identifier Valtype
-  | Block Identifier [Stmt]
+  | Block Identifier ReturnType [Stmt]
   | Loop Identifier [Stmt]
   | Return Expr
   | Exp Expr

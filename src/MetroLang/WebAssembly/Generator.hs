@@ -29,7 +29,7 @@ exportSpecifier (EFunc iden) = wrap "func" [identifier iden]
 
 stmt :: Stmt -> String
 stmt (Local iden vt) = wrap "local" [identifier iden, valtype vt]
-stmt (Block iden s) = wrap "block" $ [identifier iden, indent2 $ map stmt s]
+stmt (Block iden r s) = wrap "block" $ [identifier iden, returnType r, indent2 $ map stmt s]
 stmt (Loop iden s) = wrap "loop" $ [identifier iden, indent2 $ map stmt s]
 stmt (Return e) = wrap "return" [expr e]
 stmt (Exp e) = expr e
