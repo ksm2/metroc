@@ -106,6 +106,7 @@ data BinOp
 data UnaryOp
   = Neg
   | LogicalNot
+  | BitwiseNot
   deriving (Show)
 
 data Expression

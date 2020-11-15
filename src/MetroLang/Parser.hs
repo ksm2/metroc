@@ -50,6 +50,7 @@ languageDef =
           "and",
           "not",
           "is",
+          "~",
           "&",
           "^",
           "|",
@@ -387,6 +388,7 @@ operators =
       Infix (reservedOp "?." >> return (Binary OptChain)) AssocLeft
     ],
     [Prefix (reservedOp "-" >> return (Unary Neg))],
+    [Prefix (reservedOp "~" >> return (Unary BitwiseNot))],
     [Prefix (reservedOp "not" >> return (Unary LogicalNot))],
     [ Infix (reservedOp "*" >> return (Binary Multiply)) AssocLeft,
       Infix (reservedOp "/" >> return (Binary Divide)) AssocLeft,

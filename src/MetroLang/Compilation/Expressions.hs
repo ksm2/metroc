@@ -131,6 +131,12 @@ unaryExprWasm Metro.Neg (Value (Primitive TInt) e) = Value (Primitive TInt) $ i3
 unaryExprWasm Metro.Neg _ = error "Cannot negate the given value."
 unaryExprWasm Metro.LogicalNot (Value (Primitive TBool) e) = Value (Primitive TBool) $ i32Eqz e
 unaryExprWasm Metro.LogicalNot _ = error "Can only apply 'not' on a Bool."
+unaryExprWasm Metro.BitwiseNot (Value (Primitive p) e)
+  | p == TByte || p == TIntXS = Value (Primitive p) $ i32Xor (i32Const 0xFF) e
+  | p == TWord || p == TIntS = Value (Primitive p) $ i32Xor (i32Const 0xFFFF) e
+  | p == TUInt || p == TInt = Value (Primitive p) $ i32Xor (i32Const 0xFFFFFFFF) e
+  | p == TUIntL || p == TIntL = Value (Primitive p) $ i64Xor (i64Const 0xFFFFFFFFFFFFFFFF) e
+unaryExprWasm Metro.BitwiseNot (Value t _) = error $ "Cannot apply '~' on " ++ (show t)
 
 binaryExpr :: Metro.BinOp -> Metro.Expression -> Metro.Expression -> Compiler Value
 binaryExpr Metro.Definition e1 e2 = definitionExpr e1 e2
