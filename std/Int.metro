@@ -1,5 +1,21 @@
+class Int {
+  countLeadingOnes() Byte {
+    return (~this).countLeadingZeros()
+  }
+
+  countTrailingOnes() Byte {
+    return (~this).countTrailingZeros()
+  }
+
+  countZeros() Byte {
+    return (~this).countOnes()
+  }
+}
+
 impl ToString for Int {
   toString() String {
+    return "-" + (-this).toString() if this < 0
+
     len := this.countDigits()
     unsafe {
       str := __allocate(len + 4)

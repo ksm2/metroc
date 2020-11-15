@@ -49,6 +49,10 @@ jobs:
       run: cabal run metroc -- run examples/murmur3.metro
       env:
         PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
+    - name: Run examples/uint.metro
+      run: cabal run metroc -- run examples/uint.metro
+      env:
+        PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
     - name: Upload Executable
       uses: actions/upload-artifact@v2
       with:

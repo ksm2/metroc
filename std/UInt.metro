@@ -1,3 +1,17 @@
+class UInt {
+  countLeadingOnes() Byte {
+    return (~this).countLeadingZeros()
+  }
+
+  countTrailingOnes() Byte {
+    return (~this).countTrailingZeros()
+  }
+
+  countZeros() Byte {
+    return (~this).countOnes()
+  }
+}
+
 impl ToString for UInt {
   toString() String {
     len := this.countDigits()

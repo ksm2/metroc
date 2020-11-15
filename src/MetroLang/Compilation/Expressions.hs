@@ -1,4 +1,4 @@
-module MetroLang.Compilation.Expressions (exprs, expr) where
+module MetroLang.Compilation.Expressions (exprs, expr, strToTypeMaybe) where
 
 import MetroLang.AST as Metro (PrimitiveType (..), Type (..))
 import qualified MetroLang.AST as Metro

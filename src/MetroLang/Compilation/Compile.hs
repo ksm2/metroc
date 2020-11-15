@@ -34,7 +34,9 @@ declaration (Metro.Enumeration _name _typeArgs _) = return []
 declaration (Metro.Interface _name _typeArgs _ _) = return []
 declaration (Metro.Class name _typeArgs pars _ _ body) =
   do
-    setThisContext (Generic name [])
+    maybeType <- strToTypeMaybe name
+    thisCtx <- return $ maybe (Generic name []) id maybeType
+    setThisContext thisCtx
     declareClass name (createClassInfo pars body)
     parsedBody <- classBody body
     constr <- constructor name pars
