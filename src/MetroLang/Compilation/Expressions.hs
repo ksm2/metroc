@@ -58,6 +58,8 @@ expr (Metro.Call callee args) =
       then return $ Value (Generic callee []) $ call callee (map wasmExpr a)
       else functionCall callee a
 expr (Metro.ListAccess obj key) = listAccessExpr obj key
+expr (Metro.Match t body) = matchExpr t body
+expr Metro.Wildcard = error "Found a lost wildcard."
 
 functionCall :: String -> [Value] -> Compiler Value
 functionCall fnName args =
@@ -246,6 +248,39 @@ listAccessExpr obj key =
         case objType of
           List listType -> return $ load listType $ i32Add (i32Const 4) $ i32Add objExpr $ i32Mul keyExpr $ i32Const $ toInteger (sizeOf listType)
           _ -> error "Can only access lists by index."
+
+matchExpr :: Metro.Expression -> Metro.MatchBody -> Compiler Value
+matchExpr target body = matchBody body target
+
+matchBody :: Metro.MatchBody -> Metro.Expression -> Compiler Value
+matchBody (Metro.MatchBody cases) = matchCases cases
+
+matchCases :: [Metro.MatchCase] -> Metro.Expression -> Compiler Value
+matchCases [] _ = error "There must be at least one case in a match block."
+matchCases [Metro.MatchCase Metro.Wildcard caseVal] _ =
+  do
+    Value valType valExpr <- expr caseVal
+    return $ Value valType valExpr
+matchCases [_] _ = error "Invalid last condition, it must be a wildcard."
+matchCases (c : cs) target =
+  do
+    Metro.MatchCase caseCond caseVal <- return c
+    Value valType valExpr <- expr caseVal
+    Value elseType elseExpr <- matchCases cs target
+    if elseType /= valType
+      then error "Return types of all match cases must be consistent."
+      else do
+        cond <- makeMatchCaseCond target caseCond
+        return $ Value valType $ WASM.Select valExpr elseExpr cond
+
+makeMatchCaseCond :: Metro.Expression -> Metro.Expression -> Compiler WASM.Expr
+makeMatchCaseCond left right =
+  do
+    Value leftType leftExpr <- expr left
+    Value rightType rightExpr <- expr right
+    if leftType /= rightType
+      then error $ "Match case condition type " ++ (show rightType) ++ " does not match type of value to match " ++ (show leftType)
+      else return $ i32Eq leftExpr rightExpr
 
 load :: Type -> WASM.Expr -> Value
 load (Primitive p) n1 = Value (Primitive p) $ loadInstr p 0 n1

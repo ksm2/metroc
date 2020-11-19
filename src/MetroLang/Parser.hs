@@ -30,6 +30,7 @@ languageDef =
           "impl",
           "import",
           "interface",
+          "match",
           "null",
           "return",
           "static",
@@ -61,6 +62,7 @@ languageDef =
           "%",
           "=",
           "==",
+          "=>",
           "!=",
           ">=",
           ">",
@@ -80,7 +82,8 @@ languageDef =
           "<%=",
           "&=",
           "^=",
-          "|="
+          "|=",
+          "_"
         ]
     }
 
@@ -444,13 +447,34 @@ operators =
 
 term :: Parser Expression
 term =
-  try callExpr
+  matchExpr
+    <|> try callExpr
     <|> try listAccessExpr
     <|> primaryExpression
+
+matchExpr :: Parser Expression
+matchExpr =
+  do
+    reserved "match"
+    matchTarget <- expr
+    body <- matchBody
+    return $ Match matchTarget body
+
+matchBody :: Parser MatchBody
+matchBody = liftM MatchBody $ braces $ commaSepEnd matchCase
+
+matchCase :: Parser MatchCase
+matchCase =
+  do
+    cond <- expr
+    reservedOp "=>"
+    value <- expr
+    return $ MatchCase cond value
 
 primaryExpression :: Parser Expression
 primaryExpression =
   parens expr
+    <|> wildcard
     <|> nullLiteral
     <|> thisKeyword
     <|> liftM BooleanLiteral booleanLiteral
@@ -474,6 +498,9 @@ listAccessExpr =
 
 arguments :: Parser Arguments
 arguments = liftM Args $ parens (commaSepEnd expr)
+
+wildcard :: Parser Expression
+wildcard = reservedOp "_" >> return Wildcard
 
 booleanLiteral :: Parser Bool
 booleanLiteral =

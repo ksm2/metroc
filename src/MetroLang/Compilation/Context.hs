@@ -34,6 +34,9 @@ data FunctionInfo = FunctionInfo
 
 newtype Scope = Scope (Map String Type) deriving (Show)
 
+label :: String -> Compiler String
+label s = incrCtr >>= \ctr -> return $ "___" ++ s ++ "_" ++ (show ctr)
+
 incrCtr :: Compiler Int
 incrCtr =
   do

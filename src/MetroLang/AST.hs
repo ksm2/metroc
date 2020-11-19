@@ -121,7 +121,13 @@ data Expression
   | Call Identifier Arguments
   | ListAccess Expression Expression
   | As Expression Expression
+  | Match Expression MatchBody
+  | Wildcard
   deriving (Show)
+
+data MatchBody = MatchBody [MatchCase] deriving (Show)
+
+data MatchCase = MatchCase Expression Expression deriving (Show)
 
 data Arguments = Args [Expression] deriving (Show)
 

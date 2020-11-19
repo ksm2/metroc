@@ -208,9 +208,6 @@ ifCond i cond =
       Value (Primitive TBool) wasmCond -> return $ brIf i wasmCond
       _ -> error "The if condition must be of type Bool."
 
-label :: String -> Compiler String
-label s = incrCtr >>= \ctr -> return $ "___" ++ s ++ "_" ++ (show ctr)
-
 params :: [Metro.Param] -> Compiler [WASM.Param]
 params = many param
 
