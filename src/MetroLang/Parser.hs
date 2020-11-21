@@ -18,6 +18,7 @@ languageDef =
       Token.identLetter = alphaNum <|> oneOf "_",
       Token.reservedNames =
         [ "as",
+          "assert",
           "class",
           "const",
           "else",
@@ -336,6 +337,7 @@ stmt =
     <|> whileStmt
     <|> returnStmt
     <|> unsafeStmt
+    <|> assertStmt
     <|> liftM ExprStmt expr
 
 ifParser :: Parser If
@@ -381,6 +383,15 @@ unsafeStmt =
     reserved "unsafe"
     unsafeBlock <- block
     return $ UnsafeStmt unsafeBlock
+
+assertStmt :: Parser Stmt
+assertStmt =
+  do
+    reserved "assert"
+    cond <- expr
+    reservedOp "=>"
+    message <- stringLiteral
+    return $ AssertStmt cond message
 
 expr :: Parser Expression
 expr = buildExpressionParser operators term

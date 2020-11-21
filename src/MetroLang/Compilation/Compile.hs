@@ -170,6 +170,7 @@ stmt (Metro.ReturnStmt e (Just c)) =
     wasmEx <- return $ wasmExpr value
     return [WASM.Block l Nothing $ [cond, WASM.Return wasmEx]]
 stmt (Metro.UnsafeStmt body) = block body
+stmt (Metro.AssertStmt _cond _message) = return []
 stmt (Metro.ExprStmt e) =
   do
     value <- expr e

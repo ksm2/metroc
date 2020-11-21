@@ -54,6 +54,7 @@ data Stmt
   | ReturnStmt Expression (Maybe Expression)
   | ExprStmt Expression
   | UnsafeStmt Block
+  | AssertStmt Expression String
   deriving (Show)
 
 data If = If Expression Block (Maybe Else) deriving (Show)
