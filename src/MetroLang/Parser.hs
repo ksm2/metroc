@@ -616,7 +616,7 @@ genericType =
 
 parseString :: String -> String -> Module
 parseString context str =
-  case parse whileParser "" str of
+  case parse whileParser context str of
     Left e -> error $ "Parse error in " ++ context ++ ": " ++ (show e)
     Right r -> r
 
@@ -624,7 +624,7 @@ parseFile :: String -> IO Module
 parseFile file =
   do
     program <- readFile file
-    case parse whileParser "" program of
+    case parse whileParser file program of
       Left e -> print e >> fail "parse error"
       Right r -> return r
 
