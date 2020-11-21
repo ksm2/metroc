@@ -45,12 +45,16 @@ jobs:
       run: echo "stdout" | cabal run metroc -- run examples/print.metro
       env:
         PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
+    - name: Run examples/arithmetics.metro
+      run: cabal run metroc -- run --assertions examples/arithmetics.metro
+      env:
+        PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
     - name: Run examples/murmur3.metro
-      run: cabal run metroc -- run examples/murmur3.metro
+      run: cabal run metroc -- run --assertions examples/murmur3.metro
       env:
         PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
     - name: Run examples/uint.metro
-      run: cabal run metroc -- run examples/uint.metro
+      run: cabal run metroc -- run --assertions examples/uint.metro
       env:
         PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
     - name: Upload Executable

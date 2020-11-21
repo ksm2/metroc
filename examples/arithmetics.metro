@@ -1,0 +1,6 @@
+fn main() {
+  assert 1 + 2 == 3 => "Addition"
+  assert 2 - 1 == 1 => "Subtraction"
+  assert 2 * 2 == 4 => "Multiplication"
+  assert 4 / 2 == 2 => "Division"
+}
