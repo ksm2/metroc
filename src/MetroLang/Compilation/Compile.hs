@@ -170,7 +170,12 @@ stmt (Metro.ReturnStmt e (Just c)) =
     wasmEx <- return $ wasmExpr value
     return [WASM.Block l Nothing $ [cond, WASM.Return wasmEx]]
 stmt (Metro.UnsafeStmt body) = block body
-stmt (Metro.AssertStmt _cond _message) = return []
+stmt (Metro.AssertStmt cond message) =
+  do
+    isEnabled <- assertionsEnabled
+    if isEnabled
+      then assertion cond message
+      else return []
 stmt (Metro.ExprStmt e) =
   do
     value <- expr e
@@ -206,8 +211,20 @@ ifCond i cond =
   do
     value <- expr cond
     case value of
-      Value (Primitive TBool) wasmCond -> return $ brIf i wasmCond
+      Value (Primitive TBool) wasmCond -> return $ brIf i $ i32Eqz wasmCond
       _ -> error "The if condition must be of type Bool."
+
+assertion :: Metro.Expression -> String -> Compiler [WASM.Expr]
+assertion cond message =
+  do
+    l <- label "assert"
+    Value condType condExpr <- expr cond
+    if condType /= Primitive TBool
+      then error "Assertion condition must be a Bool."
+      else do
+        assertCond <- return $ brIf l condExpr
+        ptr <- registerString message
+        return [WASM.Block l Nothing [assertCond, call "printErr" [i32Const (toInteger ptr)], WASM.Instr "unreachable" []]]
 
 params :: [Metro.Param] -> Compiler [WASM.Param]
 params = many param
@@ -225,15 +242,15 @@ makeLocalStmts = map makeLocalStmt
 makeLocalStmt :: (Metro.Identifier, Metro.Type) -> WASM.Expr
 makeLocalStmt (i, dt) = WASM.Local i $ dataTypeToValtype dt
 
-compiling :: (a -> Compiler WASM.Module) -> a -> WASM.Module
-compiling cab a =
+compiling :: (a -> Compiler WASM.Module) -> Bool -> a -> WASM.Module
+compiling cab enableAssertions a =
   let cb = cab a
-      (b, cs) = runCompiler cb
+      (b, cs) = runCompiler enableAssertions cb
    in injectStrings (toAscList (strings cs)) b
 
 injectStrings :: [(String, Int)] -> WASM.Module -> WASM.Module
 injectStrings [] m = m
 injectStrings ((str, pos) : xs) m = injectStrings xs $ injectData pos str m
 
-compile :: Metro.Module -> WASM.Module
+compile :: Bool -> Metro.Module -> WASM.Module
 compile = compiling compileModule

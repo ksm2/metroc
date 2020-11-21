@@ -14,7 +14,8 @@ data CompileContext = CompileContext
     consts :: Map String Type,
     classes :: Map String ClassInfo,
     functions :: Map String FunctionInfo,
-    scope :: [Scope]
+    scope :: [Scope],
+    enableAssertions :: Bool
   }
   deriving (Show)
 
@@ -258,9 +259,15 @@ builtInFunctions =
     [ ("__allocate", FunctionInfo True True [Primitive TInt] (Primitive TInt))
     ]
 
+assertionsEnabled :: Compiler Bool
+assertionsEnabled =
+  do
+    CompileContext {enableAssertions} <- get
+    return enableAssertions
+
 -- | runCompiler executes the compilation of a module
-runCompiler :: Compiler b -> (b, CompileContext)
-runCompiler cb =
+runCompiler :: Bool -> Compiler b -> (b, CompileContext)
+runCompiler enableAssertions cb =
   let initialState =
         CompileContext
           { blockCtr = 0,
@@ -270,7 +277,8 @@ runCompiler cb =
             consts = empty,
             classes = builtInTypes,
             functions = builtInFunctions,
-            scope = []
+            scope = [],
+            enableAssertions
           }
    in runState cb initialState
 

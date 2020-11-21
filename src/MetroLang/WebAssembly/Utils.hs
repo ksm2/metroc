@@ -49,7 +49,7 @@ br :: Identifier -> Expr
 br i = Instr "br" [Var i]
 
 brIf :: Identifier -> Expr -> Expr
-brIf i cond = Instr "br_if" [Var i, i32Eqz cond]
+brIf i cond = Instr "br_if" [Var i, cond]
 
 call :: Identifier -> [Expr] -> Expr
 call i args = Instr "call" $ (Var i) : args

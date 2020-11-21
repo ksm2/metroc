@@ -1,0 +1,3 @@
+fn printErr(str String) {
+  File.stderr().writeln("Assertion failed: " + str)
+}
