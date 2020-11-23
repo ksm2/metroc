@@ -416,9 +416,13 @@ assertStmt =
   do
     reserved "assert"
     cond <- expr
-    reservedOp "=>"
-    message <- stringLiteral
+    message <- assertMessage cond
     return $ AssertStmt cond message
+
+assertMessage :: Expression -> Parser String
+assertMessage cond =
+  do reservedOp "=>"; stringLiteral
+    <|> (return $ show cond)
 
 expr :: Parser Expression
 expr = buildExpressionParser operators term

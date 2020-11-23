@@ -55,12 +55,12 @@ fn murmur3(seed UInt, key [Byte]) UInt {
 
 fn main() {
   str := "hello world"
-  assert murmur3(0U, str.toByteList()) == 1586663183U => "murmur3(0U, \"hello world\".toByteList()) == 1586663183U"
-  assert murmur3(1U, str.toByteList()) == 1128525090U => "murmur3(1U, \"hello world\".toByteList()) == 1128525090U"
-  assert murmur3(4294967295U, str.toByteList()) == 1281490592U => "murmur3(4294967295U, \"hello world\".toByteList()) == 1281490592U"
+  assert murmur3(0U, str.toByteList()) == 1586663183U
+  assert murmur3(1U, str.toByteList()) == 1128525090U
+  assert murmur3(4294967295U, str.toByteList()) == 1281490592U
 
   str = "demo"
-  assert murmur3(0U, str.toByteList()) == 2714225050U => "murmur3(0U, \"demo\".toByteList()) == 2714225050U"
-  assert murmur3(1U, str.toByteList()) == 1493421137U => "murmur3(1U, \"demo\".toByteList()) == 1493421137U"
-  assert murmur3(4294967295U, str.toByteList()) == 2570562148U => "murmur3(4294967295U, \"demo\".toByteList()) == 2570562148U"
+  assert murmur3(0U, str.toByteList()) == 2714225050U
+  assert murmur3(1U, str.toByteList()) == 1493421137U
+  assert murmur3(4294967295U, str.toByteList()) == 2570562148U
 }
