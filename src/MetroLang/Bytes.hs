@@ -33,7 +33,7 @@ encodeByte c
   | c == 0x22 = "\\\""
   | c == 0x27 = "\\'"
   | c == 0x5C = "\\\\"
-  | c >= 0x20 && c /= 0x7F = [toEnum (fromIntegral c)]
+  | c >= 0x20 && c < 0x7F = [toEnum (fromIntegral c)]
   | otherwise = "\\" ++ (strPadLeft '0' 2 (showHex c ""))
 
 strPadLeft :: Char -> Int -> String -> String
