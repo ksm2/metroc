@@ -23,12 +23,18 @@ enquote :: String -> String
 enquote str = "\"" ++ str ++ "\""
 
 toWasmStringUnquoted :: Bytes -> String
-toWasmStringUnquoted [] = ""
-toWasmStringUnquoted (x : xs) =
-  let previous = toWasmStringUnquoted xs
-   in if (x >= 32 && x < 127)
-        then (toEnum (fromIntegral x)) : previous
-        else "\\" ++ (strPadLeft '0' 2 (showHex x "")) ++ previous
+toWasmStringUnquoted = (foldl (++) "") . (map encodeByte)
+
+encodeByte :: Word8 -> String
+encodeByte c
+  | c == 0x09 = "\\t"
+  | c == 0x0A = "\\n"
+  | c == 0x0D = "\\r"
+  | c == 0x22 = "\\\""
+  | c == 0x27 = "\\'"
+  | c == 0x5C = "\\\\"
+  | c >= 0x20 && c /= 0x7F = [toEnum (fromIntegral c)]
+  | otherwise = "\\" ++ (strPadLeft '0' 2 (showHex c ""))
 
 strPadLeft :: Char -> Int -> String -> String
 strPadLeft c i str = if (Prelude.length str) < i then strPadLeft c i (c : str) else str

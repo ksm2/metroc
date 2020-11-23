@@ -91,16 +91,32 @@ languageDef =
 lexer :: Token.GenTokenParser String u Identity
 lexer = Token.makeTokenParser languageDef
 
+lexeme :: Parser a -> Parser a
+lexeme = Token.lexeme lexer
+
+nbLexeme :: Parser a -> Parser a
+nbLexeme p = do x <- p; nbWhiteSpace; return x
+
 identifier :: Parser Identifier
 identifier = Token.identifier lexer
 
 -- | reserved parses a reserved word
 reserved :: String -> Parser ()
-reserved = Token.reserved lexer
+reserved name =
+  nbLexeme $
+    try $
+      do
+        _ <- string name
+        notFollowedBy (Token.identLetter languageDef) <?> ("end of " ++ show name)
 
 -- | reservedOp parses an operator
 reservedOp :: String -> Parser ()
-reservedOp = Token.reservedOp lexer
+reservedOp name =
+  nbLexeme $
+    try $
+      do
+        _ <- string name
+        notFollowedBy (Token.opLetter languageDef) <?> ("end of " ++ show name)
 
 -- | symbol parses a symbol with trailing whitespace
 symbol :: String -> Parser String
@@ -130,6 +146,14 @@ integer = Token.integer lexer
 whiteSpace :: Parser ()
 whiteSpace = Token.whiteSpace lexer
 
+nbWhiteSpace :: Parser ()
+nbWhiteSpace = skipMany (satisfy isNbSpace)
+
+isNbSpace :: Char -> Bool
+isNbSpace ' ' = True
+isNbSpace '\t' = True
+isNbSpace _ = False
+
 comma :: Parser ()
 comma = symbol "," >> return ()
 
@@ -150,13 +174,14 @@ moduleParser =
 
 declaration :: Parser Declaration
 declaration =
-  importDeclaration
-    <|> constDeclaration
-    <|> enumDeclaration
-    <|> interfaceDeclaration
-    <|> classDeclaration
-    <|> implDeclaration
-    <|> funcDeclaration
+  lexeme $
+    importDeclaration
+      <|> constDeclaration
+      <|> enumDeclaration
+      <|> interfaceDeclaration
+      <|> classDeclaration
+      <|> implDeclaration
+      <|> funcDeclaration
 
 importDeclaration :: Parser Declaration
 importDeclaration =
@@ -319,6 +344,7 @@ methodSignature =
     methodName <- identifier
     methodParams <- params
     methodReturn <- returnType
+    whiteSpace
     return $ MethodSignature methodSafety methodName methodParams methodReturn
 
 method :: Parser ClassBodyDeclaration
@@ -329,16 +355,17 @@ method =
     return $ Method signature body
 
 block :: Parser Block
-block = liftM Block $ braces (many stmt)
+block = liftM Block $ braces $ many stmt
 
 stmt :: Parser Stmt
 stmt =
-  liftM IfStmt ifParser
-    <|> whileStmt
-    <|> returnStmt
-    <|> unsafeStmt
-    <|> assertStmt
-    <|> liftM ExprStmt expr
+  lexeme $
+    liftM IfStmt ifParser
+      <|> whileStmt
+      <|> returnStmt
+      <|> unsafeStmt
+      <|> assertStmt
+      <|> liftM ExprStmt expr
 
 ifParser :: Parser If
 ifParser =
@@ -520,12 +547,45 @@ booleanLiteral =
 
 stringLiteral :: Parser String
 stringLiteral =
-  do
-    _ <- oneOf "\""
-    stringValue <- many (noneOf "\"")
-    _ <- oneOf "\""
-    whiteSpace
-    return $ decodeStringLiteral stringValue
+  nbLexeme
+    ( do
+        stringValue <- between (char '"') (char '"') (many stringChar)
+        return $ foldr (maybe id (:)) "" stringValue
+        <?> "string literal"
+    )
+
+stringChar :: Parser (Maybe Char)
+stringChar =
+  do c <- stringLetter; return (Just c)
+    <|> stringEscape
+    <?> "string character"
+
+stringLetter :: Parser Char
+stringLetter = satisfy (\c -> (c /= '"') && (c /= '\\') && (c > '\026'))
+
+stringEscape :: Parser (Maybe Char)
+stringEscape = do
+  _ <- char '\\'
+  do _ <- escapeGap; return Nothing
+    <|> do _ <- escapeEmpty; return Nothing
+    <|> do esc <- escapeCode; return (Just esc)
+
+escapeEmpty :: Parser Char
+escapeEmpty = char '&'
+
+escapeGap :: Parser [Char]
+escapeGap = do
+  many1 space
+
+escapeCode :: Parser Char
+escapeCode =
+  char '"'
+    <|> char '\''
+    <|> char '\\'
+    <|> do _ <- char 't'; return '\t'
+    <|> do _ <- char 'n'; return '\n'
+    <|> do _ <- char 'r'; return '\r'
+    <|> do _ <- char 'e'; return '\x1b'
 
 numberLiteral :: Parser Expression
 numberLiteral = integerLiteral
@@ -558,14 +618,6 @@ suffixToPrimitiveType "" = TInt
 suffixToPrimitiveType "UL" = TUIntL
 suffixToPrimitiveType "L" = TIntL
 suffixToPrimitiveType _ = error "Unexpected number suffix"
-
-decodeStringLiteral :: String -> String
-decodeStringLiteral [] = []
-decodeStringLiteral ('\\' : 't' : xs) = (toEnum 9) : (decodeStringLiteral xs)
-decodeStringLiteral ('\\' : 'n' : xs) = (toEnum 10) : (decodeStringLiteral xs)
-decodeStringLiteral ('\\' : 'r' : xs) = (toEnum 13) : (decodeStringLiteral xs)
-decodeStringLiteral ('\\' : 'e' : xs) = (toEnum 27) : (decodeStringLiteral xs)
-decodeStringLiteral (x : xs) = x : (decodeStringLiteral xs)
 
 nullLiteral :: Parser Expression
 nullLiteral = reserved "null" >> (return NullLiteral)
