@@ -3,6 +3,7 @@ module MetroLang.Parser (parseString, parseFile, merge) where
 import Control.Monad (liftM)
 import Data.Functor.Identity
 import MetroLang.AST
+import MetroLang.Pretty
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Expr
 import Text.ParserCombinators.Parsec.Language
@@ -422,7 +423,7 @@ assertStmt =
 assertMessage :: Expression -> Parser String
 assertMessage cond =
   do reservedOp "=>"; stringLiteral
-    <|> (return $ show cond)
+    <|> (return $ pretty cond)
 
 expr :: Parser Expression
 expr = buildExpressionParser operators term
