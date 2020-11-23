@@ -155,7 +155,7 @@ stmt (Metro.WhileStmt cond whileBlock) =
         whileLabel <- label "while"
         continueLabel <- label "continue"
         b <- block whileBlock
-        condBr <- return $ brIf whileLabel condExpr
+        condBr <- return $ brIf whileLabel $ i32Eqz condExpr
         return [WASM.Block whileLabel Nothing $ [WASM.Loop continueLabel $ condBr : b ++ [br continueLabel]]]
 stmt (Metro.ReturnStmt e Nothing) =
   do
