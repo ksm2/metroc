@@ -17,7 +17,8 @@ languageDef =
       Token.identStart = letter <|> oneOf "_",
       Token.identLetter = alphaNum <|> oneOf "_",
       Token.reservedNames =
-        [ "as",
+        [ "and",
+          "as",
           "assert",
           "class",
           "const",
@@ -31,8 +32,11 @@ languageDef =
           "impl",
           "import",
           "interface",
+          "is",
           "match",
+          "not",
           "null",
+          "or",
           "return",
           "static",
           "this",
@@ -48,10 +52,6 @@ languageDef =
           ")",
           "{",
           "}",
-          "or",
-          "and",
-          "not",
-          "is",
           "~",
           "&",
           "^",
@@ -430,7 +430,7 @@ operators =
     ],
     [Prefix (reservedOp "-" >> return (Unary Neg))],
     [Prefix (reservedOp "~" >> return (Unary BitwiseNot))],
-    [Prefix (reservedOp "not" >> return (Unary LogicalNot))],
+    [Prefix (reserved "not" >> return (Unary LogicalNot))],
     [ Infix (reservedOp "*" >> return (Binary Multiply)) AssocLeft,
       Infix (reservedOp "/" >> return (Binary Divide)) AssocLeft,
       Infix (reservedOp "%" >> return (Binary Modulo)) AssocLeft
@@ -451,15 +451,15 @@ operators =
     ],
     [ Infix (reservedOp "==" >> return (Binary Equal)) AssocLeft,
       Infix (reservedOp "!=" >> return (Binary Unequal)) AssocLeft,
-      Infix (reservedOp "is" >> return (Binary Is)) AssocLeft,
-      Infix (reservedOp "as" >> return As) AssocLeft
+      Infix (reserved "is" >> return (Binary Is)) AssocLeft,
+      Infix (reserved "as" >> return As) AssocLeft
     ],
     [ Infix (reservedOp "&" >> return (Binary BitwiseAnd)) AssocLeft,
       Infix (reservedOp "^" >> return (Binary BitwiseXor)) AssocLeft,
       Infix (reservedOp "|" >> return (Binary BitwiseOr)) AssocLeft
     ],
-    [ Infix (reservedOp "and" >> return (Binary LogicalAnd)) AssocLeft,
-      Infix (reservedOp "or" >> return (Binary LogicalOr)) AssocLeft
+    [ Infix (reserved "and" >> return (Binary LogicalAnd)) AssocLeft,
+      Infix (reserved "or" >> return (Binary LogicalOr)) AssocLeft
     ],
     [ Infix (reservedOp "*=" >> return (Binary AssignMultiply)) AssocLeft,
       Infix (reservedOp "/=" >> return (Binary AssignDivide)) AssocLeft,
