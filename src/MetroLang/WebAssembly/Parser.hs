@@ -151,7 +151,7 @@ funcDecl =
     fnReturn <- returnType
     body <- many expr
     rparen
-    return $ Func iden parsedParams fnReturn body
+    return $ Func iden Nothing parsedParams fnReturn body
 
 startDecl :: Parser Declaration
 startDecl =

@@ -53,7 +53,7 @@ declaration (Metro.Func fnSafety fnName fnParams fnReturn body) =
     p <- params fnParams
     r <- returnType fnReturn
     bb <- fnBlock body fnParams
-    return [WASM.Func fnName p r bb]
+    return [WASM.Func fnName Nothing p r bb]
 
 importName :: Metro.ImportSpecifier -> Compiler String
 importName (Metro.FuncImport fnName _ _) = return fnName
@@ -74,7 +74,7 @@ constructor name pars =
     allocation <- return $ setLocal "___ptr" $ call "__allocate" [sizeOfClass]
     fieldAssigns <- many assignField pars
     body <- return $ [WASM.Local "___ptr" WASM.I32, allocation] ++ fieldAssigns ++ [getLocal "___ptr"]
-    return $ WASM.Func name p (Just (WASM.Res WASM.I32)) body
+    return $ WASM.Func name Nothing p (Just (WASM.Res WASM.I32)) body
 
 assignField :: Metro.Param -> Compiler WASM.Expr
 assignField (Metro.Par fieldName _) =
@@ -111,13 +111,13 @@ methodSignature Instance (Metro.MethodSignature _safety name methodParams method
     thisParam <- return $ WASM.Par "this" WASM.I32
     pp <- params methodParams
     r <- returnType methodReturn
-    return $ WASM.Func (methodName className name) (thisParam : pp) r
+    return $ WASM.Func (methodName className name) Nothing (thisParam : pp) r
 methodSignature Static (Metro.MethodSignature _safety name methodParams methodReturn) =
   do
     className <- requireThisContext
     pp <- params methodParams
     r <- returnType methodReturn
-    return $ WASM.Func (methodName className name) pp r
+    return $ WASM.Func (methodName className name) Nothing pp r
 
 methodName :: Show a => a -> [Char] -> [Char]
 methodName className name = (show className) ++ "." ++ name
