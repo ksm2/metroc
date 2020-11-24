@@ -30,6 +30,7 @@ COMPILER COMMANDS
   metroc clean      Remove the target directory.
   metroc build      Build the project to WebAssembly.
   metroc run        Run the project main function.
+  metroc test       Executes all project tests.
 
 META COMMANDS
   metroc help       Print this help text and exit.

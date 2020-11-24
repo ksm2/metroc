@@ -12,7 +12,4 @@
     (set_global $__allocationOffset (i32.add (get_local $offset) (get_local $numberOfBytes)))
     (get_local $offset)
   )
-
-  ;; Start here
-  (start $main)
 )
