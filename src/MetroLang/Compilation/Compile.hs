@@ -53,7 +53,8 @@ declaration (Metro.Func fnSafety fnName fnParams fnReturn body) =
     p <- params fnParams
     r <- returnType fnReturn
     bb <- fnBlock body fnParams
-    return [WASM.Func fnName Nothing p r bb]
+    fnExport <- return $ Just fnName
+    return [WASM.Func fnName fnExport p r bb]
 
 importName :: Metro.ImportSpecifier -> Compiler String
 importName (Metro.FuncImport fnName _ _) = return fnName
