@@ -2,6 +2,7 @@
 
 module Commands.Build (clean, build, run) where
 
+import Commands.ExecuteWasm
 import Data.FileEmbed
 import MetroLang.AST
 import MetroLang.Compilation.Compile
@@ -47,10 +48,6 @@ metroToWat enableAssertions inFile outFile =
     ast <- Metro.parseFile inFile
     wasm <- return $ compile enableAssertions $ foldl Metro.merge stdMetro $ stdLib ++ [ast]
     generateFile outFile $ WASM.merge stdWasm wasm
-
--- | runWat runs a WebAssembly Text format file
-runWat :: String -> IO ()
-runWat inFile = callProcess "wasmtime" [inFile]
 
 parseArgs :: [String] -> (Bool, String)
 parseArgs ["--assertions", x] = (True, x)

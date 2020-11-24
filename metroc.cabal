@@ -54,6 +54,10 @@ executable metroc
   default-language:    Haskell2010
   hs-source-dirs: bin
   main-is:             Main.hs
+  include-dirs:        include
+  c-sources:           include/runtime.c
+  extra-lib-dirs:      lib
+  extra-libraries:     wasmtime
   build-depends:
     base          >= 4.14   && < 5,
     file-embed    >= 0.0.13,
@@ -67,4 +71,5 @@ executable metroc
     Commands
     Commands.Build
     Commands.Version
+    Commands.ExecuteWasm
     Paths_metroc
