@@ -9,7 +9,7 @@ static void call_func(const wasm_module_t *module, const wasm_instance_t *instan
 static int find_func_index(const wasm_module_t *module, const char *expected_name);
 static bool wasm_name_equals(const wasm_name_t *name, const char *expected_name);
 static void exit_with_error(const char *message, wasmtime_error_t *error, wasm_trap_t *trap);
-static void read_wat_file(wasm_engine_t *engine, wasm_byte_vec_t *bytes, const char *file);
+static void read_wat_file(wasm_byte_vec_t *bytes, const char *file);
 
 wasm_engine_t *create_engine() {
   wasm_engine_t *engine = wasm_engine_new();
@@ -21,13 +21,19 @@ void delete_engine(wasm_engine_t *engine) {
   wasm_engine_delete(engine);
 }
 
-void run_wat_file(wasm_engine_t *engine, const char* fname) {
-  // Set up our context
+wasm_store_t *create_store(wasm_engine_t *engine) {
   wasm_store_t *store = wasm_store_new(engine);
   assert(store != NULL);
+  return store;
+}
 
+void delete_store(wasm_store_t *store) {
+  wasm_store_delete(store);
+}
+
+void run_wat_file(wasm_engine_t *engine, wasm_store_t *store, const char* fname) {
   wasm_byte_vec_t linking_wasm;
-  read_wat_file(engine, &linking_wasm, fname);
+  read_wat_file(&linking_wasm, fname);
 
   // Compile our two modules
   wasmtime_error_t *error;
@@ -70,7 +76,6 @@ void run_wat_file(wasm_engine_t *engine, const char* fname) {
   wasm_instance_delete(linking);
   wasmtime_linker_delete(linker);
   wasm_module_delete(linking_module);
-  wasm_store_delete(store);
 }
 
 static void call_func(const wasm_module_t *module, const wasm_instance_t *instance, const char *expected_name) {
@@ -121,7 +126,6 @@ static bool wasm_name_equals(const wasm_name_t *name, const char *expected_name)
 }
 
 static void read_wat_file(
-  wasm_engine_t *engine,
   wasm_byte_vec_t *bytes,
   const char *filename
 ) {
