@@ -5,7 +5,8 @@
 #include <wasi.h>
 #include <wasmtime.h>
 
-static int find_main(const wasm_module_t *linking_module);
+static void call_func(const wasm_module_t *module, const wasm_instance_t *instance, const char *expected_name);
+static int find_func_index(const wasm_module_t *module, const char *expected_name);
 static bool wasm_name_equals(const wasm_name_t *name, const char *expected_name);
 static void exit_with_error(const char *message, wasmtime_error_t *error, wasm_trap_t *trap);
 static void read_wat_file(wasm_engine_t *engine, wasm_byte_vec_t *bytes, const char *file);
@@ -27,13 +28,6 @@ void executeWasm(const char* fname) {
   if (error != NULL)
     exit_with_error("failed to compile linking", error, NULL);
   wasm_byte_vec_delete(&linking_wasm);
-
-  // Find main
-  int main_index = find_main(linking_module);
-  if (main_index < 0) {
-    fprintf(stderr, "error: %s\n", "cannot find main. Did you export it?");
-    exit(1);
-  }
 
   // Instantiate wasi
   wasi_config_t *wasi_config = wasi_config_new();
@@ -61,14 +55,8 @@ void executeWasm(const char* fname) {
   if (error != NULL || trap != NULL)
     exit_with_error("failed to instantiate linking", error, trap);
 
-  // Lookup our `run` export function
-  wasm_extern_vec_t linking_externs;
-  wasm_instance_exports(linking, &linking_externs);
-  wasm_func_t *main_fn = wasm_extern_as_func(linking_externs.data[main_index]);
-  assert(main_fn != NULL);
-  error = wasmtime_func_call(main_fn, NULL, 0, NULL, 0, &trap);
-  if (error != NULL || trap != NULL)
-    exit_with_error("failed to call main", error, trap);
+  // Call the "main" exported func
+  call_func(linking_module, linking, "main");
 
   // Clean up after ourselves at this point
   wasm_instance_delete(linking);
@@ -78,13 +66,32 @@ void executeWasm(const char* fname) {
   wasm_engine_delete(engine);
 }
 
-static int find_main(const wasm_module_t *linking_module) {
+static void call_func(const wasm_module_t *module, const wasm_instance_t *instance, const char *expected_name) {
+  int func_index = find_func_index(module, expected_name);
+  if (func_index < 0) {
+    fprintf(stderr, "error: %s\n", "cannot find func. Did you export it?");
+    exit(1);
+  }
+
+  wasmtime_error_t *error;
+  wasm_trap_t *trap = NULL;
+  wasm_extern_vec_t instance_externs;
+  wasm_instance_exports(instance, &instance_externs);
+  wasm_func_t *main_fn = wasm_extern_as_func(instance_externs.data[func_index]);
+  assert(main_fn != NULL);
+  error = wasmtime_func_call(main_fn, NULL, 0, NULL, 0, &trap);
+  if (error != NULL || trap != NULL) {
+    exit_with_error("failed to call func", error, trap);
+  }
+}
+
+static int find_func_index(const wasm_module_t *module, const char *expected_name) {
   wasm_exporttype_vec_t exports;
-  wasm_module_exports(linking_module, &exports);
+  wasm_module_exports(module, &exports);
 
   for (int i = 0; i < exports.size; ++i) {
     const wasm_name_t *name = wasm_exporttype_name(exports.data[i]);
-    if (wasm_name_equals(name, "main")) {
+    if (wasm_name_equals(name, expected_name)) {
       return i;
     }
   }
