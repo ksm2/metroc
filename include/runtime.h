@@ -12,7 +12,9 @@ wasm_module_t *create_module(wasm_engine_t *engine, const char* filename);
 void delete_module(wasm_module_t *module);
 wasmtime_linker_t *create_linker(wasm_store_t *store);
 void delete_linker(wasmtime_linker_t *linker);
+wasm_instance_t *create_instance(wasmtime_linker_t *linker, const wasm_module_t *module);
+void delete_instance(wasm_instance_t *instance);
 void link_wasi(wasm_store_t *store, wasmtime_linker_t *linker);
-void run_wat_file(wasmtime_linker_t *linker, const wasm_module_t *module);
+void call_func(const wasm_module_t *module, const wasm_instance_t *instance, const char *expected_name);
 
 #endif

@@ -13,6 +13,8 @@ type WasmModule = Ptr ()
 
 type WasmLinker = Ptr ()
 
+type WasmInstance = Ptr ()
+
 foreign import ccall "runtime.h create_engine" createEngine :: IO WasmEngine
 
 foreign import ccall "runtime.h delete_engine" deleteEngine :: WasmEngine -> IO ()
@@ -29,9 +31,13 @@ foreign import ccall "runtime.h create_linker" createLinker :: WasmStore -> IO W
 
 foreign import ccall "runtime.h delete_linker" deleteLinker :: WasmLinker -> IO ()
 
+foreign import ccall "runtime.h create_instance" createInstance :: WasmLinker -> WasmModule -> IO WasmInstance
+
+foreign import ccall "runtime.h delete_instance" deleteInstance :: WasmInstance -> IO ()
+
 foreign import ccall "runtime.h link_wasi" linkWasi :: WasmStore -> WasmLinker -> IO ()
 
-foreign import ccall "runtime.h run_wat_file" runWatFile :: WasmLinker -> WasmModule -> IO ()
+foreign import ccall "runtime.h call_func" callFuncC :: WasmModule -> WasmInstance -> CString -> IO ()
 
 -- | withEngine runs a callback with a WASM Engine
 withEngine :: (WasmEngine -> IO a) -> IO a
@@ -70,13 +76,27 @@ withLinker store cb =
     deleteLinker wasmLinker
     return result
 
+-- | withInstance runs a callback with a WASM Instance
+withInstance :: WasmLinker -> WasmModule -> (WasmInstance -> IO a) -> IO a
+withInstance wasmLinker wasmModule cb =
+  do
+    wasmInstance <- createInstance wasmLinker wasmModule
+    result <- cb wasmInstance
+    deleteInstance wasmInstance
+    return result
+
+-- | callFunc calls a func inside
+callFunc :: WasmModule -> WasmInstance -> String -> IO ()
+callFunc m i s = withCString s $ \cStr -> callFuncC m i cStr
+
 -- | runWat runs a WebAssembly Text format file using C bindings
 runWat :: String -> IO ()
 runWat filename =
   withEngine $ \engine ->
     withStore engine $ \store ->
-      withModule filename engine $ \m ->
+      withModule filename engine $ \wasmModule ->
         withLinker store $ \linker ->
           do
             linkWasi store linker
-            runWatFile linker m
+            withInstance linker wasmModule $ \wasmInstance ->
+              callFunc wasmModule wasmInstance "main"

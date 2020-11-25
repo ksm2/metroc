@@ -5,7 +5,6 @@
 #include <wasi.h>
 #include <wasmtime.h>
 
-static void call_func(const wasm_module_t *module, const wasm_instance_t *instance, const char *expected_name);
 static int find_func_index(const wasm_module_t *module, const char *expected_name);
 static bool wasm_name_equals(const wasm_name_t *name, const char *expected_name);
 static void exit_with_error(const char *message, wasmtime_error_t *error, wasm_trap_t *trap);
@@ -58,6 +57,22 @@ void delete_linker(wasmtime_linker_t *linker) {
   wasmtime_linker_delete(linker);
 }
 
+wasm_instance_t *create_instance(wasmtime_linker_t *linker, const wasm_module_t *module) {
+  wasmtime_error_t *error;
+  wasm_instance_t *instance;
+  wasm_trap_t *trap = NULL;
+
+  error = wasmtime_linker_instantiate(linker, module, &instance, &trap);
+  if (error != NULL || trap != NULL)
+    exit_with_error("failed to instantiate instance", error, trap);
+
+  return instance;
+}
+
+void delete_instance(wasm_instance_t *instance) {
+  wasm_instance_delete(instance);
+}
+
 void link_wasi(wasm_store_t *store, wasmtime_linker_t *linker) {
   wasmtime_error_t *error;
 
@@ -81,23 +96,7 @@ void link_wasi(wasm_store_t *store, wasmtime_linker_t *linker) {
     exit_with_error("failed to link wasi", error, NULL);
 }
 
-void run_wat_file(wasmtime_linker_t *linker, const wasm_module_t *module) {
-  wasmtime_error_t *error;
-  wasm_instance_t *linking;
-  wasm_trap_t *trap = NULL;
-
-  error = wasmtime_linker_instantiate(linker, module, &linking, &trap);
-  if (error != NULL || trap != NULL)
-    exit_with_error("failed to instantiate linking", error, trap);
-
-  // Call the "main" exported func
-  call_func(module, linking, "main");
-
-  // Clean up after ourselves at this point
-  wasm_instance_delete(linking);
-}
-
-static void call_func(const wasm_module_t *module, const wasm_instance_t *instance, const char *expected_name) {
+void call_func(const wasm_module_t *module, const wasm_instance_t *instance, const char *expected_name) {
   int func_index = find_func_index(module, expected_name);
   if (func_index < 0) {
     fprintf(stderr, "error: %s\n", "cannot find func. Did you export it?");
