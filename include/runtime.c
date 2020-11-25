@@ -50,7 +50,15 @@ void delete_module(wasm_module_t *module) {
   wasm_module_delete(module);
 }
 
-void run_wat_file(wasm_store_t *store, wasm_module_t *module) {
+wasmtime_linker_t *create_linker(wasm_store_t *store) {
+  return wasmtime_linker_new(store);
+}
+
+void delete_linker(wasmtime_linker_t *linker) {
+  wasmtime_linker_delete(linker);
+}
+
+void run_wat_file(wasm_store_t *store, wasmtime_linker_t *linker, const wasm_module_t *module) {
   wasmtime_error_t *error;
 
   // Instantiate wasi
@@ -68,7 +76,6 @@ void run_wat_file(wasm_store_t *store, wasm_module_t *module) {
 
   // Create our linker which will be linking our modules together, and then add
   // our WASI instance to it.
-  wasmtime_linker_t *linker = wasmtime_linker_new(store);
   error = wasmtime_linker_define_wasi(linker, wasi);
   if (error != NULL)
     exit_with_error("failed to link wasi", error, NULL);
@@ -84,7 +91,6 @@ void run_wat_file(wasm_store_t *store, wasm_module_t *module) {
 
   // Clean up after ourselves at this point
   wasm_instance_delete(linking);
-  wasmtime_linker_delete(linker);
 }
 
 static void call_func(const wasm_module_t *module, const wasm_instance_t *instance, const char *expected_name) {
