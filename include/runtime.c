@@ -58,7 +58,7 @@ void delete_linker(wasmtime_linker_t *linker) {
   wasmtime_linker_delete(linker);
 }
 
-void run_wat_file(wasm_store_t *store, wasmtime_linker_t *linker, const wasm_module_t *module) {
+void link_wasi(wasm_store_t *store, wasmtime_linker_t *linker) {
   wasmtime_error_t *error;
 
   // Instantiate wasi
@@ -79,9 +79,13 @@ void run_wat_file(wasm_store_t *store, wasmtime_linker_t *linker, const wasm_mod
   error = wasmtime_linker_define_wasi(linker, wasi);
   if (error != NULL)
     exit_with_error("failed to link wasi", error, NULL);
+}
 
-  // Instantiate `linking` with our linker.
+void run_wat_file(wasmtime_linker_t *linker, const wasm_module_t *module) {
+  wasmtime_error_t *error;
   wasm_instance_t *linking;
+  wasm_trap_t *trap = NULL;
+
   error = wasmtime_linker_instantiate(linker, module, &linking, &trap);
   if (error != NULL || trap != NULL)
     exit_with_error("failed to instantiate linking", error, trap);

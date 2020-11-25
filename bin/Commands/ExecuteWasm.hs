@@ -29,7 +29,9 @@ foreign import ccall "runtime.h create_linker" createLinker :: WasmStore -> IO W
 
 foreign import ccall "runtime.h delete_linker" deleteLinker :: WasmLinker -> IO ()
 
-foreign import ccall "runtime.h run_wat_file" runWatFile :: WasmStore -> WasmLinker -> WasmModule -> IO ()
+foreign import ccall "runtime.h link_wasi" linkWasi :: WasmStore -> WasmLinker -> IO ()
+
+foreign import ccall "runtime.h run_wat_file" runWatFile :: WasmLinker -> WasmModule -> IO ()
 
 -- | withEngine runs a callback with a WASM Engine
 withEngine :: (WasmEngine -> IO a) -> IO a
@@ -75,4 +77,6 @@ runWat filename =
     withStore engine $ \store ->
       withModule filename engine $ \m ->
         withLinker store $ \linker ->
-          runWatFile store linker m
+          do
+            linkWasi store linker
+            runWatFile linker m
