@@ -2,8 +2,10 @@
 
 module Commands.ExecuteWasm (runWat) where
 
+import qualified Codec.Binary.UTF8.String as UTF8
 import Foreign.C.String
-import Foreign.C.Types (CInt (..))
+import Foreign.C.Types (CChar (..), CInt (..), CSize (..))
+import Foreign.Marshal.Array
 import Foreign.Ptr
 
 type WasmEngine = Ptr ()
@@ -24,7 +26,7 @@ foreign import ccall "runtime.h create_store" createStore :: WasmEngine -> IO Wa
 
 foreign import ccall "runtime.h delete_store" deleteStore :: WasmStore -> IO ()
 
-foreign import ccall "runtime.h create_module" createModule :: WasmEngine -> CString -> IO WasmModule
+foreign import ccall "runtime.h create_module" createModule :: WasmEngine -> CSize -> Ptr CChar -> IO WasmModule
 
 foreign import ccall "runtime.h delete_module" deleteModule :: WasmModule -> IO ()
 
@@ -61,11 +63,11 @@ withStore engine cb =
     return result
 
 -- | withModule runs a callback with a WASM Module
-withModule :: String -> WasmEngine -> (WasmModule -> IO a) -> IO a
-withModule filename engine cb =
-  withCString filename $ \cStr ->
+withModule :: WasmEngine -> [CChar] -> (WasmModule -> IO a) -> IO a
+withModule engine watBin cb =
+  withArrayLen watBin $ \watSize watPtr ->
     do
-      wasmModule <- createModule engine cStr
+      wasmModule <- createModule engine (fromIntegral watSize) watPtr
       result <- cb wasmModule
       deleteModule wasmModule
       return result
@@ -92,12 +94,16 @@ withInstance wasmLinker wasmModule cb =
 findFuncIndex :: WasmModule -> String -> IO CInt
 findFuncIndex m s = withCString s $ \cStr -> findFuncIndexC m cStr
 
--- | runWat runs a WebAssembly Text format file using C bindings
+-- | runWat runs a WebAssembly Text format string using C bindings
 runWat :: String -> IO ()
-runWat filename =
+runWat watStr = runWatBin $ map fromIntegral $ UTF8.encode watStr
+
+-- | runWatBin runs a WebAssembly Text format byte array using C bindings
+runWatBin :: [CChar] -> IO ()
+runWatBin watBin =
   withEngine $ \engine ->
     withStore engine $ \store ->
-      withModule filename engine $ \wasmModule ->
+      withModule engine watBin $ \wasmModule ->
         withLinker store $ \linker ->
           do
             linkWasi store linker

@@ -1,4 +1,4 @@
-module MetroLang.WebAssembly.Generator (generateString, generateFile) where
+module MetroLang.WebAssembly.Generator (generateString) where
 
 import Data.Char (isSpace)
 import Data.List
@@ -109,9 +109,3 @@ trimLines = unlines . (map trim) . lines
 
 generateString :: Module -> String
 generateString = trimLines . generateModule
-
-generateFile :: String -> Module -> IO ()
-generateFile file ast =
-  do
-    program <- return $ generateString ast
-    writeFile file program

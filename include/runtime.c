@@ -7,7 +7,7 @@
 
 static bool wasm_name_equals(const wasm_name_t *name, const char *expected_name);
 static void exit_with_error(const char *message, wasmtime_error_t *error, wasm_trap_t *trap);
-static void read_wat_file(wasm_byte_vec_t *bytes, const char *file);
+static void read_wat_file(wasm_byte_vec_t *bytes, const wasm_byte_vec_t *wat);
 
 wasm_engine_t *create_engine() {
   wasm_engine_t *engine = wasm_engine_new();
@@ -29,11 +29,14 @@ void delete_store(wasm_store_t *store) {
   wasm_store_delete(store);
 }
 
-wasm_module_t *create_module(wasm_engine_t *engine, const char* filename) {
+wasm_module_t *create_module(wasm_engine_t *engine, size_t size, const wasm_byte_t *wat_bytes) {
   wasm_byte_vec_t byte_vec;
-  read_wat_file(&byte_vec, filename);
+  wasm_byte_vec_t wat;
 
-  // Compile our two modules
+  wasm_byte_vec_new(&wat, size, wat_bytes);
+  read_wat_file(&byte_vec, &wat);
+  wasm_byte_vec_delete(&wat);
+
   wasmtime_error_t *error;
   wasm_module_t *module = NULL;
   error = wasmtime_module_new(engine, &byte_vec, &module);
@@ -138,32 +141,11 @@ static bool wasm_name_equals(const wasm_name_t *name, const char *expected_name)
   return true;
 }
 
-static void read_wat_file(
-  wasm_byte_vec_t *bytes,
-  const char *filename
-) {
-  wasm_byte_vec_t wat;
-  // Load our input file to parse it next
-  FILE* file = fopen(filename, "r");
-  if (!file) {
-    printf("> Error loading file!\n");
-    exit(1);
-  }
-  fseek(file, 0L, SEEK_END);
-  size_t file_size = ftell(file);
-  wasm_byte_vec_new_uninitialized(&wat, file_size);
-  fseek(file, 0L, SEEK_SET);
-  if (fread(wat.data, file_size, 1, file) != 1) {
-    printf("> Error loading module!\n");
-    exit(1);
-  }
-  fclose(file);
-
+static void read_wat_file(wasm_byte_vec_t *bytes, const wasm_byte_vec_t *wat) {
   // Parse the wat into the binary wasm format
-  wasmtime_error_t *error = wasmtime_wat2wasm(&wat, bytes);
+  wasmtime_error_t *error = wasmtime_wat2wasm(wat, bytes);
   if (error != NULL)
     exit_with_error("failed to parse wat", error, NULL);
-  wasm_byte_vec_delete(&wat);
 }
 
 static void exit_with_error(const char *message, wasmtime_error_t *error, wasm_trap_t *trap) {
