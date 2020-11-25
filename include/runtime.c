@@ -11,10 +11,18 @@ static bool wasm_name_equals(const wasm_name_t *name, const char *expected_name)
 static void exit_with_error(const char *message, wasmtime_error_t *error, wasm_trap_t *trap);
 static void read_wat_file(wasm_engine_t *engine, wasm_byte_vec_t *bytes, const char *file);
 
-void executeWasm(const char* fname) {
-  // Set up our context
+wasm_engine_t *create_engine() {
   wasm_engine_t *engine = wasm_engine_new();
   assert(engine != NULL);
+  return engine;
+}
+
+void delete_engine(wasm_engine_t *engine) {
+  wasm_engine_delete(engine);
+}
+
+void run_wat_file(wasm_engine_t *engine, const char* fname) {
+  // Set up our context
   wasm_store_t *store = wasm_store_new(engine);
   assert(store != NULL);
 
@@ -63,7 +71,6 @@ void executeWasm(const char* fname) {
   wasmtime_linker_delete(linker);
   wasm_module_delete(linking_module);
   wasm_store_delete(store);
-  wasm_engine_delete(engine);
 }
 
 static void call_func(const wasm_module_t *module, const wasm_instance_t *instance, const char *expected_name) {
