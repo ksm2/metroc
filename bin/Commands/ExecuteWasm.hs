@@ -3,6 +3,7 @@
 module Commands.ExecuteWasm (runWat) where
 
 import Foreign.C.String
+import Foreign.C.Types (CInt (..))
 import Foreign.Ptr
 
 type WasmEngine = Ptr ()
@@ -37,7 +38,9 @@ foreign import ccall "runtime.h delete_instance" deleteInstance :: WasmInstance 
 
 foreign import ccall "runtime.h link_wasi" linkWasi :: WasmStore -> WasmLinker -> IO ()
 
-foreign import ccall "runtime.h call_func" callFuncC :: WasmModule -> WasmInstance -> CString -> IO ()
+foreign import ccall "runtime.h call_func" callFunc :: WasmInstance -> CInt -> IO ()
+
+foreign import ccall "runtime.h find_func_index" findFuncIndexC :: WasmModule -> CString -> IO CInt
 
 -- | withEngine runs a callback with a WASM Engine
 withEngine :: (WasmEngine -> IO a) -> IO a
@@ -85,9 +88,9 @@ withInstance wasmLinker wasmModule cb =
     deleteInstance wasmInstance
     return result
 
--- | callFunc calls a func inside
-callFunc :: WasmModule -> WasmInstance -> String -> IO ()
-callFunc m i s = withCString s $ \cStr -> callFuncC m i cStr
+-- | findFuncIndex finds a func export inside a module
+findFuncIndex :: WasmModule -> String -> IO CInt
+findFuncIndex m s = withCString s $ \cStr -> findFuncIndexC m cStr
 
 -- | runWat runs a WebAssembly Text format file using C bindings
 runWat :: String -> IO ()
@@ -99,4 +102,6 @@ runWat filename =
           do
             linkWasi store linker
             withInstance linker wasmModule $ \wasmInstance ->
-              callFunc wasmModule wasmInstance "main"
+              do
+                idx <- findFuncIndex wasmModule "main"
+                callFunc wasmInstance idx
