@@ -9,6 +9,8 @@ type WasmEngine = Ptr ()
 
 type WasmStore = Ptr ()
 
+type WasmModule = Ptr ()
+
 foreign import ccall "runtime.h create_engine" createEngine :: IO WasmEngine
 
 foreign import ccall "runtime.h delete_engine" deleteEngine :: WasmEngine -> IO ()
@@ -17,7 +19,11 @@ foreign import ccall "runtime.h create_store" createStore :: WasmEngine -> IO Wa
 
 foreign import ccall "runtime.h delete_store" deleteStore :: WasmStore -> IO ()
 
-foreign import ccall "runtime.h run_wat_file" runWatFile :: WasmEngine -> WasmStore -> CString -> IO ()
+foreign import ccall "runtime.h create_module" createModule :: WasmEngine -> CString -> IO WasmModule
+
+foreign import ccall "runtime.h delete_module" deleteModule :: WasmModule -> IO ()
+
+foreign import ccall "runtime.h run_wat_file" runWatFile :: WasmStore -> WasmModule -> IO ()
 
 -- | withEngine runs a callback with a WASM Engine
 withEngine :: (WasmEngine -> IO a) -> IO a
@@ -37,10 +43,20 @@ withStore engine cb =
     deleteStore store
     return result
 
+-- | withModule runs a callback with a WASM Module
+withModule :: String -> WasmEngine -> (WasmModule -> IO a) -> IO a
+withModule filename engine cb =
+  withCString filename $ \cStr ->
+    do
+      wasmModule <- createModule engine cStr
+      result <- cb wasmModule
+      deleteModule wasmModule
+      return result
+
 -- | runWat runs a WebAssembly Text format file using C bindings
 runWat :: String -> IO ()
 runWat filename =
   withEngine $ \engine ->
     withStore engine $ \store ->
-      do
-        withCString filename $ \cStr -> runWatFile engine store cStr
+      withModule filename engine $ \m ->
+        runWatFile store m

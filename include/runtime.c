@@ -31,17 +31,27 @@ void delete_store(wasm_store_t *store) {
   wasm_store_delete(store);
 }
 
-void run_wat_file(wasm_engine_t *engine, wasm_store_t *store, const char* fname) {
-  wasm_byte_vec_t linking_wasm;
-  read_wat_file(&linking_wasm, fname);
+wasm_module_t *create_module(wasm_engine_t *engine, const char* filename) {
+  wasm_byte_vec_t byte_vec;
+  read_wat_file(&byte_vec, filename);
 
   // Compile our two modules
   wasmtime_error_t *error;
-  wasm_module_t *linking_module = NULL;
-  error = wasmtime_module_new(engine, &linking_wasm, &linking_module);
+  wasm_module_t *module = NULL;
+  error = wasmtime_module_new(engine, &byte_vec, &module);
   if (error != NULL)
     exit_with_error("failed to compile linking", error, NULL);
-  wasm_byte_vec_delete(&linking_wasm);
+  wasm_byte_vec_delete(&byte_vec);
+
+  return module;
+}
+
+void delete_module(wasm_module_t *module) {
+  wasm_module_delete(module);
+}
+
+void run_wat_file(wasm_store_t *store, wasm_module_t *module) {
+  wasmtime_error_t *error;
 
   // Instantiate wasi
   wasi_config_t *wasi_config = wasi_config_new();
@@ -65,17 +75,16 @@ void run_wat_file(wasm_engine_t *engine, wasm_store_t *store, const char* fname)
 
   // Instantiate `linking` with our linker.
   wasm_instance_t *linking;
-  error = wasmtime_linker_instantiate(linker, linking_module, &linking, &trap);
+  error = wasmtime_linker_instantiate(linker, module, &linking, &trap);
   if (error != NULL || trap != NULL)
     exit_with_error("failed to instantiate linking", error, trap);
 
   // Call the "main" exported func
-  call_func(linking_module, linking, "main");
+  call_func(module, linking, "main");
 
   // Clean up after ourselves at this point
   wasm_instance_delete(linking);
   wasmtime_linker_delete(linker);
-  wasm_module_delete(linking_module);
 }
 
 static void call_func(const wasm_module_t *module, const wasm_instance_t *instance, const char *expected_name) {
