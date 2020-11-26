@@ -22,32 +22,25 @@ watToWasm inFile outFile = callProcess "wat2wasm" [inFile, "-o", outFile]
 
 buildStdLib :: Bool -> [Module]
 buildStdLib enableAssertions =
-  let intMetro = Metro.parseString "Int.metro" $(embedStringFile "std/Int.metro")
+  let stdLibMetro = Metro.parseString "std.metro" $(embedStringFile "std/std.metro")
+      intMetro = Metro.parseString "Int.metro" $(embedStringFile "std/Int.metro")
       uintMetro = Metro.parseString "UInt.metro" $(embedStringFile "std/UInt.metro")
       wordMetro = Metro.parseString "Word.metro" $(embedStringFile "std/Word.metro")
       byteMetro = Metro.parseString "Byte.metro" $(embedStringFile "std/Byte.metro")
       fileMetro = Metro.parseString "File.metro" $(embedStringFile "std/File.metro")
-      stdLib = [intMetro, uintMetro, wordMetro, byteMetro, fileMetro]
+      stdLib = [stdLibMetro, intMetro, uintMetro, wordMetro, byteMetro, fileMetro]
    in if enableAssertions
         then stdLib ++ [Metro.parseString "assertion.metro" $(embedStringFile "std/assertion.metro")]
         else stdLib
 
 -- | metroToWat compiles Metro to WebAssembly Text format
-metroToWat :: Bool -> String -> IO String
-metroToWat enableAssertions inFile =
-  do
-    -- Create output directory if it is missing
-    createDirectoryIfMissing True outDir
-
-    -- Load std lib
-    stdWasm <- return $ WASM.parseString $(embedStringFile "std/std.wat")
-    stdMetro <- return $ Metro.parseString "std.metro" $(embedStringFile "std/std.metro")
-    stdLib <- return $ buildStdLib enableAssertions
-
-    -- Compile program and output WebAssembly Text format
-    ast <- Metro.parseFile inFile
-    wasm <- return $ compile enableAssertions $ foldl Metro.merge stdMetro $ stdLib ++ [ast]
-    return $ generateString $ WASM.merge stdWasm wasm
+metroToWat :: Bool -> String -> String -> String
+metroToWat enableAssertions inputFile inputStr =
+  let wasmStdLib = WASM.parseString $(embedStringFile "std/std.wat")
+      metroStdLib = buildStdLib enableAssertions
+      ast = Metro.parseString inputFile inputStr
+      wasm = compile enableAssertions $ foldl Metro.merge (Mod []) $ metroStdLib ++ [ast]
+   in generateString $ WASM.merge wasmStdLib wasm
 
 parseArgs :: [String] -> (Bool, String)
 parseArgs ["--assertions", x] = (True, x)
@@ -66,7 +59,9 @@ build args =
         outWatFile = outDir </> baseName ++ ".wat"
         outWasmFile = outDir </> baseName ++ ".wasm"
 
-    wat <- metroToWat enableAssertions inputFile
+    createDirectoryIfMissing True outDir
+    inputStr <- readFile inputFile
+    wat <- return $ metroToWat enableAssertions inputFile inputStr
     writeFile outWatFile wat
     watToWasm outWatFile outWasmFile
 
@@ -75,5 +70,6 @@ run args =
   do
     let (enableAssertions, inputFile) = parseArgs args
 
-    wat <- metroToWat enableAssertions inputFile
+    inputStr <- readFile inputFile
+    wat <- return $ metroToWat enableAssertions inputFile inputStr
     runWat wat
