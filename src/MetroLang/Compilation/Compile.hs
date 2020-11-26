@@ -243,15 +243,19 @@ makeLocalStmts = map makeLocalStmt
 makeLocalStmt :: (Metro.Identifier, Metro.Type) -> WASM.Expr
 makeLocalStmt (i, dt) = WASM.Local i $ dataTypeToValtype dt
 
-compiling :: (a -> Compiler WASM.Module) -> Bool -> a -> WASM.Module
-compiling cab enableAssertions a =
+compiling :: (a -> Compiler WASM.Module) -> Bool -> String -> a -> WASM.Module
+compiling cab enableAssertions mainMethod a =
   let cb = cab a
       (b, cs) = runCompiler enableAssertions cb
-   in injectStrings (toAscList (strings cs)) b
+   in injectStart mainMethod $ injectStrings (toAscList (strings cs)) b
+
+injectStart :: String -> WASM.Module -> WASM.Module
+injectStart "" m = m
+injectStart mainMethod (WASM.Mod m) = WASM.Mod $ m ++ [WASM.Start mainMethod]
 
 injectStrings :: [(String, Int)] -> WASM.Module -> WASM.Module
 injectStrings [] m = m
 injectStrings ((str, pos) : xs) m = injectStrings xs $ injectData pos str m
 
-compile :: Bool -> Metro.Module -> WASM.Module
+compile :: Bool -> String -> Metro.Module -> WASM.Module
 compile = compiling compileModule

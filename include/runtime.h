@@ -17,6 +17,6 @@ void delete_instance(wasm_instance_t *instance);
 void link_wasi(wasm_store_t *store, wasmtime_linker_t *linker);
 void call_func(const wasm_instance_t *instance, int func_index);
 int find_func_index(const wasm_module_t *module, const char *expected_name);
-void compile_wat_to_wasm(wasm_byte_vec_t *bytes, wasm_byte_vec_t *wat);
+wasm_byte_t *wat_to_wasm(size_t wat_size, const wasm_byte_t *wat_bytes, size_t *wasm_bytes);
 
 #endif

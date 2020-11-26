@@ -7,7 +7,7 @@
 
 static bool wasm_name_equals(const wasm_name_t *name, const char *expected_name);
 static void exit_with_error(const char *message, wasmtime_error_t *error, wasm_trap_t *trap);
-static void read_wat_file(wasm_byte_vec_t *bytes, const wasm_byte_vec_t *wat);
+static void wat_byte_vec_to_wasm(wasm_byte_vec_t *bytes, const wasm_byte_vec_t *wat);
 
 wasm_engine_t *create_engine() {
   wasm_engine_t *engine = wasm_engine_new();
@@ -34,7 +34,7 @@ wasm_module_t *create_module(wasm_engine_t *engine, size_t size, const wasm_byte
   wasm_byte_vec_t wat;
 
   wasm_byte_vec_new(&wat, size, wat_bytes);
-  read_wat_file(&byte_vec, &wat);
+  wat_byte_vec_to_wasm(&byte_vec, &wat);
   wasm_byte_vec_delete(&wat);
 
   wasmtime_error_t *error;
@@ -127,6 +127,18 @@ int find_func_index(const wasm_module_t *module, const char *expected_name) {
   return -1;
 }
 
+wasm_byte_t *wat_to_wasm(size_t wat_size, const wasm_byte_t *wat_bytes, size_t *wasm_bytes) {
+  wasm_byte_vec_t byte_vec;
+  wasm_byte_vec_t wat;
+
+  wasm_byte_vec_new(&wat, wat_size, wat_bytes);
+  wat_byte_vec_to_wasm(&byte_vec, &wat);
+  wasm_byte_vec_delete(&wat);
+
+  *wasm_bytes = byte_vec.size;
+  return byte_vec.data;
+}
+
 static bool wasm_name_equals(const wasm_name_t *name, const char *expected_name) {
   if (name->size != strlen(expected_name)) {
     return false;
@@ -141,7 +153,7 @@ static bool wasm_name_equals(const wasm_name_t *name, const char *expected_name)
   return true;
 }
 
-static void read_wat_file(wasm_byte_vec_t *bytes, const wasm_byte_vec_t *wat) {
+static void wat_byte_vec_to_wasm(wasm_byte_vec_t *bytes, const wasm_byte_vec_t *wat) {
   // Parse the wat into the binary wasm format
   wasmtime_error_t *error = wasmtime_wat2wasm(wat, bytes);
   if (error != NULL)

@@ -3,6 +3,7 @@
 module Commands.Build (clean, build, run) where
 
 import Commands.ExecuteWasm
+import qualified Data.ByteString as B
 import Data.FileEmbed
 import MetroLang.AST
 import MetroLang.Compilation.Compile
@@ -11,14 +12,9 @@ import MetroLang.WebAssembly.Generator
 import MetroLang.WebAssembly.Parser as WASM
 import System.Directory
 import System.FilePath.Posix
-import System.Process
 
 outDir :: String
 outDir = "target"
-
--- | watToWasm compiles WebAssembly Text format to Binary format
-watToWasm :: String -> String -> IO ()
-watToWasm inFile outFile = callProcess "wat2wasm" [inFile, "-o", outFile]
 
 buildStdLib :: Bool -> [Module]
 buildStdLib enableAssertions =
@@ -34,12 +30,12 @@ buildStdLib enableAssertions =
         else stdLib
 
 -- | metroToWat compiles Metro to WebAssembly Text format
-metroToWat :: Bool -> String -> String -> String
-metroToWat enableAssertions inputFile inputStr =
+metroToWat :: Bool -> String -> String -> String -> String
+metroToWat enableAssertions mainMethod inputFile inputStr =
   let wasmStdLib = WASM.parseString $(embedStringFile "std/std.wat")
       metroStdLib = buildStdLib enableAssertions
       ast = Metro.parseString inputFile inputStr
-      wasm = compile enableAssertions $ foldl Metro.merge (Mod []) $ metroStdLib ++ [ast]
+      wasm = compile enableAssertions mainMethod $ foldl Metro.merge (Mod []) $ metroStdLib ++ [ast]
    in generateString $ WASM.merge wasmStdLib wasm
 
 parseArgs :: [String] -> (Bool, String)
@@ -61,9 +57,12 @@ build args =
 
     createDirectoryIfMissing True outDir
     inputStr <- readFile inputFile
-    wat <- return $ metroToWat enableAssertions inputFile inputStr
+
+    wat <- return $ metroToWat enableAssertions "main" inputFile inputStr
     writeFile outWatFile wat
-    watToWasm outWatFile outWasmFile
+
+    wasm <- watToWasm wat
+    B.writeFile outWasmFile wasm
 
 run :: [String] -> IO ()
 run args =
@@ -71,5 +70,5 @@ run args =
     let (enableAssertions, inputFile) = parseArgs args
 
     inputStr <- readFile inputFile
-    wat <- return $ metroToWat enableAssertions inputFile inputStr
+    wat <- return $ metroToWat enableAssertions "" inputFile inputStr
     runWat wat
