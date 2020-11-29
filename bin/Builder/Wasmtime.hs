@@ -1,6 +1,6 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 
-module Commands.ExecuteWasm (runWat, watToWasm) where
+module Builder.Wasmtime (runWat, watToWasm) where
 
 import qualified Codec.Binary.UTF8.String as UTF8
 import Data.ByteString (ByteString, pack)

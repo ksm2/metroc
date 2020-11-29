@@ -68,9 +68,10 @@ executable metroc
     utf8-string   >= 1.0.1  && < 2,
     metroc
   other-modules:
+    Builder.AST
+    Builder.Wasmtime
     Chalk
     Commands
     Commands.Build
     Commands.Version
-    Commands.ExecuteWasm
     Paths_metroc
