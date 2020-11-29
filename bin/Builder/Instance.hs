@@ -1,4 +1,4 @@
-module Builder.Instance (callFunc, returningByteString, withInstance, withWATString) where
+module Builder.Instance (Instance, callFunc, returningByteString, withInstance, withWATString) where
 
 import Builder.Runtime
 import qualified Codec.Binary.UTF8.String as UTF8

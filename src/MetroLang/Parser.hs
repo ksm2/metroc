@@ -30,6 +30,7 @@ languageDef =
           "fn",
           "for",
           "if",
+          "it",
           "impl",
           "import",
           "interface",
@@ -40,6 +41,7 @@ languageDef =
           "or",
           "return",
           "static",
+          "test",
           "this",
           "true",
           "unsafe",
@@ -183,6 +185,7 @@ declaration =
       <|> classDeclaration
       <|> implDeclaration
       <|> funcDeclaration
+      <|> testDeclaration
 
 importDeclaration :: Parser Declaration
 importDeclaration =
@@ -252,6 +255,14 @@ funcDeclaration =
     fnReturn <- returnType
     body <- block
     return $ Func fnSafety fnName fnParams fnReturn body
+
+testDeclaration :: Parser Declaration
+testDeclaration =
+  do
+    reserved "test"
+    testName <- identifier
+    body <- testBody
+    return $ Test testName body
 
 safety :: Parser Safety
 safety =
@@ -354,6 +365,17 @@ method =
     signature <- methodSignature
     body <- block
     return $ Method signature body
+
+testBody :: Parser TestBody
+testBody = liftM TestBody $ braces $ many testStmt
+
+testStmt :: Parser TestStmt
+testStmt =
+  do
+    reserved "it"
+    description <- stringLiteral
+    body <- block
+    return $ ItStmt description body
 
 block :: Parser Block
 block = liftM Block $ braces $ many stmt

@@ -55,6 +55,7 @@ declaration (Metro.Func fnSafety fnName fnParams fnReturn body) =
     bb <- fnBlock body fnParams
     fnExport <- return $ Just fnName
     return [WASM.Func fnName fnExport p r bb]
+declaration (Metro.Test testName body) = testDeclaration testName body
 
 importName :: Metro.ImportSpecifier -> Compiler String
 importName (Metro.FuncImport fnName _ _) = return fnName
@@ -122,6 +123,19 @@ methodSignature Static (Metro.MethodSignature _safety name methodParams methodRe
 
 methodName :: Show a => a -> [Char] -> [Char]
 methodName className name = (show className) ++ "." ++ name
+
+testDeclaration :: String -> Metro.TestBody -> Compiler [WASM.Declaration]
+testDeclaration testName (Metro.TestBody s) = many (testStatement testName) s
+
+testStatement :: String -> Metro.TestStmt -> Compiler WASM.Declaration
+testStatement testName (Metro.ItStmt description body) =
+  do
+    l <- return $ testName ++ "$" ++ testDescriptionToIdentifier description
+    b <- block body
+    return $ WASM.Func l (Just description) [] Nothing b
+
+testDescriptionToIdentifier :: String -> String
+testDescriptionToIdentifier = map (\c -> if c == ' ' then '_' else c)
 
 -- Statements
 fnBlock :: Metro.Block -> [Metro.Param] -> Compiler [WASM.Expr]

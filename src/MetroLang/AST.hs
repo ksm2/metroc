@@ -10,6 +10,7 @@ data Declaration
   | Class Identifier TypeArgs Params ClassExtends Implements ClassBody
   | Impl Type Type ClassBody
   | Func Safety Identifier Params ReturnType Block
+  | Test Identifier TestBody
   deriving (Show)
 
 data Safety = Safe | Unsafe deriving (Show, Eq)
@@ -45,6 +46,10 @@ data ClassBodyDeclaration
   deriving (Show)
 
 data MethodSignature = MethodSignature Safety Identifier Params ReturnType deriving (Show)
+
+data TestBody = TestBody [TestStmt] deriving (Show)
+
+data TestStmt = ItStmt String Block deriving (Show)
 
 data Block = Block [Stmt] deriving (Show)
 
