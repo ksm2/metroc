@@ -7,6 +7,7 @@ import Builder.Runtime (withRuntime)
 import Chalk
 import MetroLang.AST as MetroAST
 import System.Directory
+import Tty
 
 surroundSpaces :: String -> String
 surroundSpaces str = " " ++ str ++ " "
@@ -17,6 +18,14 @@ printTestName color label testName =
     background color (surroundSpaces label)
     putStr " "
     boldLn testName
+
+printTestPassed :: String -> IO ()
+printTestPassed testName =
+  do
+    tty <- isTty
+    if tty
+      then printTestName Green "PASS" testName
+      else putStrLn $ "Passed: " ++ testName
 
 countTestCases :: (MetroAST.Identifier, MetroAST.TestBody) -> Int
 countTestCases (_, MetroAST.TestBody stmts) = length stmts
@@ -68,7 +77,7 @@ runTest inst (testName, (MetroAST.TestBody stmts)) =
   do
     runTestCases inst stmts
     clearLine
-    printTestName Green "PASS" testName
+    printTestPassed testName
 
 runTestCases :: Instance -> [MetroAST.TestStmt] -> IO ()
 runTestCases inst = mapM_ $ runTestCase inst
@@ -90,8 +99,9 @@ test args =
     wat <- return $ astToWAT True "" ast
     tests <- return $ findTests ast
 
-    printRuns tests
-    moveUp (length tests)
+    ifTty $ do
+      printRuns tests
+      moveUp (length tests)
 
     withRuntime $ \runtime ->
       withInstance runtime wat $ \wasmInstance ->

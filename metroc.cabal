@@ -81,3 +81,4 @@ executable metroc
     Commands.Test
     Commands.Version
     Paths_metroc
+    Tty
