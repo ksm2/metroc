@@ -44,4 +44,4 @@ run args =
     inputStr <- readFile inputFile
     ast <- return $ metroToAST enableAssertions [(inputFile, inputStr)]
     wat <- return $ astToWAT enableAssertions "" ast
-    runWat wat
+    runWAT wat
