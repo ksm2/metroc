@@ -1,13 +1,22 @@
 module Commands.Build (clean, build, run) where
 
 import Builder.AST
-import Builder.Wasmtime
+import Builder.Conversion
+import Builder.Instance (callFunc, withInstance)
+import Builder.Runtime (withRuntime)
 import qualified Data.ByteString as B
 import System.Directory
 import System.FilePath.Posix
 
 outDir :: String
 outDir = "target"
+
+-- | runWAT runs a WebAssembly Text format string using C bindings
+runWAT :: String -> IO ()
+runWAT watStr =
+  withRuntime $ \runtime ->
+    withInstance runtime watStr $ \wasmInstance ->
+      callFunc wasmInstance "main"
 
 parseArgs :: [String] -> (Bool, String)
 parseArgs ["--assertions", x] = (True, x)

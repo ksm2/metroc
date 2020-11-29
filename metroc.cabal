@@ -70,9 +70,9 @@ executable metroc
     metroc
   other-modules:
     Builder.AST
+    Builder.Conversion
     Builder.Instance
     Builder.Runtime
-    Builder.Wasmtime
     Chalk
     Commands
     Commands.Build
