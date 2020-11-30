@@ -2,6 +2,7 @@ module Commands where
 
 import Chalk
 import Commands.Build
+import Commands.Test
 import Commands.Version
 import Data.Char
 import System.Environment
@@ -10,6 +11,7 @@ data Command
   = Clean
   | Build
   | Run
+  | Test
   | Help
   | Version
   deriving (Bounded, Enum, Show)
@@ -31,7 +33,7 @@ printHelp _ =
     putStrLn ""
 
     boldLn "COMPILER COMMANDS"
-    explainCommands [Clean, Build, Run]
+    explainCommands [Clean, Build, Run, Test]
     putStrLn ""
 
     boldLn "META COMMANDS"
@@ -41,6 +43,7 @@ describeCommand :: Command -> String
 describeCommand Clean = "Remove the target directory."
 describeCommand Build = "Build the project to WebAssembly."
 describeCommand Run = "Run the project main function."
+describeCommand Test = "Executes all project tests."
 describeCommand Help = "Print this help text and exit."
 describeCommand Version = "Display the version number and exit."
 
@@ -48,6 +51,7 @@ runCommand :: Maybe Command -> [String] -> IO ()
 runCommand (Just Clean) = clean
 runCommand (Just Build) = build
 runCommand (Just Run) = run
+runCommand (Just Test) = test
 runCommand (Just Help) = printHelp
 runCommand (Just Version) = printVersion
 runCommand Nothing = invalidCommand

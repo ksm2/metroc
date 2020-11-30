@@ -1,16 +1,56 @@
-module Chalk (primaryLn, boldLn) where
+module Chalk (Color (..), background, clearLine, moveUp, primaryLn, putBold, putColored, putColoredBold, boldLn) where
 
-import System.Posix.IO (stdOutput)
-import System.Posix.Terminal (queryTerminal)
+import Tty
+
+data Color
+  = Black
+  | Red
+  | Green
+  | Yellow
+  | Blue
+  | Purple
+  | Cyan
+  | White
+  deriving (Enum, Show)
 
 primaryLn :: String -> IO ()
 primaryLn text =
-  do
-    isTty <- queryTerminal stdOutput
-    putStrLn $ if isTty then "\x1b[1;38;2;216;83;105m" ++ text ++ "\x1b[0m" else text
+  putTtyLn text $ "\x1b[1;38;2;216;83;105m" ++ text ++ "\x1b[0m"
+
+putBold :: String -> IO ()
+putBold text =
+  putTty text $ "\x1b[1m" ++ text ++ "\x1b[0m"
 
 boldLn :: String -> IO ()
 boldLn text =
-  do
-    isTty <- queryTerminal stdOutput
-    putStrLn $ if isTty then "\x1b[1m" ++ text ++ "\x1b[0m" else text
+  putTtyLn text $ "\x1b[1m" ++ text ++ "\x1b[0m"
+
+background :: Color -> String -> IO ()
+background color text =
+  putTty text $ "\x1b[1;7;" ++ (show $ 30 + (colorToNum color)) ++ "m" ++ text ++ "\x1b[0m"
+
+putColored :: Color -> String -> IO ()
+putColored color text =
+  putTty text $ "\x1b[" ++ (show $ 30 + (colorToNum color)) ++ "m" ++ text ++ "\x1b[0m"
+
+putColoredBold :: Color -> String -> IO ()
+putColoredBold color text =
+  putTty text $ "\x1b[1;" ++ (show $ 30 + (colorToNum color)) ++ "m" ++ text ++ "\x1b[0m"
+
+moveUp :: Int -> IO ()
+moveUp n =
+  ifTty $ do putStr $ "\x1b[" ++ (show n) ++ "A"
+
+clearLine :: IO ()
+clearLine =
+  ifTty $ do putStr "\x1b[2K"
+
+colorToNum :: Color -> Int
+colorToNum Black = 0
+colorToNum Red = 1
+colorToNum Green = 2
+colorToNum Yellow = 3
+colorToNum Blue = 4
+colorToNum Purple = 5
+colorToNum Cyan = 6
+colorToNum White = 7

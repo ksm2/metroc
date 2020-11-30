@@ -171,6 +171,8 @@ binaryExpr op e1 e2 =
     return $ binaryExprWasm op f1 f2
 
 fieldAccess :: Value -> String -> Compiler Value
+fieldAccess (Value (TypeRef (Primitive TInt)) _) "MIN_VALUE" = return $ Value (Primitive TInt) $ i32Const $ 0 - 2147483648
+fieldAccess (Value (TypeRef (Primitive TInt)) _) "MAX_VALUE" = return $ Value (Primitive TInt) $ i32Const 2147483647
 fieldAccess (Value (Primitive TUInt) obj) "lowWord" = return $ convertTo TUInt TWord obj
 fieldAccess (Value (Primitive TUInt) obj) "highWord" = return $ Value (Primitive TWord) $ i32Shru obj $ i32Const 16
 fieldAccess (Value (Primitive TString) obj) "length" = return $ Value (Primitive TInt) $ loadInstr TInt 0 obj

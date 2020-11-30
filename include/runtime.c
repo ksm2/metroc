@@ -5,91 +5,138 @@
 #include <wasi.h>
 #include <wasmtime.h>
 
-static int find_main(const wasm_module_t *linking_module);
 static bool wasm_name_equals(const wasm_name_t *name, const char *expected_name);
 static void exit_with_error(const char *message, wasmtime_error_t *error, wasm_trap_t *trap);
-static void read_wat_file(wasm_engine_t *engine, wasm_byte_vec_t *bytes, const char *file);
+static void wat_byte_vec_to_wasm(wasm_byte_vec_t *bytes, const wasm_byte_vec_t *wat);
 
-void executeWasm(const char* fname) {
-  // Set up our context
+wasm_engine_t *create_engine() {
   wasm_engine_t *engine = wasm_engine_new();
   assert(engine != NULL);
-  wasm_store_t *store = wasm_store_new(engine);
-  assert(store != NULL);
+  return engine;
+}
 
-  wasm_byte_vec_t linking_wasm;
-  read_wat_file(engine, &linking_wasm, fname);
-
-  // Compile our two modules
-  wasmtime_error_t *error;
-  wasm_module_t *linking_module = NULL;
-  error = wasmtime_module_new(engine, &linking_wasm, &linking_module);
-  if (error != NULL)
-    exit_with_error("failed to compile linking", error, NULL);
-  wasm_byte_vec_delete(&linking_wasm);
-
-  // Find main
-  int main_index = find_main(linking_module);
-  if (main_index < 0) {
-    fprintf(stderr, "error: %s\n", "cannot find main. Did you export it?");
-    exit(1);
-  }
-
-  // Instantiate wasi
-  wasi_config_t *wasi_config = wasi_config_new();
-  assert(wasi_config);
-  wasi_config_inherit_argv(wasi_config);
-  wasi_config_inherit_env(wasi_config);
-  wasi_config_inherit_stdin(wasi_config);
-  wasi_config_inherit_stdout(wasi_config);
-  wasi_config_inherit_stderr(wasi_config);
-  wasm_trap_t *trap = NULL;
-  wasi_instance_t *wasi = wasi_instance_new(store, "wasi_unstable", wasi_config, &trap);
-  if (wasi == NULL)
-    exit_with_error("failed to instantiate wasi", NULL, trap);
-
-  // Create our linker which will be linking our modules together, and then add
-  // our WASI instance to it.
-  wasmtime_linker_t *linker = wasmtime_linker_new(store);
-  error = wasmtime_linker_define_wasi(linker, wasi);
-  if (error != NULL)
-    exit_with_error("failed to link wasi", error, NULL);
-
-  // Instantiate `linking` with our linker.
-  wasm_instance_t *linking;
-  error = wasmtime_linker_instantiate(linker, linking_module, &linking, &trap);
-  if (error != NULL || trap != NULL)
-    exit_with_error("failed to instantiate linking", error, trap);
-
-  // Lookup our `run` export function
-  wasm_extern_vec_t linking_externs;
-  wasm_instance_exports(linking, &linking_externs);
-  wasm_func_t *main_fn = wasm_extern_as_func(linking_externs.data[main_index]);
-  assert(main_fn != NULL);
-  error = wasmtime_func_call(main_fn, NULL, 0, NULL, 0, &trap);
-  if (error != NULL || trap != NULL)
-    exit_with_error("failed to call main", error, trap);
-
-  // Clean up after ourselves at this point
-  wasm_instance_delete(linking);
-  wasmtime_linker_delete(linker);
-  wasm_module_delete(linking_module);
-  wasm_store_delete(store);
+void delete_engine(wasm_engine_t *engine) {
   wasm_engine_delete(engine);
 }
 
-static int find_main(const wasm_module_t *linking_module) {
+wasm_store_t *create_store(wasm_engine_t *engine) {
+  wasm_store_t *store = wasm_store_new(engine);
+  assert(store != NULL);
+  return store;
+}
+
+void delete_store(wasm_store_t *store) {
+  wasm_store_delete(store);
+}
+
+wasm_module_t *create_module(wasm_engine_t *engine, size_t size, const wasm_byte_t *wat_bytes) {
+  wasm_byte_vec_t byte_vec;
+  wasm_byte_vec_t wat;
+
+  wasm_byte_vec_new(&wat, size, wat_bytes);
+  wat_byte_vec_to_wasm(&byte_vec, &wat);
+  wasm_byte_vec_delete(&wat);
+
+  wasmtime_error_t *error;
+  wasm_module_t *module = NULL;
+  error = wasmtime_module_new(engine, &byte_vec, &module);
+  if (error != NULL)
+    exit_with_error("failed to compile linking", error, NULL);
+  wasm_byte_vec_delete(&byte_vec);
+
+  return module;
+}
+
+void delete_module(wasm_module_t *module) {
+  wasm_module_delete(module);
+}
+
+wasmtime_linker_t *create_linker(wasm_store_t *store) {
+  return wasmtime_linker_new(store);
+}
+
+void delete_linker(wasmtime_linker_t *linker) {
+  wasmtime_linker_delete(linker);
+}
+
+wasm_instance_t *create_instance(wasmtime_linker_t *linker, const wasm_module_t *module) {
+  wasmtime_error_t *error;
+  wasm_instance_t *instance;
+  wasm_trap_t *trap = NULL;
+
+  error = wasmtime_linker_instantiate(linker, module, &instance, &trap);
+  if (error != NULL || trap != NULL)
+    exit_with_error("failed to instantiate instance", error, trap);
+
+  return instance;
+}
+
+void delete_instance(wasm_instance_t *instance) {
+  wasm_instance_delete(instance);
+}
+
+void call_func(const wasm_instance_t *instance, int func_index) {
+  wasmtime_error_t *error;
+  wasm_trap_t *trap = NULL;
+  wasm_extern_vec_t instance_externs;
+  wasm_instance_exports(instance, &instance_externs);
+
+  wasm_func_t *main_fn = wasm_extern_as_func(instance_externs.data[func_index]);
+  assert(main_fn != NULL);
+
+  error = wasmtime_func_call(main_fn, NULL, 0, NULL, 0, &trap);
+  if (error != NULL || trap != NULL) {
+    exit_with_error("failed to call func", error, trap);
+  }
+}
+
+wasm_byte_t *call_func_with_error(const wasm_instance_t *instance, int func_index, size_t *error_size) {
+  wasmtime_error_t *error;
+  wasm_trap_t *trap = NULL;
+  wasm_extern_vec_t instance_externs;
+  wasm_instance_exports(instance, &instance_externs);
+
+  wasm_func_t *main_fn = wasm_extern_as_func(instance_externs.data[func_index]);
+  assert(main_fn != NULL);
+
+  error = wasmtime_func_call(main_fn, NULL, 0, NULL, 0, &trap);
+  if (trap == NULL) {
+    assert(error == NULL);
+    return NULL;
+  }
+
+  wasm_message_t message;
+  wasm_trap_message(trap, &message);
+
+  // Return
+  *error_size = message.size;
+  return message.data;
+}
+
+int find_func_index(const wasm_module_t *module, const char *expected_name) {
   wasm_exporttype_vec_t exports;
-  wasm_module_exports(linking_module, &exports);
+  wasm_module_exports(module, &exports);
 
   for (int i = 0; i < exports.size; ++i) {
     const wasm_name_t *name = wasm_exporttype_name(exports.data[i]);
-    if (wasm_name_equals(name, "main")) {
+    if (wasm_name_equals(name, expected_name)) {
       return i;
     }
   }
 
   return -1;
+}
+
+wasm_byte_t *wat_to_wasm(size_t wat_size, const wasm_byte_t *wat_bytes, size_t *wasm_bytes) {
+  wasm_byte_vec_t byte_vec;
+  wasm_byte_vec_t wat;
+
+  wasm_byte_vec_new(&wat, wat_size, wat_bytes);
+  wat_byte_vec_to_wasm(&byte_vec, &wat);
+  wasm_byte_vec_delete(&wat);
+
+  *wasm_bytes = byte_vec.size;
+  return byte_vec.data;
 }
 
 static bool wasm_name_equals(const wasm_name_t *name, const char *expected_name) {
@@ -106,33 +153,11 @@ static bool wasm_name_equals(const wasm_name_t *name, const char *expected_name)
   return true;
 }
 
-static void read_wat_file(
-  wasm_engine_t *engine,
-  wasm_byte_vec_t *bytes,
-  const char *filename
-) {
-  wasm_byte_vec_t wat;
-  // Load our input file to parse it next
-  FILE* file = fopen(filename, "r");
-  if (!file) {
-    printf("> Error loading file!\n");
-    exit(1);
-  }
-  fseek(file, 0L, SEEK_END);
-  size_t file_size = ftell(file);
-  wasm_byte_vec_new_uninitialized(&wat, file_size);
-  fseek(file, 0L, SEEK_SET);
-  if (fread(wat.data, file_size, 1, file) != 1) {
-    printf("> Error loading module!\n");
-    exit(1);
-  }
-  fclose(file);
-
+static void wat_byte_vec_to_wasm(wasm_byte_vec_t *bytes, const wasm_byte_vec_t *wat) {
   // Parse the wat into the binary wasm format
-  wasmtime_error_t *error = wasmtime_wat2wasm(&wat, bytes);
+  wasmtime_error_t *error = wasmtime_wat2wasm(wat, bytes);
   if (error != NULL)
     exit_with_error("failed to parse wat", error, NULL);
-  wasm_byte_vec_delete(&wat);
 }
 
 static void exit_with_error(const char *message, wasmtime_error_t *error, wasm_trap_t *trap) {

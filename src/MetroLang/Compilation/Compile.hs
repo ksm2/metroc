@@ -55,6 +55,7 @@ declaration (Metro.Func fnSafety fnName fnParams fnReturn body) =
     bb <- fnBlock body fnParams
     fnExport <- return $ Just fnName
     return [WASM.Func fnName fnExport p r bb]
+declaration (Metro.Test testName body) = testDeclaration testName body
 
 importName :: Metro.ImportSpecifier -> Compiler String
 importName (Metro.FuncImport fnName _ _) = return fnName
@@ -122,6 +123,19 @@ methodSignature Static (Metro.MethodSignature _safety name methodParams methodRe
 
 methodName :: Show a => a -> [Char] -> [Char]
 methodName className name = (show className) ++ "." ++ name
+
+testDeclaration :: String -> Metro.TestBody -> Compiler [WASM.Declaration]
+testDeclaration testName (Metro.TestBody s) = many (testStatement testName) s
+
+testStatement :: String -> Metro.TestStmt -> Compiler WASM.Declaration
+testStatement testName (Metro.ItStmt description body) =
+  do
+    l <- return $ testName ++ "$" ++ testDescriptionToIdentifier description
+    b <- block body
+    return $ WASM.Func l (Just description) [] Nothing b
+
+testDescriptionToIdentifier :: String -> String
+testDescriptionToIdentifier = map (\c -> if c == ' ' then '_' else c)
 
 -- Statements
 fnBlock :: Metro.Block -> [Metro.Param] -> Compiler [WASM.Expr]
@@ -243,15 +257,19 @@ makeLocalStmts = map makeLocalStmt
 makeLocalStmt :: (Metro.Identifier, Metro.Type) -> WASM.Expr
 makeLocalStmt (i, dt) = WASM.Local i $ dataTypeToValtype dt
 
-compiling :: (a -> Compiler WASM.Module) -> Bool -> a -> WASM.Module
-compiling cab enableAssertions a =
+compiling :: (a -> Compiler WASM.Module) -> Bool -> String -> a -> WASM.Module
+compiling cab enableAssertions mainMethod a =
   let cb = cab a
       (b, cs) = runCompiler enableAssertions cb
-   in injectStrings (toAscList (strings cs)) b
+   in injectStart mainMethod $ injectStrings (toAscList (strings cs)) b
+
+injectStart :: String -> WASM.Module -> WASM.Module
+injectStart "" m = m
+injectStart mainMethod (WASM.Mod m) = WASM.Mod $ m ++ [WASM.Start mainMethod]
 
 injectStrings :: [(String, Int)] -> WASM.Module -> WASM.Module
 injectStrings [] m = m
 injectStrings ((str, pos) : xs) m = injectStrings xs $ injectData pos str m
 
-compile :: Bool -> Metro.Module -> WASM.Module
+compile :: Bool -> String -> Metro.Module -> WASM.Module
 compile = compiling compileModule
