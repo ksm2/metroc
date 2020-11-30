@@ -1,7 +1,6 @@
 module Builder.Runtime (Runtime (..), WasmEngine, WasmStore, WasmLinker, withRuntime) where
 
 import Builder.CTypes
-import Foreign.Ptr
 
 data Runtime = Runtime
   { engine :: WasmEngine,
