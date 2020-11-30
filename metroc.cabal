@@ -41,6 +41,7 @@ library
     MetroLang.Compilation.Expressions
     MetroLang.Compilation.Values
     MetroLang.Types
+    MetroLang.Utils
   build-depends:
     base          >= 4.14   && < 5,
     bytestring    >= 0.10,
@@ -66,15 +67,18 @@ executable metroc
     directory     >= 1.3.6  && < 2,
     filepath      >= 1.4.2  && < 2,
     filepattern   >= 0.1.2,
+    temporary     >= 1.3,
     unix          >= 2.7.2  && < 3,
     utf8-string   >= 1.0.1  && < 2,
     metroc
   other-modules:
     Builder.AST
     Builder.Conversion
+    Builder.CTypes
     Builder.Instance
     Builder.IOUtils
     Builder.Runtime
+    Builder.WASI
     Chalk
     Commands
     Commands.Build

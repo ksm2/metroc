@@ -1,4 +1,4 @@
-module Chalk (Color (..), background, clearLine, moveUp, primaryLn, putBold, putColored, boldLn) where
+module Chalk (Color (..), background, clearLine, moveUp, primaryLn, putBold, putColored, putColoredBold, boldLn) where
 
 import Tty
 
@@ -31,6 +31,10 @@ background color text =
 
 putColored :: Color -> String -> IO ()
 putColored color text =
+  putTty text $ "\x1b[" ++ (show $ 30 + (colorToNum color)) ++ "m" ++ text ++ "\x1b[0m"
+
+putColoredBold :: Color -> String -> IO ()
+putColoredBold color text =
   putTty text $ "\x1b[1;" ++ (show $ 30 + (colorToNum color)) ++ "m" ++ text ++ "\x1b[0m"
 
 moveUp :: Int -> IO ()

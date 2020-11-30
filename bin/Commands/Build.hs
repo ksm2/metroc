@@ -15,7 +15,7 @@ outDir = "target"
 runWAT :: String -> IO ()
 runWAT watStr =
   withRuntime $ \runtime ->
-    withInstance runtime watStr $ \wasmInstance ->
+    withInstance runtime "" watStr $ \wasmInstance ->
       callFunc wasmInstance "main"
 
 parseArgs :: [String] -> (Bool, String)

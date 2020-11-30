@@ -75,29 +75,6 @@ void delete_instance(wasm_instance_t *instance) {
   wasm_instance_delete(instance);
 }
 
-void link_wasi(wasm_store_t *store, wasmtime_linker_t *linker) {
-  wasmtime_error_t *error;
-
-  // Instantiate wasi
-  wasi_config_t *wasi_config = wasi_config_new();
-  assert(wasi_config);
-  wasi_config_inherit_argv(wasi_config);
-  wasi_config_inherit_env(wasi_config);
-  wasi_config_inherit_stdin(wasi_config);
-  wasi_config_inherit_stdout(wasi_config);
-  wasi_config_inherit_stderr(wasi_config);
-  wasm_trap_t *trap = NULL;
-  wasi_instance_t *wasi = wasi_instance_new(store, "wasi_unstable", wasi_config, &trap);
-  if (wasi == NULL)
-    exit_with_error("failed to instantiate wasi", NULL, trap);
-
-  // Create our linker which will be linking our modules together, and then add
-  // our WASI instance to it.
-  error = wasmtime_linker_define_wasi(linker, wasi);
-  if (error != NULL)
-    exit_with_error("failed to link wasi", error, NULL);
-}
-
 void call_func(const wasm_instance_t *instance, int func_index) {
   wasmtime_error_t *error;
   wasm_trap_t *trap = NULL;
@@ -111,6 +88,29 @@ void call_func(const wasm_instance_t *instance, int func_index) {
   if (error != NULL || trap != NULL) {
     exit_with_error("failed to call func", error, trap);
   }
+}
+
+wasm_byte_t *call_func_with_error(const wasm_instance_t *instance, int func_index, size_t *error_size) {
+  wasmtime_error_t *error;
+  wasm_trap_t *trap = NULL;
+  wasm_extern_vec_t instance_externs;
+  wasm_instance_exports(instance, &instance_externs);
+
+  wasm_func_t *main_fn = wasm_extern_as_func(instance_externs.data[func_index]);
+  assert(main_fn != NULL);
+
+  error = wasmtime_func_call(main_fn, NULL, 0, NULL, 0, &trap);
+  if (trap == NULL) {
+    assert(error == NULL);
+    return NULL;
+  }
+
+  wasm_message_t message;
+  wasm_trap_message(trap, &message);
+
+  // Return
+  *error_size = message.size;
+  return message.data;
 }
 
 int find_func_index(const wasm_module_t *module, const char *expected_name) {

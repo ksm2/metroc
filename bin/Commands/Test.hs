@@ -2,61 +2,91 @@ module Commands.Test (test) where
 
 import Builder.AST
 import Builder.IOUtils
-import Builder.Instance (Instance, callFunc, withInstance)
+import Builder.Instance (Instance, callFuncErr, withInstance)
 import Builder.Runtime (withRuntime)
 import Chalk
+import Control.Monad
 import MetroLang.AST as MetroAST
+import MetroLang.Utils
 import System.Directory
+import System.IO
+import System.IO.Temp
 import Tty
+
+data TestResult = Pass | Fail String deriving (Show)
+
+data TestSuiteResult = TestSuiteResult
+  { suiteName :: String,
+    passedCases :: Int,
+    totalCases :: Int
+  }
 
 surroundSpaces :: String -> String
 surroundSpaces str = " " ++ str ++ " "
 
-printTestName :: Color -> [Char] -> String -> IO ()
-printTestName color label testName =
+printTestName :: Color -> String -> String -> String -> IO ()
+printTestName color label testName reason =
   do
     background color (surroundSpaces label)
     putStr " "
-    boldLn testName
+    putBold testName
+    putStr "  "
+    putColored Yellow (head ((lines reason) ++ [""]))
+    putStrLn ""
 
 printTestPassed :: String -> IO ()
 printTestPassed testName =
   do
     tty <- isTty
     if tty
-      then printTestName Green "PASS" testName
+      then printTestName Green "PASS" testName ""
       else putStrLn $ "Passed: " ++ testName
 
-countTestCases :: (MetroAST.Identifier, MetroAST.TestBody) -> Int
-countTestCases (_, MetroAST.TestBody stmts) = length stmts
+printTestFailed :: String -> String -> IO ()
+printTestFailed testName reason =
+  do
+    tty <- isTty
+    if tty
+      then printTestName Red "FAIL" testName reason
+      else putStrLn $ "Failed: " ++ testName ++ "\n" ++ (indent "  " reason)
+
+isTestSuitePassed :: TestSuiteResult -> Bool
+isTestSuitePassed suite = (passedCases suite) == (totalCases suite)
 
 repeatStr :: Char -> Int -> String
 repeatStr _ 0 = ""
 repeatStr c n = c : repeatStr c (n - 1)
 
 putStatisticLine :: String -> Int -> Int -> IO ()
-putStatisticLine label failed passed =
+putStatisticLine label passed total =
   do
+    failed <- return $ total - passed
     putBold label
     putBold ":"
     putStr $ repeatStr ' ' $ 12 - (length label)
     if failed > 0
       then do
-        putColored Red $ (show failed) ++ " failed"
+        putColoredBold Red $ (show failed) ++ " failed"
         putStr ", "
       else do
         return ()
-    putColored Green $ (show passed) ++ " passed"
-    putStr ", "
-    putStrLn $ (show $ failed + passed) ++ " total"
+    if passed > 0
+      then do
+        putColoredBold Green $ (show passed) ++ " passed"
+        putStr ", "
+      else do
+        return ()
+    putStrLn $ (show $ total) ++ " total"
 
-printStatistics :: [(MetroAST.Identifier, MetroAST.TestBody)] -> IO ()
+printStatistics :: [TestSuiteResult] -> IO ()
 printStatistics tests =
   do
     countTestSuites <- return $ length tests
-    countTests <- return $ foldl (+) 0 $ map countTestCases tests
-    putStatisticLine "Test Suites" 0 countTestSuites
-    putStatisticLine "Tests" 0 countTests
+    countPassedTestSuites <- return $ length $ filter isTestSuitePassed tests
+    countTests <- return $ foldl (+) 0 $ map totalCases tests
+    countPassedTests <- return $ foldl (+) 0 $ map passedCases tests
+    putStatisticLine "Test Suites" countPassedTestSuites countTestSuites
+    putStatisticLine "Tests" countPassedTests countTests
 
 findTests :: MetroAST.Module -> [(MetroAST.Identifier, MetroAST.TestBody)]
 findTests (MetroAST.Mod []) = []
@@ -67,24 +97,53 @@ printRuns :: [(MetroAST.Identifier, MetroAST.TestBody)] -> IO ()
 printRuns = mapM_ printRun
 
 printRun :: (MetroAST.Identifier, MetroAST.TestBody) -> IO ()
-printRun (testName, _) = printTestName Yellow "RUNS" testName
+printRun (testName, _) = printTestName Yellow "RUNS" testName ""
 
-runTests :: Instance -> [(MetroAST.Identifier, MetroAST.TestBody)] -> IO ()
-runTests inst = mapM_ $ runTest inst
-
-runTest :: Instance -> (MetroAST.Identifier, MetroAST.TestBody) -> IO ()
-runTest inst (testName, (MetroAST.TestBody stmts)) =
+readWhileNotEOF :: Handle -> IO String
+readWhileNotEOF stderrHandle =
   do
-    runTestCases inst stmts
+    isHandleEOF <- hIsEOF stderrHandle
+    if isHandleEOF
+      then return ""
+      else do
+        line <- hGetLine stderrHandle
+        next <- readWhileNotEOF stderrHandle
+        return $ line ++ "\n" ++ next
+
+runTestSuites :: Instance -> Handle -> [(MetroAST.Identifier, MetroAST.TestBody)] -> IO [TestSuiteResult]
+runTestSuites inst stderrHandle = mapM $ runTestSuite inst stderrHandle
+
+runTestSuite :: Instance -> Handle -> (MetroAST.Identifier, MetroAST.TestBody) -> IO TestSuiteResult
+runTestSuite inst stderrHandle (suiteName, (MetroAST.TestBody stmts)) =
+  do
+    passedCases <- runTestCases inst stmts
+    totalCases <- return $ length stmts
+    isSuitePassed <- return $ passedCases == totalCases
+    stderrText <- readWhileNotEOF stderrHandle
     clearLine
-    printTestPassed testName
+    case isSuitePassed of
+      True -> printTestPassed suiteName
+      False -> printTestFailed suiteName stderrText
+    return $ TestSuiteResult {suiteName, passedCases, totalCases}
 
-runTestCases :: Instance -> [MetroAST.TestStmt] -> IO ()
-runTestCases inst = mapM_ $ runTestCase inst
+runTestCases :: Instance -> [MetroAST.TestStmt] -> IO Int
+runTestCases inst = foldM (combineResult (runTestCase inst)) 0
 
-runTestCase :: Instance -> MetroAST.TestStmt -> IO ()
+combineResult :: (MetroAST.TestStmt -> IO TestResult) -> Int -> MetroAST.TestStmt -> IO Int
+combineResult cb passedSoFar stmt =
+  do
+    result <- cb stmt
+    case result of
+      Pass -> return $ passedSoFar + 1
+      Fail _ -> return passedSoFar
+
+runTestCase :: Instance -> MetroAST.TestStmt -> IO TestResult
 runTestCase inst (MetroAST.ItStmt testCase _) =
-  callFunc inst testCase
+  do
+    maybeError <- callFuncErr inst testCase
+    case maybeError of
+      Just err -> return $ Fail err
+      Nothing -> return Pass
 
 test :: [String] -> IO ()
 test args =
@@ -99,13 +158,18 @@ test args =
     wat <- return $ astToWAT True "" ast
     tests <- return $ findTests ast
 
+    stderrPath <- emptySystemTempFile "metro"
+    stderrHandle <- openFile stderrPath ReadMode
+
     ifTty $ do
       printRuns tests
       moveUp (length tests)
 
-    withRuntime $ \runtime ->
-      withInstance runtime wat $ \wasmInstance ->
-        runTests wasmInstance tests
+    testSuiteResults <- withRuntime $ \runtime ->
+      withInstance runtime stderrPath wat $ \wasmInstance ->
+        runTestSuites wasmInstance stderrHandle tests
+
+    removeFile stderrPath
 
     putStrLn ""
-    printStatistics tests
+    printStatistics testSuiteResults

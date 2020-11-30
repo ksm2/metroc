@@ -11,6 +11,7 @@ instance Pretty Expression where
   pretty (BooleanLiteral False) = "false"
   pretty (NumberLiteral TInt num) = show num
   pretty (NumberLiteral TUInt num) = show num ++ "U"
+  pretty (NumberLiteral TByte num) = show num ++ "B"
   pretty (StringLiteral str) = "\"" ++ str ++ "\""
   pretty NullLiteral = "null"
   pretty ThisKeyword = "this"
