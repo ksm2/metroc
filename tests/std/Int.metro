@@ -1,0 +1,70 @@
+test Int {
+  it "returns the min value" {
+    assert Int.MIN_VALUE == -2147483648
+  }
+
+  it "returns the max value" {
+    assert Int.MAX_VALUE == 2147483647
+  }
+
+  it "adds two Ints" {
+    assert 0 + 0 == 0
+    assert 0 + 1 == 1
+    assert 1 + 0 == 1
+    assert 1 + 1 == 2
+    assert 1 + 2 == 3
+    assert 2 + 1 == 3
+    assert Int.MAX_VALUE + 1 == Int.MIN_VALUE
+  }
+
+  it "subtracts two Ints" {
+    assert 0 - 0 == 0
+    assert 0 - 1 == -1
+    assert 1 - 0 == 1
+    assert 1 - 1 == 0
+    assert 1 - 2 == -1
+    assert 2 - 1 == 1
+    assert Int.MIN_VALUE - 1 == Int.MAX_VALUE
+  }
+
+  it "multiplies two Ints" {
+    assert 0 * 0 == 0
+    assert 0 * 1 == 0
+    assert 1 * 0 == 0
+    assert 1 * 1 == 1
+    assert 1 * 2 == 2
+    assert 2 * 1 == 2
+    assert 2 * 2 == 4
+    assert 2 * -2 == -4
+  }
+
+  it "divides two Ints" {
+    assert 4 / 2 == 2
+    assert 0 / 1 == 0
+    assert 5 / 2 == 2
+  }
+
+  it "calculates the modulo of two Ints" {
+    assert 4 % 2 == 0
+    assert 0 % 1 == 0
+    assert 5 % 2 == 1
+  }
+
+  it "counts set bits of an Int" {
+    assert (1).countOnes() == 1
+    assert (3).countOnes() == 2
+    assert (7).countOnes() == 3
+    assert (-1).countOnes() == 32
+    assert (-3).countOnes() == 32 - 1
+    assert (-7).countOnes() == 32 - 2
+  }
+
+  it "counts set zeros of an Int" {
+    assert (1).countZeros() == 32 - 1
+    assert (3).countZeros() == 32 - 2
+    assert (7).countZeros() == 32 - 3
+    assert (-1).countZeros() == 0
+    assert (-3).countZeros() == 1
+    assert (-7).countZeros() == 2
+  }
+}

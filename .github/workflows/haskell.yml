@@ -41,6 +41,8 @@ jobs:
       run: cabal build --enable-tests --enable-benchmarks all
     - name: Run tests
       run: cabal test all
+    - name: Run Metro tests
+      run: cabal run metroc -- test
     - name: Run examples/print.metro
       run: echo "stdout" | cabal run metroc -- run examples/print.metro
       env:
