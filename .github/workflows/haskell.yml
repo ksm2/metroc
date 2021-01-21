@@ -8,15 +8,15 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
+    outputs:
+      version: ${{ steps.get-versions.outputs.version }}
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-haskell@v1
       with:
         ghc-version: '8.10.2'
-        cabal-version: '3.2'
+        cabal-version: '3.4'
 
     - name: Install Wasmtime
       run: curl -L https://github.com/bytecodealliance/wasmtime/releases/download/v0.20.0/wasmtime-v0.20.0-x86_64-linux.tar.xz | tar xJ
@@ -66,24 +66,41 @@ jobs:
         echo "::set-output name=ghc::$(ghc --numeric-version)"
     - name: Move Executable
       run: mv dist-newstyle/build/x86_64-linux/ghc-${{ steps.get-versions.outputs.ghc }}/metroc-${{ steps.get-versions.outputs.version }}/x/metroc/build/metroc/metroc metroc
-    - name: Create Archive
-      id: archive
-      run: |
-        zip metroc.zip metroc
-        echo "::set-output name=checksum::$(sha256sum metroc.zip | cut -d ' ' -f 1)"
     - name: Upload Executable
       uses: actions/upload-artifact@v2
       with:
-        name: metroc.zip
-        path: metroc.zip
+        name: metroc-bin
+        path: metroc
         if-no-files-found: error
-    - name: Create PKGBUILD
-      run: cat config/PKGBUILD | sed -e 's/${VERSION}/${{ steps.get-versions.outputs.version }}/g' | sed -e 's/${CHECKSUM}/${{ steps.archive.outputs.checksum }}/g' > PKGBUILD
-    - name: Arch makepkg
-      uses: py7hon/arch-makepkg@v0.0.2
-    - name: Upload Arch Linux Pakcage
-      uses: actions/upload-artifact@v2
-      with:
-        name: Metroc Arch Linux Package
-        path: "*.pkg.tar.zst"
-        if-no-files-found: error
+
+  package-arch:
+    needs: [build]
+    runs-on: ubuntu-latest
+    container: archlinux/base:latest
+    steps:
+      - name: Update Arch Linux
+        run: pacman -Syu --noconfirm base-devel
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: metroc-bin
+      - name: Calculate Checksum
+        id: checksum
+        run: echo "::set-output name=checksum::$(sha256sum metroc | cut -d ' ' -f 1)"
+      - name: Create PKGBUILD
+        run: |
+          cat config/PKGBUILD | \
+          sed -e 's/${VERSION}/${{ needs.build.outputs.version }}/g' | \
+          sed -e 's/${CHECKSUM}/${{ steps.checksum.outputs.checksum }}/g' > PKGBUILD
+          cat PKGBUILD
+      - name: Arch makepkg
+        run: |
+          useradd -m builder
+          chown -R builder .
+          su builder --command='makepkg'
+      - name: Upload Arch Linux Pakcage
+        uses: actions/upload-artifact@v2
+        with:
+          name: metroc-archlinux
+          path: "*.pkg.tar.zst"
+          if-no-files-found: error
