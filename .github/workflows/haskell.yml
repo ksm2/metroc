@@ -59,16 +59,31 @@ jobs:
       run: cabal run metroc -- run --assertions examples/uint.metro
       env:
         PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
-    - name: Get version
-      id: cabal-version
+    - name: Get Versions
+      id: get-versions
       run: |
-        echo "::set-output name=version::$(cat metroc.cabal | sed -En 's/^version:\s+(.*)/\1/p')"
+        echo "::set-output name=version::$(sed -En 's/^version:\s+(.*)/\1/p' metroc.cabal)"
         echo "::set-output name=ghc::$(ghc --numeric-version)"
     - name: Move Executable
-      run: mv dist-newstyle/build/x86_64-linux/ghc-${{ steps.cabal-version.outputs.ghc }}/metroc-${{ steps.cabal-version.outputs.version }}/x/metroc/build/metroc/metroc metroc
+      run: mv dist-newstyle/build/x86_64-linux/ghc-${{ steps.get-versions.outputs.ghc }}/metroc-${{ steps.get-versions.outputs.version }}/x/metroc/build/metroc/metroc metroc
+    - name: Create Archive
+      id: archive
+      run: |
+        zip metroc.zip metroc
+        echo "::set-output name=checksum::$(sha256sum metroc.zip | cut -d ' ' -f 1)"
     - name: Upload Executable
       uses: actions/upload-artifact@v2
       with:
-        name: metroc
-        path: metroc
+        name: metroc.zip
+        path: metroc.zip
+        if-no-files-found: error
+    - name: Create PKGBUILD
+      run: cat config/PKGBUILD | sed -e 's/${VERSION}/${{ steps.get-versions.outputs.version }}/g' | sed -e 's/${CHECKSUM}/${{ steps.archive.outputs.checksum }}/g' > PKGBUILD
+    - name: Arch makepkg
+      uses: py7hon/arch-makepkg@v0.0.2
+    - name: Upload Arch Linux Pakcage
+      uses: actions/upload-artifact@v2
+      with:
+        name: Metroc Arch Linux Package
+        path: "*.pkg.tar.zst"
         if-no-files-found: error

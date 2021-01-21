@@ -1,0 +1,13 @@
+pkgname="metroc"
+pkgver=${VERSION}
+pkgrel=1
+pkgdesc="Metro is a garbage collected, compiled language for the Web and Server."
+arch=("x86_64")
+url="https://metrolang.org/"
+license=("MIT")
+source=("$pkgname.zip")
+sha256sums=("${CHECKSUM}")
+
+package() {
+  install -Dm0755 $pkgname "$pkgdir/usr/bin/$pkgname"
+}
