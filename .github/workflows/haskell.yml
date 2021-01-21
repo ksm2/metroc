@@ -59,9 +59,16 @@ jobs:
       run: cabal run metroc -- run --assertions examples/uint.metro
       env:
         PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
+    - name: Get version
+      id: cabal-version
+      run: |
+        echo "::set-output name=version::$(cat metroc.cabal | sed -n 's/^version:.*\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]\)/\1/p')"
+        echo "::set-output name=ghc::$(ghc --numeric-version)"
+    - name: Move Executable
+      run: mv dist-newstyle/build/x86_64-linux/ghc-${{ steps.cabal-version.outputs.ghc }}/metroc-${{ steps.cabal-version.outputs.version }}/x/metroc/build/metroc/metroc metroc
     - name: Upload Executable
       uses: actions/upload-artifact@v2
       with:
         name: metroc
-        path: dist-newstyle/build/x86_64-linux/ghc-8.10.2/metroc-0.1.0/x/metroc/build/metroc/metroc
+        path: metroc
         if-no-files-found: error
