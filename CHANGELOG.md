@@ -1,5 +1,5 @@
 # Revision history for Metroc
 
-## 0.1.0.0 -- YYYY-mm-dd
+## Unreleased
 
 * First version. Released on an unsuspecting world.
