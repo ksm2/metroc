@@ -17,63 +17,49 @@ jobs:
       with:
         ghc-version: '8.10.2'
         cabal-version: '3.4'
-
-    - name: Install Wasmtime
-      run: curl -L https://github.com/bytecodealliance/wasmtime/releases/download/v0.20.0/wasmtime-v0.20.0-x86_64-linux.tar.xz | tar xJ
-
     - name: Cache
       uses: actions/cache@v1
       env:
         cache-name: cache-cabal
       with:
         path: ~/.cabal
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/cabal.project') }}
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}
         restore-keys: |
           ${{ runner.os }}-build-${{ env.cache-name }}-
           ${{ runner.os }}-build-
           ${{ runner.os }}-
-
-    - name: Install dependencies
-      run: |
-        cabal update
-        cabal build --only-dependencies --enable-tests --enable-benchmarks
     - name: Build
-      run: cabal build --enable-tests --enable-benchmarks all
-    - name: Run tests
-      run: cabal test all
-    - name: Run Metro tests
-      run: cabal run metroc -- test
-    - name: Run examples/print.metro
-      run: echo "stdout" | cabal run metroc -- run examples/print.metro
-      env:
-        PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
-    - name: Run examples/arithmetics.metro
-      run: cabal run metroc -- run --assertions examples/arithmetics.metro
-      env:
-        PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
-    - name: Run examples/murmur3.metro
-      run: cabal run metroc -- run --assertions examples/murmur3.metro
-      env:
-        PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
-    - name: Run examples/uint.metro
-      run: cabal run metroc -- run --assertions examples/uint.metro
-      env:
-        PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
-    - name: Get Versions
-      id: get-versions
-      run: |
-        echo "::set-output name=version::$(sed -En 's/^version:\s+(.*)/\1/p' metroc.cabal)"
-        echo "::set-output name=ghc::$(ghc --numeric-version)"
-    - name: Move Executable
-      run: mv dist-newstyle/build/x86_64-linux/ghc-${{ steps.get-versions.outputs.ghc }}/metroc-${{ steps.get-versions.outputs.version }}/x/metroc/build/metroc/metroc metroc
+      run: make
+    - name: Install
+      run: make destdir=out install
     - name: Upload Executable
       uses: actions/upload-artifact@v2
       with:
         name: metroc-bin
-        path: metroc
+        path: out/metroc
         if-no-files-found: error
 
-  package-arch:
+  test:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: metroc-bin
+      - run: chmod +x ./metroc
+      - name: Run Metro tests
+        run: ./metroc test
+      - name: Run examples/print.metro
+        run: echo "stdout" | ./metroc run examples/print.metro
+      - name: Run examples/arithmetics.metro
+        run: ./metroc run --assertions examples/arithmetics.metro
+      - name: Run examples/murmur3.metro
+        run: ./metroc run --assertions examples/murmur3.metro
+      - name: Run examples/uint.metro
+        run: ./metroc run --assertions examples/uint.metro
+
+  pkg-archlinux:
     needs: [build]
     runs-on: ubuntu-latest
     container: archlinux/base:latest
@@ -84,21 +70,12 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: metroc-bin
-      - name: Calculate Checksum
-        id: checksum
-        run: echo "::set-output name=checksum::$(sha256sum metroc | cut -d ' ' -f 1)"
-      - name: Create PKGBUILD
-        run: |
-          cat config/PKGBUILD | \
-          sed -e 's/${VERSION}/${{ needs.build.outputs.version }}/g' | \
-          sed -e 's/${CHECKSUM}/${{ steps.checksum.outputs.checksum }}/g' > PKGBUILD
-          cat PKGBUILD
       - name: Arch makepkg
         run: |
           useradd -m builder
           chown -R builder .
           su builder --command='makepkg'
-      - name: Upload Arch Linux Pakcage
+      - name: Upload Arch Linux Package
         uses: actions/upload-artifact@v2
         with:
           name: metroc-archlinux
