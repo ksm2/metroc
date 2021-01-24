@@ -8,9 +8,8 @@ on:
 
 jobs:
   build:
+    name: Build Executable
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.get-versions.outputs.version }}
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-haskell@v1
@@ -31,53 +30,20 @@ jobs:
     - name: Build
       run: make
     - name: Install
-      run: make destdir=out install
+      run: make destdir=. install
     - name: Upload Executable
       uses: actions/upload-artifact@v2
       with:
         name: metroc-bin
-        path: out/metroc
+        path: ./metroc
         if-no-files-found: error
-
-  test:
-    needs: [build]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
-        with:
-          name: metroc-bin
-      - run: chmod +x ./metroc
-      - name: Run Metro tests
-        run: ./metroc test
-      - name: Run examples/print.metro
-        run: echo "stdout" | ./metroc run examples/print.metro
-      - name: Run examples/arithmetics.metro
-        run: ./metroc run --assertions examples/arithmetics.metro
-      - name: Run examples/murmur3.metro
-        run: ./metroc run --assertions examples/murmur3.metro
-      - name: Run examples/uint.metro
-        run: ./metroc run --assertions examples/uint.metro
-
-  pkg-archlinux:
-    needs: [build]
-    runs-on: ubuntu-latest
-    container: archlinux/base:latest
-    steps:
-      - name: Update Arch Linux
-        run: pacman -Syu --noconfirm base-devel
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
-        with:
-          name: metroc-bin
-      - name: Arch makepkg
-        run: |
-          useradd -m builder
-          chown -R builder .
-          su builder --command='makepkg'
-      - name: Upload Arch Linux Package
-        uses: actions/upload-artifact@v2
-        with:
-          name: metroc-archlinux
-          path: "*.pkg.tar.zst"
-          if-no-files-found: error
+    - name: Run Metro tests
+      run: ./metroc test
+    - name: Run examples/print.metro
+      run: echo "stdout" | ./metroc run examples/print.metro
+    - name: Run examples/arithmetics.metro
+      run: ./metroc run --assertions examples/arithmetics.metro
+    - name: Run examples/murmur3.metro
+      run: ./metroc run --assertions examples/murmur3.metro
+    - name: Run examples/uint.metro
+      run: ./metroc run --assertions examples/uint.metro
