@@ -5,6 +5,7 @@ import Data.Char
 
 %name calc
 %tokentype { Token }
+%monad { E } { thenE } { returnE }
 %error { parseError }
 
 %token
@@ -39,8 +40,28 @@ Factor
       | '(' Exp ')'             { Brack $2 }
 
 {
-parseError :: [Token] -> a
-parseError _ = error "Parse error"
+data E a = Ok a | Failed String
+
+thenE :: E a -> (a -> E b) -> E b
+m `thenE` k =
+	case m of
+    Ok a      -> k a
+    Failed e 	-> Failed e
+
+returnE :: a -> E a
+returnE a = Ok a
+
+failE :: String -> E a
+failE err = Failed err
+
+catchE :: E a -> (String -> E a) -> E a
+catchE m k =
+	case m of
+    Ok a      -> Ok a
+    Failed e  -> k e
+
+parseError :: [Token] -> E a
+parseError tokens = failE "Parse error"
 
 data Exp
       = Let String Exp Exp
@@ -102,5 +123,11 @@ lexVar cs =
 		 ("in",rest)  -> TokenIn : lexer rest
 		 (var,rest)   -> TokenVar var : lexer rest
 
-parse = getContents >>= print . calc . lexer
+parse :: IO ()
+parse = do
+  contents <- getContents
+  result <- return $ calc $ lexer contents
+  case result of
+    Ok a      -> print a
+    Failed e  -> error e
 }
