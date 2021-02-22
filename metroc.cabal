@@ -42,10 +42,12 @@ library
     MetroLang.Compilation.Expressions
     MetroLang.Compilation.Values
     MetroLang.Lang.E
+    MetroLang.Lang.Model
     MetroLang.Lang.Parser
     MetroLang.Types
     MetroLang.Utils
   build-depends:
+    array         >= 0.5,
     base          >= 4.14   && < 5,
     bytestring    >= 0.10,
     cereal        >= 0.5.8,
