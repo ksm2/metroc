@@ -1,4 +1,4 @@
-module MetroLang.Lang.E where
+module MetroLang.Lang.Exception where
 
 data ParseResult a = Ok a | Failed String
 

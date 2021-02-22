@@ -1,7 +1,7 @@
 {
 module MetroLang.Lang.Parser (parse) where
 import Data.Char
-import MetroLang.Lang.E
+import MetroLang.Lang.Exception
 import MetroLang.Lang.Model
 import MetroLang.Lang.Token
 }
