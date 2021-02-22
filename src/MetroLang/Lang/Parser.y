@@ -46,36 +46,37 @@ Factor
 {
 parseError :: Token -> P a
 parseError tokens = getLineNo `thenP` \line ->
-                    failP ("Parse error in line " ++ show line)
+                    getColNo `thenP` \col ->
+                    failP ("Parse error in line " ++ show line ++ ", column " ++ show col)
 
 lexer :: (Token -> P a) -> P a
 lexer cont [] = cont TokenEOF []
-lexer cont ('\n':cs) = \line -> lexer cont cs (line + 1)
+lexer cont ('\n':cs) = \col line -> lexer cont cs 0 (line + 1)
 lexer cont (c:cs)
-		 | isSpace c = lexer cont cs
+		 | isSpace c = \col -> lexer cont cs (col + 1)
 		 | isAlpha c = lexVar cont (c:cs)
 		 | isDigit c = lexNum cont (c:cs)
-lexer cont ('=':cs) = cont TokenEq cs
-lexer cont ('+':cs) = cont TokenPlus cs
-lexer cont ('-':cs) = cont TokenMinus cs
-lexer cont ('*':cs) = cont TokenTimes cs
-lexer cont ('/':cs) = cont TokenDiv cs
-lexer cont ('(':cs) = cont TokenOB cs
-lexer cont (')':cs) = cont TokenCB cs
+lexer cont ('=':cs) = \col -> cont TokenEq cs (col + 1)
+lexer cont ('+':cs) = \col -> cont TokenPlus cs (col + 1)
+lexer cont ('-':cs) = \col -> cont TokenMinus cs (col + 1)
+lexer cont ('*':cs) = \col -> cont TokenTimes cs (col + 1)
+lexer cont ('/':cs) = \col -> cont TokenDiv cs (col + 1)
+lexer cont ('(':cs) = \col -> cont TokenOB cs (col + 1)
+lexer cont (')':cs) = \col -> cont TokenCB cs (col + 1)
 
-lexNum cont cs = cont (TokenInt (read num)) rest
+lexNum cont cs = \col -> cont (TokenInt (read num)) rest (col + (length num))
 		 where (num,rest) = span isDigit cs
 
 lexVar cont cs =
 	case span isAlpha cs of
-		 ("let",rest) -> cont TokenLet rest
-		 ("in",rest)  -> cont TokenIn rest
-		 (var,rest)   -> cont (TokenVar var) rest
+		 ("let",rest) -> \col -> cont TokenLet rest (col + 3)
+		 ("in",rest)  -> \col -> cont TokenIn rest (col + 2)
+		 (var,rest)   -> \col -> cont (TokenVar var) rest (col + (length var))
 
 parse :: IO ()
 parse = do
   contents <- getContents
-  result <- return $ calc contents 1
+  result <- return $ calc contents 0 1
   case result of
     Ok a      -> print a
     Failed e  -> error e
