@@ -25,6 +25,7 @@ library
   default-language:   Haskell2010
   default-extensions: NamedFieldPuns
   hs-source-dirs:     src
+  build-tools:				happy
   exposed-modules:
     MetroLang.AST
     MetroLang.Bytes
@@ -40,6 +41,8 @@ library
     MetroLang.Compilation.Context
     MetroLang.Compilation.Expressions
     MetroLang.Compilation.Values
+    MetroLang.Lang.E
+    MetroLang.Lang.Parser
     MetroLang.Types
     MetroLang.Utils
   build-depends:
