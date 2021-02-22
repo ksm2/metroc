@@ -44,6 +44,7 @@ library
     MetroLang.Lang.E
     MetroLang.Lang.Model
     MetroLang.Lang.Parser
+    MetroLang.Lang.Token
     MetroLang.Types
     MetroLang.Utils
   build-depends:

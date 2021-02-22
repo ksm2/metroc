@@ -3,11 +3,13 @@ module MetroLang.Lang.Parser (parse) where
 import Data.Char
 import MetroLang.Lang.E
 import MetroLang.Lang.Model
+import MetroLang.Lang.Token
 }
 
 %name calc
 %tokentype { Token }
-%monad { E } { thenE } { returnE }
+%monad { P } { thenP } { returnP }
+%lexer { lexer } { TokenEOF }
 %error { parseError }
 
 %token
@@ -42,36 +44,36 @@ Factor
       | '(' Exp ')'             { Brack $2 }
 
 {
-parseError :: [Token] -> E a
-parseError tokens = failE "Parse error"
+parseError :: Token -> P a
+parseError tokens = failP "Parse error"
 
-lexer :: String -> [Token]
-lexer [] = []
-lexer (c:cs)
-		 | isSpace c = lexer cs
-		 | isAlpha c = lexVar (c:cs)
-		 | isDigit c = lexNum (c:cs)
-lexer ('=':cs) = TokenEq : lexer cs
-lexer ('+':cs) = TokenPlus : lexer cs
-lexer ('-':cs) = TokenMinus : lexer cs
-lexer ('*':cs) = TokenTimes : lexer cs
-lexer ('/':cs) = TokenDiv : lexer cs
-lexer ('(':cs) = TokenOB : lexer cs
-lexer (')':cs) = TokenCB : lexer cs
+lexer :: (Token -> P a) -> P a
+lexer cont [] = cont TokenEOF []
+lexer cont (c:cs)
+		 | isSpace c = lexer cont cs
+		 | isAlpha c = lexVar cont (c:cs)
+		 | isDigit c = lexNum cont (c:cs)
+lexer cont ('=':cs) = cont TokenEq cs
+lexer cont ('+':cs) = cont TokenPlus cs
+lexer cont ('-':cs) = cont TokenMinus cs
+lexer cont ('*':cs) = cont TokenTimes cs
+lexer cont ('/':cs) = cont TokenDiv cs
+lexer cont ('(':cs) = cont TokenOB cs
+lexer cont (')':cs) = cont TokenCB cs
 
-lexNum cs = TokenInt (read num) : lexer rest
+lexNum cont cs = cont (TokenInt (read num)) rest
 		 where (num,rest) = span isDigit cs
 
-lexVar cs =
+lexVar cont cs =
 	case span isAlpha cs of
-		 ("let",rest) -> TokenLet : lexer rest
-		 ("in",rest)  -> TokenIn : lexer rest
-		 (var,rest)   -> TokenVar var : lexer rest
+		 ("let",rest) -> cont TokenLet rest
+		 ("in",rest)  -> cont TokenIn rest
+		 (var,rest)   -> cont (TokenVar var) rest
 
 parse :: IO ()
 parse = do
   contents <- getContents
-  result <- return $ calc $ lexer contents
+  result <- return $ calc contents
   case result of
     Ok a      -> print a
     Failed e  -> error e

@@ -22,17 +22,3 @@ data Factor
   | Var String
   | Brack Exp
   deriving (Show)
-
-data Token
-  = TokenLet
-  | TokenIn
-  | TokenInt Int
-  | TokenVar String
-  | TokenEq
-  | TokenPlus
-  | TokenMinus
-  | TokenTimes
-  | TokenDiv
-  | TokenOB
-  | TokenCB
-  deriving (Show)
