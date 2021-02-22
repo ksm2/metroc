@@ -45,10 +45,12 @@ Factor
 
 {
 parseError :: Token -> P a
-parseError tokens = failP "Parse error"
+parseError tokens = getLineNo `thenP` \line ->
+                    failP ("Parse error in line " ++ show line)
 
 lexer :: (Token -> P a) -> P a
 lexer cont [] = cont TokenEOF []
+lexer cont ('\n':cs) = \line -> lexer cont cs (line + 1)
 lexer cont (c:cs)
 		 | isSpace c = lexer cont cs
 		 | isAlpha c = lexVar cont (c:cs)
@@ -73,7 +75,7 @@ lexVar cont cs =
 parse :: IO ()
 parse = do
   contents <- getContents
-  result <- return $ calc contents
+  result <- return $ calc contents 1
   case result of
     Ok a      -> print a
     Failed e  -> error e
