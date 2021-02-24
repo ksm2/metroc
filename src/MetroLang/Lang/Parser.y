@@ -4,6 +4,7 @@ import Data.Char
 import MetroLang.Lang.Exception
 import MetroLang.Lang.Model
 import MetroLang.Lang.Token
+import System.Environment
 }
 
 %name calc
@@ -47,7 +48,8 @@ Factor
 parseError :: Token -> P a
 parseError tokens = getLineNo `thenP` \line ->
                     getColNo `thenP` \col ->
-                    failP ("Parse error in line " ++ show line ++ ", column " ++ show col)
+                    getInputFile `thenP` \input ->
+                    failP ("Parse error in " ++ input ++ " on line " ++ show line ++ ", column " ++ show col)
 
 lexer :: (Token -> P a) -> P a
 lexer cont [] = cont TokenEOF []
@@ -75,8 +77,11 @@ lexVar cont cs =
 
 parse :: IO ()
 parse = do
-  contents <- getContents
-  result <- return $ calc contents 0 1
+  argv <- getArgs
+  let (filePath:rest) = argv
+  contents <- readFile filePath
+
+  let result = calc contents 0 1 filePath
   case result of
     Ok a      -> print a
     Failed e  -> error e
