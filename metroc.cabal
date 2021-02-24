@@ -42,6 +42,7 @@ library
     MetroLang.Compilation.Expressions
     MetroLang.Compilation.Values
     MetroLang.Lang.Exception
+    MetroLang.Lang.Lexer
     MetroLang.Lang.Model
     MetroLang.Lang.Parser
     MetroLang.Lang.Token
