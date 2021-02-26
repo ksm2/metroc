@@ -1,5 +1,6 @@
 {
 module MetroLang.Lang.Parser (parse) where
+import MetroLang.Lang.Error
 import MetroLang.Lang.Exception
 import MetroLang.Lang.Lexer
 import MetroLang.Lang.Model
@@ -148,19 +149,13 @@ EOS               : eos                                     {}
                   | EOS eos                                 {}
 
 {
-parseError :: Token -> P a
-parseError tokens = getLineNo `thenP` \line ->
-                    getColNo `thenP` \col ->
-                    getInputFile `thenP` \input ->
-                    failP ("Parse error in " ++ input ++ " on line " ++ show line ++ ", column " ++ show col)
-
 parse :: IO ()
 parse = do
   argv <- getArgs
   let (filePath:rest) = argv
   contents <- readFile filePath
 
-  let result = calc contents 0 1 filePath
+  let result = calc contents 1 1 filePath contents
   case result of
     Ok a      -> print a
     Failed e  -> error e

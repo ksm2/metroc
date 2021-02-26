@@ -51,4 +51,4 @@ data Token
   | TokenIdentifier String
   | TokenEOS
   | TokenEOF
-  deriving (Show)
+  deriving (Eq, Show)
