@@ -8,6 +8,7 @@ import MetroLang.Lang.Token
 lexer :: (Token -> P a) -> P a
 lexer cont [] = cont TokenEOF []
 lexer cont ('/' : '/' : cs) = lexSingleLineComment cont cs
+lexer cont ('/' : '*' : cs) = lexMultiLineComment cont cs
 lexer cont ('\n' : cs) = \col line -> cont TokenEOS cs 0 (line + 1)
 lexer cont (c : cs)
   | isSpace c = \col -> lexer cont cs (col + 1)
@@ -34,6 +35,12 @@ lexSingleLineComment :: (Token -> P a) -> P a
 lexSingleLineComment cont ('\n' : cs) = \col line -> cont TokenEOS cs 0 (line + 1)
 lexSingleLineComment cont (_ : cs) = lexSingleLineComment cont cs
 lexSingleLineComment cont [] = cont TokenEOF []
+
+lexMultiLineComment :: (Token -> P a) -> P a
+lexMultiLineComment cont ('*' : '/' : cs) = \col -> lexer cont cs (col + 2)
+lexMultiLineComment cont ('\n' : cs) = \col line -> lexMultiLineComment cont cs 0 (line + 1)
+lexMultiLineComment cont (_ : cs) = \col -> lexMultiLineComment cont cs (col + 1)
+lexMultiLineComment cont [] = cont TokenEOF []
 
 lexNum :: (Token -> P a) -> P a
 lexNum cont cs = \col -> cont (TokenInt (read num)) rest (col + (length num))
