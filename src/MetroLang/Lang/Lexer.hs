@@ -7,7 +7,7 @@ import MetroLang.Lang.Token
 
 lexer :: (Token -> P a) -> P a
 lexer cont [] = cont TokenEOF []
-lexer cont ('\n' : cs) = \col line -> lexer cont cs 0 (line + 1)
+lexer cont ('\n' : cs) = \col line -> cont TokenEOS cs 0 (line + 1)
 lexer cont (c : cs)
   | isSpace c = \col -> lexer cont cs (col + 1)
   | isAlpha c = lexVar cont (c : cs)
@@ -17,9 +17,17 @@ lexer cont ('+' : cs) = \col -> cont TokenPlus cs (col + 1)
 lexer cont ('-' : cs) = \col -> cont TokenMinus cs (col + 1)
 lexer cont ('*' : cs) = \col -> cont TokenTimes cs (col + 1)
 lexer cont ('/' : cs) = \col -> cont TokenDiv cs (col + 1)
-lexer cont ('(' : cs) = \col -> cont TokenOB cs (col + 1)
-lexer cont (')' : cs) = \col -> cont TokenCB cs (col + 1)
+lexer cont ('(' : cs) = \col -> cont TokenLParen cs (col + 1)
+lexer cont (')' : cs) = \col -> cont TokenRParen cs (col + 1)
+lexer cont ('{' : cs) = \col -> cont TokenLBrace cs (col + 1)
+lexer cont ('}' : cs) = \col -> cont TokenRBrace cs (col + 1)
+lexer cont ('[' : cs) = \col -> cont TokenLBrack cs (col + 1)
+lexer cont (']' : cs) = \col -> cont TokenRBrack cs (col + 1)
+lexer cont ('<' : cs) = \col -> cont TokenLT cs (col + 1)
+lexer cont ('>' : cs) = \col -> cont TokenGT cs (col + 1)
 lexer cont ('.' : cs) = \col -> cont TokenDot cs (col + 1)
+lexer cont (',' : cs) = \col -> cont TokenComma cs (col + 1)
+lexer cont (ch : cs) = failP ("Unknown char: " ++ [ch]) ""
 
 lexNum :: (Token -> P a) -> P a
 lexNum cont cs = \col -> cont (TokenInt (read num)) rest (col + (length num))

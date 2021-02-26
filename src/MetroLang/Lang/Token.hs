@@ -34,13 +34,21 @@ data Token
   | TokenInt Int
   | TokenVar String
   | TokenDot
+  | TokenComma
   | TokenEq
   | TokenPlus
   | TokenMinus
   | TokenTimes
   | TokenDiv
-  | TokenOB
-  | TokenCB
+  | TokenLT
+  | TokenGT
+  | TokenLParen
+  | TokenRParen
+  | TokenLBrace
+  | TokenRBrace
+  | TokenLBrack
+  | TokenRBrack
   | TokenIdentifier String
+  | TokenEOS
   | TokenEOF
   deriving (Show)

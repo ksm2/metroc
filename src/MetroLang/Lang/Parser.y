@@ -48,30 +48,82 @@ import System.Environment
       int             { TokenInt $$ }
       identifier      { TokenIdentifier $$ }
 
+      eos             { TokenEOS }
       '.'             { TokenDot }
+      ','             { TokenComma }
       '='             { TokenEq }
       '+'             { TokenPlus }
       '-'             { TokenMinus }
       '*'             { TokenTimes }
       '/'             { TokenDiv }
-      '('             { TokenOB }
-      ')'             { TokenCB }
+      '('             { TokenLParen }
+      ')'             { TokenRParen }
+      '{'             { TokenLBrace }
+      '}'             { TokenRBrace }
+      '['             { TokenLBrack }
+      ']'             { TokenRBrack }
+      '<'             { TokenLT }
+      '>'             { TokenGT }
 
 %%
 
 Module            :: { Module }
-Module            : Declarations              { Module (reverse $1) }
+Module            : Declarations                            { Module (reverse $1) }
 
-Declarations      : Declaration               { [$1] }
-                  | Declarations Declaration  { $2 : $1 }
+Declarations      : Declaration                             { [$1] }
+                  | Declarations EOS Declaration            { $3 : $1 }
 
-Declaration       : ImportDeclaration         { $1 }
+Declaration       : ImportDeclaration                       { $1 }
+                  | EnumDeclaration                         { $1 }
 
-ImportDeclaration : import FQN                { ImportDeclaration (reverse $2) }
+ImportDeclaration : import FQN                              { ImportDeclaration (reverse $2) }
+
+EnumDeclaration   : enum identifier TypeArguments EnumBody  { EnumDeclaration $2 $3 $4 }
+EnumBody          : BodyOpen EnumItems BodyClose            { reverse $2 }
+EnumItems         : EnumItem                                { [$1] }
+                  | EnumItems EOS EnumItem                  { $3 : $1 }
+
+EnumItem          :: { EnumItem }
+EnumItem          : identifier Arguments                    { EnumItem $1 $2 }
+
+Arguments         :: { Arguments }
+Arguments         : {- empty -}                             { [] }
+                  | '(' ArgumentList ')'                    { reverse $2 }
+
+ArgumentList      :: { Arguments }
+ArgumentList      : Argument                                { [$1] }
+                  | ArgumentList ','                        { $1 }
+                  | ArgumentList ',' Argument               { $3 : $1 }
+
+Argument          :: { Argument }
+Argument          : identifier Type                         { Argument $1 $2 }
+
+TypeArguments     :: { TypeArguments }
+TypeArguments     : {- empty -}                             { [] }
+                  | '<' TypeArgumentList '>'                { reverse $2 }
+
+TypeArgumentList  :: { TypeArguments }
+TypeArgumentList  : TypeArgument                            { [$1] }
+                  | TypeArgumentList ',' TypeArgument       { $3 : $1 }
+
+TypeArgument      :: { TypeArgument }
+TypeArgument      : identifier                              { TypeArgument $1 }
+
+Type              :: { Type }
+Type              : identifier                              { RefType $1 }
 
 FQN               :: { FQN }
-FQN               : identifier                { [$1] }
-                  | FQN '.' identifier        { $3 : $1 }
+FQN               : identifier                              { [$1] }
+                  | FQN '.' identifier                      { $3 : $1 }
+
+BodyOpen          : OptEOS '{' OptEOS                       {}
+BodyClose         : OptEOS '}' OptEOS                       {}
+
+OptEOS            : {- empty -}                             {}
+                  | EOS                                     {}
+
+EOS               : eos                                     {}
+                  | EOS eos                                 {}
 
 {
 parseError :: Token -> P a
