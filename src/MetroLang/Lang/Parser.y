@@ -71,12 +71,13 @@ Module            :: { Module }
 Module            : Declarations                            { Module (reverse $1) }
 
 Declarations      : Declaration                             { [$1] }
-                  | Declarations EOS Declaration            { $3 : $1 }
+                  | Declarations Declaration                { $2 : $1 }
 
 Declaration       : ImportDeclaration                       { $1 }
                   | EnumDeclaration                         { $1 }
+                  | InterfaceDeclaration                    { $1 }
 
-ImportDeclaration : import FQN                              { ImportDeclaration (reverse $2) }
+ImportDeclaration : import FQN EOS                          { ImportDeclaration (reverse $2) }
 
 EnumDeclaration   : enum identifier TypeArguments EnumBody  { EnumDeclaration $2 $3 $4 }
 EnumBody          : BodyOpen EnumItems BodyClose            { reverse $2 }
@@ -84,10 +85,21 @@ EnumItems         : EnumItem                                { [$1] }
                   | EnumItems EOS EnumItem                  { $3 : $1 }
 
 EnumItem          :: { EnumItem }
-EnumItem          : identifier Arguments                    { EnumItem $1 $2 }
+EnumItem          : identifier OptArguments                 { EnumItem $1 $2 }
+
+InterfaceDeclaration  : interface identifier TypeArguments InterfaceBody  { InterfaceDeclaration $2 $3 $4 }
+InterfaceBody         : BodyOpen InterfaceMethods BodyClose               { reverse $2 }
+InterfaceMethods      : InterfaceMethod                                   { [$1] }
+                      | InterfaceMethods EOS InterfaceMethod              { $3 : $1 }
+InterfaceMethod       :: { InterfaceMethod }
+InterfaceMethod       : identifier Arguments ReturnType                   { InterfaceMethod $1 $2 $3 }
+
+OptArguments      :: { Arguments }
+OptArguments      : {- empty -}                             { [] }
+                  | '(' ArgumentList ')'                    { $2 }
 
 Arguments         :: { Arguments }
-Arguments         : {- empty -}                             { [] }
+Arguments         : '(' ')'                                 { [] }
                   | '(' ArgumentList ')'                    { reverse $2 }
 
 ArgumentList      :: { Arguments }
@@ -97,6 +109,16 @@ ArgumentList      : Argument                                { [$1] }
 
 Argument          :: { Argument }
 Argument          : identifier Type                         { Argument $1 $2 }
+
+ReturnType        :: { ReturnType }
+ReturnType        : {- empty -}                             { [] }
+                  | Type                                    { [$1] }
+                  | '(' TypeList ')'                        { reverse $2 }
+
+TypeList          :: { [Type] }
+TypeList          : Type                                    { [$1] }
+                  | TypeList ','                            { $1 }
+                  | TypeList ',' Type                       { $3 : $1 }
 
 TypeArguments     :: { TypeArguments }
 TypeArguments     : {- empty -}                             { [] }
