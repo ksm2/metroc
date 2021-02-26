@@ -14,10 +14,41 @@ import System.Environment
 %error { parseError }
 
 %token
-      let             { TokenLet }
-      in              { TokenIn }
+      and             { TokenAnd }
+      as              { TokenAs }
+      assert          { TokenAssert }
+      class           { TokenClass }
+      const           { TokenConst }
+      else            { TokenElse }
+      enum            { TokenEnum }
+      export          { TokenExport }
+      extends         { TokenExtends }
+      false           { TokenFalse }
+      fn              { TokenFn }
+      for             { TokenFor }
+      if              { TokenIf }
+      it              { TokenIt }
+      impl            { TokenImpl }
+      import          { TokenImport }
+      interface       { TokenInterface }
+      is              { TokenIs }
+      match           { TokenMatch }
+      not             { TokenNot }
+      null            { TokenNull }
+      or              { TokenOr }
+      return          { TokenReturn }
+      static          { TokenStatic }
+      test            { TokenTest }
+      this            { TokenThis }
+      true            { TokenTrue }
+      unsafe          { TokenUnsafe }
+      while           { TokenWhile }
+      xor             { TokenXor }
+
       int             { TokenInt $$ }
-      var             { TokenVar $$ }
+      identifier      { TokenIdentifier $$ }
+
+      '.'             { TokenDot }
       '='             { TokenEq }
       '+'             { TokenPlus }
       '-'             { TokenMinus }
@@ -28,21 +59,19 @@ import System.Environment
 
 %%
 
-Exp   : let var '=' Exp in Exp  { Let $2 $4 $6 }
-      | Exp1                    { Exp1 $1 }
+Module            :: { Module }
+Module            : Declarations              { Module (reverse $1) }
 
-Exp1  : Exp1 '+' Term           { Plus $1 $3 }
-      | Exp1 '-' Term           { Minus $1 $3 }
-      | Term                    { Term $1 }
+Declarations      : Declaration               { [$1] }
+                  | Declarations Declaration  { $2 : $1 }
 
-Term  : Term '*' Factor         { Times $1 $3 }
-      | Term '/' Factor         { Div $1 $3 }
-      | Factor                  { Factor $1 }
+Declaration       : ImportDeclaration         { $1 }
 
-Factor
-      : int                     { Int $1 }
-      | var                     { Var $1 }
-      | '(' Exp ')'             { Brack $2 }
+ImportDeclaration : import FQN                { ImportDeclaration (reverse $2) }
+
+FQN               :: { FQN }
+FQN               : identifier                { [$1] }
+                  | FQN '.' identifier        { $3 : $1 }
 
 {
 parseError :: Token -> P a

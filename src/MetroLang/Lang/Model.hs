@@ -1,24 +1,11 @@
 module MetroLang.Lang.Model where
 
-data Exp
-  = Let String Exp Exp
-  | Exp1 Exp1
+data Module
+  = Module [Declaration]
   deriving (Show)
 
-data Exp1
-  = Plus Exp1 Term
-  | Minus Exp1 Term
-  | Term Term
+data Declaration
+  = ImportDeclaration FQN
   deriving (Show)
 
-data Term
-  = Times Term Factor
-  | Div Term Factor
-  | Factor Factor
-  deriving (Show)
-
-data Factor
-  = Int Int
-  | Var String
-  | Brack Exp
-  deriving (Show)
+type FQN = [String]
