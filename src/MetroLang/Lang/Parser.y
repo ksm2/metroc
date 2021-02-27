@@ -140,15 +140,15 @@ EnumItem          : identifier OptArguments                 { EnumItem $1 $2 }
 InterfaceDeclaration  : interface identifier TypeArguments InterfaceBody  { InterfaceDeclaration $2 $3 $4 }
 InterfaceBody         : BodyOpen InterfaceMethods BodyClose               { reverse $2 }
 InterfaceMethods      : InterfaceMethod                                   { [$1] }
-                      | InterfaceMethods EOS InterfaceMethod              { $3 : $1 }
+                      | InterfaceMethods InterfaceMethod                  { $2 : $1 }
 InterfaceMethod       :: { InterfaceMethod }
-InterfaceMethod       : identifier Arguments ReturnType                   { InterfaceMethod $1 $2 $3 }
+InterfaceMethod       : identifier Arguments ReturnType EOS               { InterfaceMethod $1 $2 $3 }
 
 ImplDeclaration       : impl identifier for Type ClassBody                { ImplDeclaration $2 $4 $5 }
 ClassDeclaration      : class identifier TypeArguments ClassBody          { ClassDeclaration $2 $3 $4 }
 ClassBody             : BodyOpen ClassMethods BodyClose                   { reverse $2 }
 ClassMethods          : ClassMethod                                       { [$1] }
-                      | ClassMethods EOS ClassMethod                      { $3 : $1 }
+                      | ClassMethods ClassMethod                          { $2 : $1 }
 ClassMethod           : identifier Arguments ReturnType FnBody            { ClassMethod $1 $2 $3 $4 }
 
 FnDeclaration     : fn identifier Arguments ReturnType FnBody             { FnDeclaration $2 $3 $4 $5 }
