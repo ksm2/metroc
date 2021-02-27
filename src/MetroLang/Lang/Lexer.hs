@@ -58,6 +58,7 @@ lexer cont ('{' : cs) = \col -> cont TokenLBrace cs (col + 1)
 lexer cont ('|' : '=' : cs) = \col -> cont TokenBarEq cs (col + 2)
 lexer cont ('|' : cs) = \col -> cont TokenBar cs (col + 1)
 lexer cont ('}' : cs) = \col -> cont TokenRBrace cs (col + 1)
+lexer cont ('~' : cs) = \col -> cont TokenTilde cs (col + 1)
 lexer cont (ch : cs) = failP ("Unknown char: " ++ [ch]) ""
 
 lexSingleLineComment :: (Token -> P a) -> P a

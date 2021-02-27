@@ -15,11 +15,11 @@ data Token
   | TokenFn
   | TokenFor
   | TokenIf
-  | TokenIt
   | TokenImpl
   | TokenImport
   | TokenInterface
   | TokenIs
+  | TokenIt
   | TokenMatch
   | TokenNot
   | TokenNull
@@ -76,6 +76,7 @@ data Token
   | TokenRemGt
   | TokenRemGtEq
   | TokenRParen
+  | TokenTilde
   | -- Literals
     TokenIdentifier String
   | TokenInt Int

@@ -64,6 +64,7 @@ data Expression
   | VarExpression Var
   | CallExpression Expression Params
   | AccessExpression Expression Access
+  | UnaryExpression UnaryOperator Expression
   | BinaryExpression BinaryOperator Expression Expression
   deriving (Show)
 
@@ -75,6 +76,12 @@ data Access
 data Literal
   = IntLiteral Int
   | StringLiteral String
+  deriving (Show)
+
+data UnaryOperator
+  = Neg
+  | LogicalNot
+  | BitwiseNot
   deriving (Show)
 
 data BinaryOperator

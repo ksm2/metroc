@@ -89,6 +89,7 @@ import System.Environment
       '|'             { TokenBar }
       '|='            { TokenBarEq }
       '}'             { TokenRBrace }
+      '~'             { TokenTilde }
 
       identifier      { TokenIdentifier $$ }
       int             { TokenInt $$ }
@@ -106,6 +107,7 @@ import System.Environment
 %left '>>' '<<'
 %left '+' '-'
 %left '*' '/' '%'
+%left NEG LNOT BNOT
 %left '.' '?.'
 %%
 
@@ -211,6 +213,9 @@ Expression        : Literal           { LiteralExpression $1 }
                   | identifier        { VarExpression $1 }
                   | Expression Params { CallExpression $1 $2 }
                   | Expression Access { AccessExpression $1 $2 }
+                  | '-' Expression %prec NEG      { UnaryExpression Neg $2 }
+                  | not Expression %prec LNOT     { UnaryExpression LogicalNot $2 }
+                  | '~' Expression %prec BNOT     { UnaryExpression BitwiseNot $2 }
                   | Expression '*'    Expression  { BinaryExpression Multiply $1 $3 }
                   | Expression '/'    Expression  { BinaryExpression Divide $1 $3 }
                   | Expression '%'    Expression  { BinaryExpression Modulo $1 $3 }
