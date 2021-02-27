@@ -9,6 +9,8 @@ data Declaration
   | ConstDeclaration String Expression
   | EnumDeclaration String TypeArguments EnumItems
   | InterfaceDeclaration String TypeArguments InterfaceMethods
+  | ImplDeclaration String Type ClassMethods
+  | ClassDeclaration String TypeArguments ClassMethods
   | FnDeclaration String Arguments ReturnType Statements
   deriving (Show)
 
@@ -23,6 +25,12 @@ type InterfaceMethods = [InterfaceMethod]
 data InterfaceMethod
   = InterfaceMethod String Arguments ReturnType
   deriving (Show)
+
+type ClassMethods = [ClassMethod]
+
+data ClassMethod
+  = ClassMethod String Arguments ReturnType Statements
+  deriving Show
 
 type Statements = [Statement]
 
