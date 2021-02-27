@@ -71,6 +71,7 @@ type Params = [Expression]
 data Expression
   = LiteralExpression Literal
   | VarExpression Var
+  | ThisExpression
   | CallExpression Expression Params
   | AccessExpression Expression Access
   | UnaryExpression UnaryOperator Expression

@@ -221,6 +221,7 @@ FQN               : identifier                              { [$1] }
 
 Expression        : Literal           { LiteralExpression $1 }
                   | identifier        { VarExpression $1 }
+                  | this              { ThisExpression }
                   | Expression Params { CallExpression $1 $2 }
                   | Expression Access { AccessExpression $1 $2 }
                   | '-' Expression %prec NEG      { UnaryExpression Neg $2 }
