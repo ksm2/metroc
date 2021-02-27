@@ -40,16 +40,23 @@ inGray text = "\x1b[90m" ++ text ++ "\x1b[m"
 describeToken :: Token -> String
 describeToken TokenEOF = "end of file"
 describeToken TokenEOS = "end of statement"
+describeToken (TokenInt _) = "integer literal"
+describeToken (TokenString _) = "string literal"
 describeToken t
   | isKeywordToken t = map toLower (drop 5 $ show t) ++ " keyword"
   | otherwise = drop 5 $ show t
 
 startOfToken :: Token -> Int -> Int
 startOfToken (TokenIdentifier iden) col = col - (length iden)
+startOfToken (TokenString str) col = col - strLength str
 startOfToken token col
   | token == TokenEOF || token == TokenEOS = col
   | isKeywordToken token = col - (length (show token)) + 5
   | otherwise = col - 1
+
+strLength [] = 2
+strLength ('"' : cs) = 2 + strLength cs
+strLength (c : cs) = 1 + strLength cs
 
 padLeft :: Int -> Int -> String
 padLeft maxLength num =

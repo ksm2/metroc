@@ -10,10 +10,11 @@ lexer cont [] = cont TokenEOF []
 lexer cont ('/' : '/' : cs) = lexSingleLineComment cont cs
 lexer cont ('/' : '*' : cs) = lexMultiLineComment cont cs
 lexer cont ('\n' : cs) = \col line -> cont TokenEOS cs 1 (line + 1)
-lexer cont (c : cs)
+lexer cont s@(c : cs)
   | isSpace c = \col -> lexer cont cs (col + 1)
-  | isAlpha c = lexVar cont (c : cs)
-  | isDigit c = lexNum cont (c : cs)
+  | isAlpha c = lexVar cont s
+  | isDigit c = lexNum cont s
+  | c == '"' = lexStr cont s
 lexer cont ('=' : cs) = \col -> cont TokenEq cs (col + 1)
 lexer cont ('+' : cs) = \col -> cont TokenPlus cs (col + 1)
 lexer cont ('-' : cs) = \col -> cont TokenMinus cs (col + 1)
@@ -63,6 +64,15 @@ lexVar cont cs =
     Nothing -> \col -> cont (TokenIdentifier keyword) rest (col + (length keyword))
   where
     (keyword, rest) = span isIdentifierChar cs
+
+lexStr :: (Token -> P a) -> P a
+lexStr cont (c : cs) = \col -> lexStrRec "" cont cs (col + 1)
+
+lexStrRec :: String -> (Token -> P a) -> P a
+lexStrRec str cont ('\\' : '"' : cs) = \col -> lexStrRec ('"' : str) cont cs (col + 2)
+lexStrRec str cont ('"' : cs) = \col -> cont (TokenString $ reverse str) cs (col + 1)
+lexStrRec str cont (c : cs) = \col -> lexStrRec (c : str) cont cs (col + 1)
+lexStrRec str cont [] = cont TokenEOF []
 
 isIdentifierChar :: Char -> Bool
 isIdentifierChar c = isAlphaNum c || c == '_'
