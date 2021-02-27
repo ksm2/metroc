@@ -1,7 +1,8 @@
 module MetroLang.Lang.Token where
 
 data Token
-  = TokenAnd
+  = -- Keywords
+    TokenAnd
   | TokenAs
   | TokenAssert
   | TokenClass
@@ -31,25 +32,54 @@ data Token
   | TokenUnsafe
   | TokenWhile
   | TokenXor
+  | -- Operators
+    TokenAmp
+  | TokenAmpEq
+  | TokenBar
+  | TokenBarEq
+  | TokenCaret
+  | TokenCaretEq
+  | TokenColonEq
+  | TokenComma
+  | TokenDiv
+  | TokenDivEq
+  | TokenDot
+  | TokenEq
+  | TokenEqEq
+  | TokenExclEq
+  | TokenGt
+  | TokenGtEq
+  | TokenGtGt
+  | TokenGtGtEq
+  | TokenLBrace
+  | TokenLBrack
+  | TokenLParen
+  | TokenLt
+  | TokenLtEq
+  | TokenLtLt
+  | TokenLtLtEq
+  | TokenLtRem
+  | TokenLtRemEq
+  | TokenMinus
+  | TokenMinusEq
+  | TokenMul
+  | TokenMulEq
+  | TokenPlus
+  | TokenPlusEq
+  | TokenQ
+  | TokenQDot
+  | TokenRBrace
+  | TokenRBrack
+  | TokenRem
+  | TokenRemEq
+  | TokenRemGt
+  | TokenRemGtEq
+  | TokenRParen
+  | -- Literals
+    TokenIdentifier String
   | TokenInt Int
   | TokenString String
-  | TokenDot
-  | TokenComma
-  | TokenEq
-  | TokenPlus
-  | TokenMinus
-  | TokenTimes
-  | TokenDiv
-  | TokenLT
-  | TokenGT
-  | TokenAssignment
-  | TokenLParen
-  | TokenRParen
-  | TokenLBrace
-  | TokenRBrace
-  | TokenLBrack
-  | TokenRBrack
-  | TokenIdentifier String
-  | TokenEOS
+  | -- Commands
+    TokenEOS
   | TokenEOF
   deriving (Eq, Show)

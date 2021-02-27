@@ -59,9 +59,51 @@ type FQN = [String]
 data Expression
   = LiteralExpression Literal
   | VarExpression Var
+  | AccessExpression Expression Var
+  | BinaryExpression BinaryOperator Expression Expression
   deriving (Show)
 
 data Literal
   = IntLiteral Int
   | StringLiteral String
+  deriving (Show)
+
+data BinaryOperator
+  = Assignment
+  | AssignBitwiseOr
+  | AssignBitwiseXor
+  | AssignBitwiseAnd
+  | AssignRotateLeft
+  | AssignRotateRight
+  | AssignShiftLeft
+  | AssignShiftRight
+  | AssignSubtract
+  | AssignAdd
+  | AssignModulo
+  | AssignDivide
+  | AssignMultiply
+  | LogicalOr
+  | LogicalAnd
+  | BitwiseOr
+  | BitwiseXor
+  | BitwiseAnd
+  | Unequal
+  | Equal
+  | Is
+  | As
+  | LessThan
+  | LessThanOrEqual
+  | GreaterThan
+  | GreaterThanOrEqual
+  | RotateLeft
+  | RotateRight
+  | ShiftLeft
+  | ShiftRight
+  | Subtract
+  | Add
+  | Modulo
+  | Divide
+  | Multiply
+  | OptChain
+  | Chain
   deriving (Show)

@@ -46,28 +46,66 @@ import System.Environment
       while           { TokenWhile }
       xor             { TokenXor }
 
-      int             { TokenInt $$ }
-      string          { TokenString $$ }
-      identifier      { TokenIdentifier $$ }
-
-      eos             { TokenEOS }
-      '.'             { TokenDot }
-      ','             { TokenComma }
-      '='             { TokenEq }
-      '+'             { TokenPlus }
-      '-'             { TokenMinus }
-      '*'             { TokenTimes }
-      '/'             { TokenDiv }
+      '!='            { TokenExclEq }
+      '%'             { TokenRem }
+      '%='            { TokenRemEq }
+      '%>'            { TokenRemGt }
+      '%>='           { TokenRemGtEq }
+      '&'             { TokenAmp }
+      '&='            { TokenAmpEq }
       '('             { TokenLParen }
       ')'             { TokenRParen }
-      '{'             { TokenLBrace }
-      '}'             { TokenRBrace }
+      '*'             { TokenMul }
+      '*='            { TokenMulEq }
+      '+'             { TokenPlus }
+      '+='            { TokenPlusEq }
+      ','             { TokenComma }
+      '-'             { TokenMinus }
+      '-='            { TokenMinusEq }
+      '.'             { TokenDot }
+      '/'             { TokenDiv }
+      '/='            { TokenDivEq }
+      ':='            { TokenColonEq }
+      '<%'            { TokenLtRem }
+      '<%='           { TokenLtRemEq }
+      '<'             { TokenLt }
+      '<<'            { TokenLtLt }
+      '<<='           { TokenLtLtEq }
+      '<='            { TokenLtEq }
+      '='             { TokenEq }
+      '=='            { TokenEqEq }
+      '>'             { TokenGt }
+      '>='            { TokenGtEq }
+      '>>'            { TokenGtGt }
+      '>>='           { TokenGtGtEq }
+      '?'             { TokenQ }
+      '?.'            { TokenQDot }
       '['             { TokenLBrack }
       ']'             { TokenRBrack }
-      '<'             { TokenLT }
-      '>'             { TokenGT }
-      ':='            { TokenAssignment }
+      '^'             { TokenCaret }
+      '^='            { TokenCaretEq }
+      '{'             { TokenLBrace }
+      '|'             { TokenBar }
+      '|='            { TokenBarEq }
+      '}'             { TokenRBrace }
 
+      identifier      { TokenIdentifier $$ }
+      int             { TokenInt $$ }
+      string          { TokenString $$ }
+
+      eos             { TokenEOS }
+
+%left '*=' '/=' '%=' '+=' '-='  '>>=' '<<=' '%>=' '<%=' '&=' '^=' '|=' ':=' '='
+%left and or
+%left '&' '^' '|'
+%left is as
+%left '==' '!='
+%left '<' '<=' '>' '>='
+%left '%>' '<%'
+%left '>>' '<<'
+%left '+' '-'
+%left '*' '/' '%'
+%left '.'
 %%
 
 Module            :: { Module }
@@ -163,8 +201,46 @@ FQN               :: { FQN }
 FQN               : identifier                              { [$1] }
                   | FQN '.' identifier                      { $3 : $1 }
 
-Expression        : Literal     { LiteralExpression $1 }
-                  | identifier  { VarExpression $1 }
+
+Expression        : Literal                       { LiteralExpression $1 }
+                  | identifier                    { VarExpression $1 }
+                  | Expression '.'    identifier  { AccessExpression $1 $3 }
+                  | Expression '*'    Expression  { BinaryExpression Multiply $1 $3 }
+                  | Expression '/'    Expression  { BinaryExpression Divide $1 $3 }
+                  | Expression '%'    Expression  { BinaryExpression Modulo $1 $3 }
+                  | Expression '+'    Expression  { BinaryExpression Add $1 $3 }
+                  | Expression '-'    Expression  { BinaryExpression Subtract $1 $3 }
+                  | Expression '>>'   Expression  { BinaryExpression ShiftRight $1 $3 }
+                  | Expression '<<'   Expression  { BinaryExpression ShiftLeft $1 $3 }
+                  | Expression '%>'   Expression  { BinaryExpression RotateRight $1 $3 }
+                  | Expression '<%'   Expression  { BinaryExpression RotateLeft $1 $3 }
+                  | Expression '<'    Expression  { BinaryExpression LessThan $1 $3 }
+                  | Expression '<='   Expression  { BinaryExpression LessThanOrEqual $1 $3 }
+                  | Expression '>'    Expression  { BinaryExpression GreaterThan $1 $3 }
+                  | Expression '>='   Expression  { BinaryExpression GreaterThanOrEqual $1 $3 }
+                  | Expression '=='   Expression  { BinaryExpression Equal $1 $3 }
+                  | Expression '!='   Expression  { BinaryExpression Unequal $1 $3 }
+                  | Expression is     Expression  { BinaryExpression Is $1 $3 }
+                  | Expression as     Expression  { BinaryExpression As $1 $3 }
+                  | Expression '&'    Expression  { BinaryExpression BitwiseAnd $1 $3 }
+                  | Expression '^'    Expression  { BinaryExpression BitwiseXor $1 $3 }
+                  | Expression '|'    Expression  { BinaryExpression BitwiseOr $1 $3 }
+                  | Expression and    Expression  { BinaryExpression LogicalAnd $1 $3 }
+                  | Expression or     Expression  { BinaryExpression LogicalOr $1 $3 }
+                  | Expression '*='   Expression  { BinaryExpression AssignMultiply $1 $3 }
+                  | Expression '/='   Expression  { BinaryExpression AssignDivide $1 $3 }
+                  | Expression '%='   Expression  { BinaryExpression AssignModulo $1 $3 }
+                  | Expression '+='   Expression  { BinaryExpression AssignAdd $1 $3 }
+                  | Expression '-='   Expression  { BinaryExpression AssignSubtract $1 $3 }
+                  | Expression '>>='  Expression  { BinaryExpression AssignShiftRight $1 $3 }
+                  | Expression '<<='  Expression  { BinaryExpression AssignShiftLeft $1 $3 }
+                  | Expression '%>='  Expression  { BinaryExpression AssignRotateRight $1 $3 }
+                  | Expression '<%='  Expression  { BinaryExpression AssignRotateLeft $1 $3 }
+                  | Expression '&='   Expression  { BinaryExpression AssignBitwiseAnd $1 $3 }
+                  | Expression '^='   Expression  { BinaryExpression AssignBitwiseXor $1 $3 }
+                  | Expression '|='   Expression  { BinaryExpression AssignBitwiseOr $1 $3 }
+                  | Expression '='    Expression  { BinaryExpression Assignment $1 $3 }
+
 Literal           : int         { IntLiteral $1 }
                   | string      { StringLiteral $1 }
 
