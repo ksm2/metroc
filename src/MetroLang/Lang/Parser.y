@@ -149,10 +149,10 @@ ClassDeclaration      : class identifier TypeArguments ClassBody          { Clas
 ClassBody             : BodyOpen ClassMethods BodyClose                   { reverse $2 }
 ClassMethods          : ClassMethod                                       { [$1] }
                       | ClassMethods ClassMethod                          { $2 : $1 }
-ClassMethod           : identifier Arguments ReturnType FnBody            { ClassMethod $1 $2 $3 $4 }
+ClassMethod           : identifier Arguments ReturnType Block             { ClassMethod $1 $2 $3 $4 }
 
-FnDeclaration     : fn identifier Arguments ReturnType FnBody             { FnDeclaration $2 $3 $4 $5 }
-FnBody            : BodyOpen Statements BodyClose                         { reverse $2 }
+FnDeclaration     : fn identifier Arguments ReturnType Block              { FnDeclaration $2 $3 $4 $5 }
+Block             : BodyOpen Statements BodyClose                         { reverse $2 }
 
 Statements        :: { Statements }
 Statements        : {- empty -}               { [] }
@@ -164,6 +164,7 @@ Statement         :: { Statement }
 Statement         : VarList ':=' Expression                 { AssignStatement $1 $3 }
                   | assert Expression AssertMessage         { AssertStatement $2 $3 }
                   | return Expression ReturnCondition       { ReturnStatement $2 $3 }
+                  | unsafe Block                            { UnsafeStatement $2 }
                   | Expression                              { ExpressionStatement $1 }
 
 AssertMessage     : {- empty -}               { Nothing }

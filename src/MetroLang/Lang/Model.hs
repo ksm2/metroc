@@ -39,6 +39,7 @@ data Statement
   | AssertStatement Expression (Maybe String)
   | ExpressionStatement Expression
   | ReturnStatement Expression (Maybe Expression)
+  | UnsafeStatement Statements
   deriving (Show)
 
 type Vars = [Var]
