@@ -43,6 +43,7 @@ library
     MetroLang.Compilation.Values
     MetroLang.Lang.Error
     MetroLang.Lang.Exception
+    MetroLang.Lang.Highlight
     MetroLang.Lang.Keywords
     MetroLang.Lang.Lexer
     MetroLang.Lang.Model

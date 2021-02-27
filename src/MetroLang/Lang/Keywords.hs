@@ -37,8 +37,11 @@ keywords =
     ("xor", TokenXor)
   ]
 
-findKeywordToken :: String -> Maybe (String, Token)
-findKeywordToken keyword = find (\(k, _) -> k == keyword) keywords
+findKeywordToken :: String -> Maybe Token
+findKeywordToken keyword = lookup keyword keywords
 
 isKeywordToken :: Token -> Bool
 isKeywordToken token = any (\(_, t) -> t == token) keywords
+
+isKeywordString :: String -> Bool
+isKeywordString token = any (\(t, _) -> t == token) keywords

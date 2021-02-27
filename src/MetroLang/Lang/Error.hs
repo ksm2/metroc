@@ -1,6 +1,8 @@
 module MetroLang.Lang.Error (parseError) where
 
+import Data.Char
 import MetroLang.Lang.Exception
+import MetroLang.Lang.Highlight
 import MetroLang.Lang.Keywords
 import MetroLang.Lang.Token
 
@@ -15,26 +17,32 @@ parseError token =
 
 underlineString :: String -> Int -> Int -> Int -> String
 underlineString text line start end =
-  let textLines = lines text
-      contextLines = 3
+  let textLines = lines $ highlight text
+      contextLines = 5
       firstLine = max 1 (line - contextLines)
       lastLine = min (length textLines) (line + contextLines)
       maxLength = length (show lastLine)
       visibleLines = ((take (lastLine - firstLine + 1)) . (drop (firstLine - 1))) textLines
-      indexedLines = zipWith (\idx line -> " " ++ padLeft maxLength idx ++ " | " ++ line) [firstLine .. lastLine] visibleLines
-      scatteredLines = insertAt (line - firstLine + 1) (" " ++ repeatSpaces maxLength ++ " | " ++ underline start end) indexedLines
+      indexedLines = zipWith (\idx line -> " " ++ inGray (padLeft maxLength idx ++ " | ") ++ line) [firstLine .. lastLine] visibleLines
+      scatteredLines = insertAt (line - firstLine + 1) (" " ++ repeatSpaces maxLength ++ inGray " | " ++ underline start end) indexedLines
    in unlines scatteredLines
 
 underline :: Int -> Int -> String
 underline start end =
-  repeatSpaces (start - 1) ++ take (end - start) strokes
+  repeatSpaces (start - 1) ++ inRed (take (end - start) strokes)
   where
-    strokes = repeat '~'
+    strokes = repeat '^'
+
+inRed text = "\x1b[91;1m" ++ text ++ "\x1b[m"
+
+inGray text = "\x1b[90m" ++ text ++ "\x1b[m"
 
 describeToken :: Token -> String
 describeToken TokenEOF = "end of file"
 describeToken TokenEOS = "end of statement"
-describeToken t = drop 5 $ show t
+describeToken t
+  | isKeywordToken t = map toLower (drop 5 $ show t) ++ " keyword"
+  | otherwise = drop 5 $ show t
 
 startOfToken :: Token -> Int -> Int
 startOfToken (TokenIdentifier iden) col = col - (length iden)

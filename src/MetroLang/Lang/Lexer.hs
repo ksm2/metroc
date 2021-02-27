@@ -50,7 +50,7 @@ lexNum cont cs = \col -> cont (TokenInt (read num)) rest (col + (length num))
 lexVar :: (Token -> P a) -> P a
 lexVar cont cs =
   case findKeywordToken keyword of
-    Just (_, token) -> \col -> cont token rest (col + (length keyword))
+    Just token -> \col -> cont token rest (col + (length keyword))
     Nothing -> \col -> cont (TokenIdentifier keyword) rest (col + (length keyword))
   where
     (keyword, rest) = span isAlpha cs
