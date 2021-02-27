@@ -4,6 +4,10 @@ data Module
   = Module [Declaration]
   deriving (Show)
 
+data Static = Static | Instance deriving (Show, Eq)
+
+data Safety = Safe | Unsafe deriving (Show, Eq)
+
 data Declaration
   = ImportDeclaration FQN
   | ConstDeclaration String Expression
@@ -11,7 +15,7 @@ data Declaration
   | InterfaceDeclaration String TypeArguments InterfaceMethods
   | ImplDeclaration String Type ClassMethods
   | ClassDeclaration String TypeArguments ClassMethods
-  | FnDeclaration String Arguments ReturnType Statements
+  | FnDeclaration String Safety Arguments ReturnType Statements
   deriving (Show)
 
 type EnumItems = [EnumItem]
@@ -29,7 +33,7 @@ data InterfaceMethod
 type ClassMethods = [ClassMethod]
 
 data ClassMethod
-  = ClassMethod String Arguments ReturnType Statements
+  = ClassMethod String Static Safety Arguments ReturnType Statements
   deriving (Show)
 
 type Statements = [Statement]

@@ -151,10 +151,18 @@ ClassBody             : BodyOpen ClassMethods BodyClose                   { reve
 ClassMethods          : {- empty -}                                       { [] }
                       | ClassMethod                                       { [$1] }
                       | ClassMethods ClassMethod                          { $2 : $1 }
-ClassMethod           : identifier Arguments ReturnType Block             { ClassMethod $1 $2 $3 $4 }
+ClassMethod           : Static Safety identifier Arguments ReturnType Block { ClassMethod $3 $1 $2 $4 $5 $6 }
 
-FnDeclaration     : fn identifier Arguments ReturnType Block              { FnDeclaration $2 $3 $4 $5 }
+FnDeclaration     : Safety fn identifier Arguments ReturnType Block       { FnDeclaration $3 $1 $4 $5 $6 }
 Block             : BodyOpen Statements BodyClose                         { reverse $2 }
+
+Static            :: { Static }
+Static            : static      { Static }
+                  | {- empty -} { Instance }
+
+Safety            :: { Safety }
+Safety            : unsafe        { Unsafe }
+                  | {- empty -}   { Safe }
 
 Statements        :: { Statements }
 Statements        : {- empty -}               { [] }
