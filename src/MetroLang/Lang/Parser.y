@@ -112,7 +112,7 @@ import System.Environment
 %%
 
 Module            :: { Module }
-Module            : Declarations                            { Module (reverse $1) }
+Module            : OptEOS Declarations                     { Module (reverse $2) }
 
 Declarations      : Declaration                             { [$1] }
                   | Declarations Declaration                { $2 : $1 }
