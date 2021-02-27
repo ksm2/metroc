@@ -38,7 +38,7 @@ data Statement
   = AssignStatement Vars Expression
   | AssertStatement Expression (Maybe String)
   | ExpressionStatement Expression
-  | ReturnStatement Expression
+  | ReturnStatement Expression (Maybe Expression)
   deriving (Show)
 
 type Vars = [Var]

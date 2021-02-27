@@ -161,13 +161,16 @@ Statements        : {- empty -}               { [] }
                   | Statements EOS Statement  { $3 : $1 }
 
 Statement         :: { Statement }
-Statement         : VarList ':=' Expression         { AssignStatement $1 $3 }
-                  | assert Expression AssertMessage { AssertStatement $2 $3 }
-                  | return Expression               { ReturnStatement $2 }
-                  | Expression                      { ExpressionStatement $1 }
+Statement         : VarList ':=' Expression                 { AssignStatement $1 $3 }
+                  | assert Expression AssertMessage         { AssertStatement $2 $3 }
+                  | return Expression ReturnCondition       { ReturnStatement $2 $3 }
+                  | Expression                              { ExpressionStatement $1 }
 
-AssertMessage     : {- empty -} { Nothing }
-                  | ':' string  { Just $2 }
+AssertMessage     : {- empty -}               { Nothing }
+                  | ':' string                { Just $2 }
+
+ReturnCondition   : {- empty -}               { Nothing }
+                  | if Expression             { Just $2 }
 
 VarList           : Vars                      { reverse $1 }
 Vars              : identifier                { [$1] }
