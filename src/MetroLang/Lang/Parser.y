@@ -219,11 +219,12 @@ FQN               : identifier                              { [$1] }
                   | FQN '.' identifier                      { $3 : $1 }
 
 
-Expression        : Literal           { LiteralExpression $1 }
-                  | identifier        { VarExpression $1 }
-                  | this              { ThisExpression }
-                  | Expression Params { CallExpression $1 $2 }
-                  | Expression Access { AccessExpression $1 $2 }
+Expression        : '(' Expression ')'            { $2 }
+                  | Literal                       { LiteralExpression $1 }
+                  | identifier                    { VarExpression $1 }
+                  | this                          { ThisExpression }
+                  | Expression Params             { CallExpression $1 $2 }
+                  | Expression Access             { AccessExpression $1 $2 }
                   | '-' Expression %prec NEG      { UnaryExpression Neg $2 }
                   | not Expression %prec LNOT     { UnaryExpression LogicalNot $2 }
                   | '~' Expression %prec BNOT     { UnaryExpression BitwiseNot $2 }
