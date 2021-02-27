@@ -163,6 +163,7 @@ Statements        : {- empty -}               { [] }
 Statement         :: { Statement }
 Statement         : VarList ':=' Expression         { AssignStatement $1 $3 }
                   | assert Expression AssertMessage { AssertStatement $2 $3 }
+                  | return Expression               { ReturnStatement $2 }
                   | Expression                      { ExpressionStatement $1 }
 
 AssertMessage     : {- empty -} { Nothing }

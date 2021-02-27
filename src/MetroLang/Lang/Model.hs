@@ -30,7 +30,7 @@ type ClassMethods = [ClassMethod]
 
 data ClassMethod
   = ClassMethod String Arguments ReturnType Statements
-  deriving Show
+  deriving (Show)
 
 type Statements = [Statement]
 
@@ -38,6 +38,7 @@ data Statement
   = AssignStatement Vars Expression
   | AssertStatement Expression (Maybe String)
   | ExpressionStatement Expression
+  | ReturnStatement Expression
   deriving (Show)
 
 type Vars = [Var]
