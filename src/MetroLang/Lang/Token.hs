@@ -42,6 +42,7 @@ data Token
   | TokenDiv
   | TokenLT
   | TokenGT
+  | TokenAssignment
   | TokenLParen
   | TokenRParen
   | TokenLBrace

@@ -30,6 +30,7 @@ lexer cont ('<' : cs) = \col -> cont TokenLT cs (col + 1)
 lexer cont ('>' : cs) = \col -> cont TokenGT cs (col + 1)
 lexer cont ('.' : cs) = \col -> cont TokenDot cs (col + 1)
 lexer cont (',' : cs) = \col -> cont TokenComma cs (col + 1)
+lexer cont (':' : '=' : cs) = \col -> cont TokenAssignment cs (col + 2)
 lexer cont (ch : cs) = failP ("Unknown char: " ++ [ch]) ""
 
 lexSingleLineComment :: (Token -> P a) -> P a

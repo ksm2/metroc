@@ -66,6 +66,7 @@ import System.Environment
       ']'             { TokenRBrack }
       '<'             { TokenLT }
       '>'             { TokenGT }
+      ':='            { TokenAssignment }
 
 %%
 
@@ -79,6 +80,7 @@ Declaration       : ImportDeclaration                       { $1 }
                   | ConstDeclaration                        { $1 }
                   | EnumDeclaration                         { $1 }
                   | InterfaceDeclaration                    { $1 }
+                  | FnDeclaration                           { $1 }
 
 ImportDeclaration : import FQN EOS                          { ImportDeclaration (reverse $2) }
 
@@ -98,6 +100,23 @@ InterfaceMethods      : InterfaceMethod                                   { [$1]
                       | InterfaceMethods EOS InterfaceMethod              { $3 : $1 }
 InterfaceMethod       :: { InterfaceMethod }
 InterfaceMethod       : identifier Arguments ReturnType                   { InterfaceMethod $1 $2 $3 }
+
+FnDeclaration     : fn identifier OptArguments ReturnType FnBody          { FnDeclaration $2 $3 $4 $5 }
+FnBody            : BodyOpen Statements BodyClose                         { reverse $2 }
+
+Statements        :: { Statements }
+Statements        : {- empty -}               { [] }
+                  | Statement                 { [$1] }
+                  | Statements EOS            { $1 }
+                  | Statements EOS Statement  { $3 : $1 }
+
+Statement         :: { Statement }
+Statement         : VarList ':=' Expression   { AssignStatement $1 $3 }
+                  | Expression                { ExpressionStatement $1 }
+
+VarList           : Vars                      { reverse $1 }
+Vars              : identifier                { [$1] }
+                  | Vars ',' identifier       { $3 : $1 }
 
 OptArguments      :: { Arguments }
 OptArguments      : {- empty -}                             { [] }
@@ -138,14 +157,16 @@ TypeArgument      : identifier                              { TypeArgument $1 }
 
 Type              :: { Type }
 Type              : identifier                              { RefType $1 }
+                  | '[' Type ']'                            { ArrayType $2 }
 
 FQN               :: { FQN }
 FQN               : identifier                              { [$1] }
                   | FQN '.' identifier                      { $3 : $1 }
 
-Expression        : Literal   { LiteralExpression $1 }
-Literal           : int       { IntLiteral $1 }
-                  | string    { StringLiteral $1 }
+Expression        : Literal     { LiteralExpression $1 }
+                  | identifier  { VarExpression $1 }
+Literal           : int         { IntLiteral $1 }
+                  | string      { StringLiteral $1 }
 
 BodyOpen          : OptEOS '{' OptEOS                       {}
 BodyClose         : OptEOS '}' OptEOS                       {}
