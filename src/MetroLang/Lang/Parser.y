@@ -140,7 +140,7 @@ InterfaceMethods      : InterfaceMethod                                   { [$1]
 InterfaceMethod       :: { InterfaceMethod }
 InterfaceMethod       : identifier Arguments ReturnType                   { InterfaceMethod $1 $2 $3 }
 
-FnDeclaration     : fn identifier OptArguments ReturnType FnBody          { FnDeclaration $2 $3 $4 $5 }
+FnDeclaration     : fn identifier Arguments ReturnType FnBody             { FnDeclaration $2 $3 $4 $5 }
 FnBody            : BodyOpen Statements BodyClose                         { reverse $2 }
 
 Statements        :: { Statements }
