@@ -47,6 +47,7 @@ import System.Environment
       xor             { TokenXor }
 
       int             { TokenInt $$ }
+      string          { TokenString $$ }
       identifier      { TokenIdentifier $$ }
 
       eos             { TokenEOS }
@@ -75,10 +76,13 @@ Declarations      : Declaration                             { [$1] }
                   | Declarations Declaration                { $2 : $1 }
 
 Declaration       : ImportDeclaration                       { $1 }
+                  | ConstDeclaration                        { $1 }
                   | EnumDeclaration                         { $1 }
                   | InterfaceDeclaration                    { $1 }
 
 ImportDeclaration : import FQN EOS                          { ImportDeclaration (reverse $2) }
+
+ConstDeclaration  : const identifier '=' Expression EOS     { ConstDeclaration $2 $4 }
 
 EnumDeclaration   : enum identifier TypeArguments EnumBody  { EnumDeclaration $2 $3 $4 }
 EnumBody          : BodyOpen EnumItems BodyClose            { reverse $2 }
@@ -138,6 +142,10 @@ Type              : identifier                              { RefType $1 }
 FQN               :: { FQN }
 FQN               : identifier                              { [$1] }
                   | FQN '.' identifier                      { $3 : $1 }
+
+Expression        : Literal   { LiteralExpression $1 }
+Literal           : int       { IntLiteral $1 }
+                  | string    { StringLiteral $1 }
 
 BodyOpen          : OptEOS '{' OptEOS                       {}
 BodyClose         : OptEOS '}' OptEOS                       {}

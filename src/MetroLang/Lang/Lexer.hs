@@ -42,8 +42,17 @@ lexMultiLineComment cont ('\n' : cs) = \col line -> lexMultiLineComment cont cs 
 lexMultiLineComment cont (_ : cs) = \col -> lexMultiLineComment cont cs (col + 1)
 lexMultiLineComment cont [] = cont TokenEOF []
 
+lexNumSuffix :: Int -> (Token -> P a) -> P a
+lexNumSuffix num cont ('U' : cs) = \col -> cont (TokenInt num) cs (col + 1)
+lexNumSuffix num cont cs = cont (TokenInt num) cs
+
 lexNum :: (Token -> P a) -> P a
-lexNum cont cs = \col -> cont (TokenInt (read num)) rest (col + (length num))
+lexNum cont ('0' : 'x' : cs) =
+  \col -> lexNumSuffix (read num) cont rest (col + (length num + 2))
+  where
+    (num, rest) = span isHexDigit cs
+lexNum cont cs =
+  \col -> lexNumSuffix (read num) cont rest (col + (length num))
   where
     (num, rest) = span isDigit cs
 
@@ -53,4 +62,7 @@ lexVar cont cs =
     Just token -> \col -> cont token rest (col + (length keyword))
     Nothing -> \col -> cont (TokenIdentifier keyword) rest (col + (length keyword))
   where
-    (keyword, rest) = span isAlpha cs
+    (keyword, rest) = span isIdentifierChar cs
+
+isIdentifierChar :: Char -> Bool
+isIdentifierChar c = isAlphaNum c || c == '_'

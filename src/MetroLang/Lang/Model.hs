@@ -6,6 +6,7 @@ data Module
 
 data Declaration
   = ImportDeclaration FQN
+  | ConstDeclaration String Expression
   | EnumDeclaration String TypeArguments EnumItems
   | InterfaceDeclaration String TypeArguments InterfaceMethods
   deriving (Show)
@@ -41,3 +42,12 @@ data Type
   deriving (Show)
 
 type FQN = [String]
+
+data Expression
+  = LiteralExpression Literal
+  deriving (Show)
+
+data Literal
+  = IntLiteral Int
+  | StringLiteral String
+  deriving (Show)

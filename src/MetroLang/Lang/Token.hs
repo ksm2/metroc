@@ -32,7 +32,7 @@ data Token
   | TokenWhile
   | TokenXor
   | TokenInt Int
-  | TokenVar String
+  | TokenString String
   | TokenDot
   | TokenComma
   | TokenEq
