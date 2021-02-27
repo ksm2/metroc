@@ -14,12 +14,14 @@ data Token
   | TokenFalse
   | TokenFn
   | TokenFor
+  | TokenHide
   | TokenIf
   | TokenImpl
   | TokenImport
   | TokenInterface
   | TokenIs
   | TokenIt
+  | TokenLet
   | TokenMatch
   | TokenNot
   | TokenNull
