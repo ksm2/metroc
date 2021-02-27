@@ -28,6 +28,7 @@ type Statements = [Statement]
 
 data Statement
   = AssignStatement Vars Expression
+  | AssertStatement Expression (Maybe String)
   | ExpressionStatement Expression
   deriving (Show)
 

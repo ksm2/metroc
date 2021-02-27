@@ -65,6 +65,7 @@ import System.Environment
       '.'             { TokenDot }
       '/'             { TokenDiv }
       '/='            { TokenDivEq }
+      ':'             { TokenColon }
       ':='            { TokenColonEq }
       '<%'            { TokenLtRem }
       '<%='           { TokenLtRemEq }
@@ -149,8 +150,12 @@ Statements        : {- empty -}               { [] }
                   | Statements EOS Statement  { $3 : $1 }
 
 Statement         :: { Statement }
-Statement         : VarList ':=' Expression   { AssignStatement $1 $3 }
-                  | Expression                { ExpressionStatement $1 }
+Statement         : VarList ':=' Expression         { AssignStatement $1 $3 }
+                  | assert Expression AssertMessage { AssertStatement $2 $3 }
+                  | Expression                      { ExpressionStatement $1 }
+
+AssertMessage     : {- empty -} { Nothing }
+                  | ':' string  { Just $2 }
 
 VarList           : Vars                      { reverse $1 }
 Vars              : identifier                { [$1] }

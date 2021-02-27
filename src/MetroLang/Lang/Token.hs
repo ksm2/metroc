@@ -39,6 +39,7 @@ data Token
   | TokenBarEq
   | TokenCaret
   | TokenCaretEq
+  | TokenColon
   | TokenColonEq
   | TokenComma
   | TokenDiv
