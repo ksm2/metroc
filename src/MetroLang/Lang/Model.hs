@@ -57,11 +57,19 @@ data Type
 
 type FQN = [String]
 
+type Params = [Expression]
+
 data Expression
   = LiteralExpression Literal
   | VarExpression Var
-  | AccessExpression Expression Var
+  | CallExpression Expression Params
+  | AccessExpression Expression Access
   | BinaryExpression BinaryOperator Expression Expression
+  deriving (Show)
+
+data Access
+  = Access Var (Maybe Access)
+  | OptAccess Var (Maybe Access)
   deriving (Show)
 
 data Literal

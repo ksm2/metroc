@@ -106,7 +106,7 @@ import System.Environment
 %left '>>' '<<'
 %left '+' '-'
 %left '*' '/' '%'
-%left '.'
+%left '.' '?.'
 %%
 
 Module            :: { Module }
@@ -207,9 +207,10 @@ FQN               : identifier                              { [$1] }
                   | FQN '.' identifier                      { $3 : $1 }
 
 
-Expression        : Literal                       { LiteralExpression $1 }
-                  | identifier                    { VarExpression $1 }
-                  | Expression '.'    identifier  { AccessExpression $1 $3 }
+Expression        : Literal           { LiteralExpression $1 }
+                  | identifier        { VarExpression $1 }
+                  | Expression Params { CallExpression $1 $2 }
+                  | Expression Access { AccessExpression $1 $2 }
                   | Expression '*'    Expression  { BinaryExpression Multiply $1 $3 }
                   | Expression '/'    Expression  { BinaryExpression Divide $1 $3 }
                   | Expression '%'    Expression  { BinaryExpression Modulo $1 $3 }
@@ -245,6 +246,21 @@ Expression        : Literal                       { LiteralExpression $1 }
                   | Expression '^='   Expression  { BinaryExpression AssignBitwiseXor $1 $3 }
                   | Expression '|='   Expression  { BinaryExpression AssignBitwiseOr $1 $3 }
                   | Expression '='    Expression  { BinaryExpression Assignment $1 $3 }
+
+OptAccess         :: { Maybe Access }
+OptAccess         : {- empty -}         { Nothing }
+                  | Access               { Just $1 }
+
+Access            :: { Access }
+Access            : '.' identifier OptAccess { Access $2 $3 }
+                  | '?.' identifier OptAccess { OptAccess $2 $3 }
+
+Params            :: { Params }
+Params            : '(' ')'                   { [] }
+                  | '(' ParamList ')'         { reverse $2 }
+ParamList         : Expression                { [$1] }
+                  | ParamList ','             { $1 }
+                  | ParamList ',' Expression  { $3 : $1 }
 
 Literal           : int         { IntLiteral $1 }
                   | string      { StringLiteral $1 }
