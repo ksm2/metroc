@@ -8,67 +8,42 @@ on:
 
 jobs:
   build:
-
+    name: Build Executable
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v2
     - uses: actions/setup-haskell@v1
       with:
         ghc-version: '8.10.2'
-        cabal-version: '3.2'
-
-    - name: Install Wasmtime
-      run: curl -L https://github.com/bytecodealliance/wasmtime/releases/download/v0.20.0/wasmtime-v0.20.0-x86_64-linux.tar.xz | tar xJ
-
+        cabal-version: '3.4'
     - name: Cache
       uses: actions/cache@v1
       env:
         cache-name: cache-cabal
       with:
         path: ~/.cabal
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/cabal.project') }}
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}
         restore-keys: |
           ${{ runner.os }}-build-${{ env.cache-name }}-
           ${{ runner.os }}-build-
           ${{ runner.os }}-
-
-    - name: Install dependencies
-      run: |
-        cabal update
-        cabal build --only-dependencies --enable-tests --enable-benchmarks
     - name: Build
-      run: cabal build --enable-tests --enable-benchmarks all
-    - name: Run tests
-      run: cabal test all
-    - name: Run Metro tests
-      run: cabal run metroc -- test
-    - name: Run examples/print.metro
-      run: echo "stdout" | cabal run metroc -- run examples/print.metro
-      env:
-        PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
-    - name: Run examples/arithmetics.metro
-      run: cabal run metroc -- run --assertions examples/arithmetics.metro
-      env:
-        PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
-    - name: Run examples/murmur3.metro
-      run: cabal run metroc -- run --assertions examples/murmur3.metro
-      env:
-        PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
-    - name: Run examples/uint.metro
-      run: cabal run metroc -- run --assertions examples/uint.metro
-      env:
-        PATH: ./wasmtime-v0.20.0-x86_64-linux:$PATH
-    - name: Get version
-      id: cabal-version
-      run: |
-        echo "::set-output name=version::$(cat metroc.cabal | sed -n 's/^version:.*\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]\)/\1/p')"
-        echo "::set-output name=ghc::$(ghc --numeric-version)"
-    - name: Move Executable
-      run: mv dist-newstyle/build/x86_64-linux/ghc-${{ steps.cabal-version.outputs.ghc }}/metroc-${{ steps.cabal-version.outputs.version }}/x/metroc/build/metroc/metroc metroc
+      run: make
+    - name: Install
+      run: make destdir=. install
     - name: Upload Executable
       uses: actions/upload-artifact@v2
       with:
-        name: metroc
-        path: metroc
+        name: metroc-bin
+        path: ./metroc
         if-no-files-found: error
+    - name: Run Metro tests
+      run: ./metroc test
+    - name: Run examples/print.metro
+      run: echo "stdout" | ./metroc run examples/print.metro
+    - name: Run examples/arithmetics.metro
+      run: ./metroc run --assertions examples/arithmetics.metro
+    - name: Run examples/murmur3.metro
+      run: ./metroc run --assertions examples/murmur3.metro
+    - name: Run examples/uint.metro
+      run: ./metroc run --assertions examples/uint.metro

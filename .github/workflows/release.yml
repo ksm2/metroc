@@ -1,0 +1,92 @@
+on:
+  push:
+    tags:
+      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+name: Upload Release Asset
+
+jobs:
+  build:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Cache
+      uses: actions/cache@v1
+      env:
+        cache-name: cache-cabal
+      with:
+        path: ~/.cabal
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-
+          ${{ runner.os }}-build-
+          ${{ runner.os }}-
+    - name: Build
+      run: make
+    - name: Install
+      run: make destdir=out install
+    - name: Zip Executable
+      working-directory: out
+      run: zip metroc.zip metroc
+    - name: Upload Executable
+      uses: actions/upload-artifact@v2
+      with:
+        name: metroc-bin
+        path: out/metroc
+        if-no-files-found: error
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        body_path: release.md
+        tag_name: ${{ github.ref }}
+        release_name: Metro ${{ github.ref }}
+        draft: true
+        prerelease: false
+    - name: Get the version
+      id: get_version
+      run: echo ::set-output name=version::${GITHUB_REF/refs\/tags\//}
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: out/metroc.zip
+        asset_name: metroc-${{ steps.get_version.outputs.version }}-linux-x64.zip
+        asset_content_type: application/zip
+
+  pkg-archlinux:
+    name: Upload Archlinux Package
+    needs: [build]
+    runs-on: ubuntu-latest
+    container: archlinux/base:latest
+    steps:
+      - name: Update Arch Linux
+        run: pacman -Syu --noconfirm base-devel
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: metroc-bin
+      - name: Arch makepkg
+        id: makepkg
+        run: |
+          useradd -m builder
+          chown -R builder .
+          su builder --command='makepkg'
+          echo "::set-output name=asset_path::$(basename $(find . -name "*.pkg.tar.zst"))"
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.build.outputs.upload_url }}
+          asset_path: ${{ steps.makepkg.outputs.asset_path }}
+          asset_name: ${{ steps.makepkg.outputs.asset_path }}
+          asset_content_type: application/zstd
