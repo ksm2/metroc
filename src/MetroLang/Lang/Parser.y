@@ -282,6 +282,7 @@ Expression              : '(' Expression ')'                            { $2 }
                         | Literal                                       { LiteralExpression $1 }
                         | id                                            { VarExpression $1 }
                         | this                                          { ThisExpression }
+                        | null                                          { NullExpression }
                         | Expression Params                             { CallExpression $1 $2 }
                         | Expression Index                              { IndexExpression $1 $2 }
                         | Expression Access                             { AccessExpression $1 $2 }

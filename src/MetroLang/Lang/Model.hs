@@ -106,6 +106,7 @@ data Expression
   = LiteralExpression Literal
   | VarExpression Var
   | ThisExpression
+  | NullExpression
   | CallExpression Expression Params
   | IndexExpression Expression Expressions
   | AccessExpression Expression Access
