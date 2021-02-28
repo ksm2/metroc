@@ -169,18 +169,19 @@ ClassExtension          : {- empty -}                                   { [] }
                         | extends TypeList                              { reverse $2 }
 ClassImplementation     : {- empty -}                                   { [] }
                         | impl TypeList                                 { reverse $2 }
-ClassBody               : BodyOpen ClassMethods BodyClose               { reverse $2 }
-ClassMethods            : {- empty -}                                   { [] }
-                        | ClassMethod                                   { [$1] }
-                        | ClassMethods ClassMethod                      { $2 : $1 }
-ClassMethod             : Static Safety id Arguments ReturnType Block   { ClassMethod $3 $1 $2 $4 $5 $6 }
+ClassBody               : BodyOpen ClassElements BodyClose              { reverse $2 }
+ClassElements           : {- empty -}                                   { [] }
+                        | ClassElement                                  { [$1] }
+                        | ClassElements ClassElement                    { $2 : $1 }
+ClassElement            : static id ':=' Expression EOS                 { ClassField $2 Static $4 }
+                        | static id Arguments ReturnType Block          { ClassMethod $2 Static Safe $3 $4 $5 }
+                        | static unsafe id Arguments ReturnType Block   { ClassMethod $3 Static Unsafe $4 $5 $6 }
+                        | id ':=' Expression EOS                        { ClassField $1 Instance $3 }
+                        | id Arguments ReturnType Block                 { ClassMethod $1 Instance Safe $2 $3 $4 }
+                        | unsafe id Arguments ReturnType Block          { ClassMethod $2 Instance Unsafe $3 $4 $5 }
 
 FnDeclaration           : Safety fn id Arguments ReturnType Block       { FnDeclaration $3 $1 $4 $5 $6 }
 Block                   : BodyOpen Statements BodyClose                 { reverse $2 }
-
-Static                  :: { Static }
-Static                  : static                                        { Static }
-                        | {- empty -}                                   { Instance }
 
 Safety                  :: { Safety }
 Safety                  : unsafe                                        { Unsafe }

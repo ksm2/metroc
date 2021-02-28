@@ -15,8 +15,8 @@ data Declaration
   | ConstDeclaration String Expression
   | EnumDeclaration String TypeArguments EnumItems
   | InterfaceDeclaration String TypeArguments InterfaceMethods
-  | ImplDeclaration Type Type ClassMethods
-  | ClassDeclaration String TypeArguments Arguments Types Types ClassMethods
+  | ImplDeclaration Type Type ClassElements
+  | ClassDeclaration String TypeArguments Arguments Types Types ClassElements
   | FnDeclaration String Safety Arguments ReturnType Statements
   deriving (Show)
 
@@ -32,10 +32,11 @@ data InterfaceMethod
   = InterfaceMethod String Arguments ReturnType
   deriving (Show)
 
-type ClassMethods = [ClassMethod]
+type ClassElements = [ClassElement]
 
-data ClassMethod
+data ClassElement
   = ClassMethod String Static Safety Arguments ReturnType Statements
+  | ClassField String Static Expression
   deriving (Show)
 
 type Statements = [Statement]
@@ -57,7 +58,7 @@ data If
 
 data Let
   = Let LetLeft Expression Statements (Maybe Else)
-  deriving Show
+  deriving (Show)
 
 data Else
   = ElseIf If
@@ -67,7 +68,7 @@ data Else
 
 data LetLeft
   = LetEnumMatch String Vars
-  deriving Show
+  deriving (Show)
 
 type Vars = [Var]
 
