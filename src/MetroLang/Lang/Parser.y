@@ -27,6 +27,7 @@ import System.Environment
       false             { TokenFalse }
       fn                { TokenFn }
       for               { TokenFor }
+      hide              { TokenHide }
       if                { TokenIf }
       it                { TokenIt }
       impl              { TokenImpl }
@@ -123,7 +124,11 @@ Declarations            : Declaration                                   { [$1] }
 Declaration             :: { Declaration }
 Declaration             : ImportDeclaration                             { $1 }
                         | ExportDeclaration                             { $1 }
-                        | ImplDeclaration                               { $1 }
+                        | HideDeclaration                               { $1 }
+                        | HideableDeclaration                           { $1 }
+
+HideableDeclaration     :: { Declaration }
+HideableDeclaration     : ImplDeclaration                               { $1 }
                         | ExportableDeclaration                         { $1 }
 
 ExportableDeclaration   :: { Declaration }
@@ -136,6 +141,8 @@ ExportableDeclaration   : ConstDeclaration                              { $1 }
 ImportDeclaration       : import FQN EOS                                { ImportDeclaration (reverse $2) }
 
 ExportDeclaration       : export ExportableDeclaration                  { ExportDeclaration $2 }
+
+HideDeclaration         : hide HideableDeclaration                      { HideDeclaration $2 }
 
 ConstDeclaration        : const id '=' Expression EOS                   { ConstDeclaration $2 $4 }
 

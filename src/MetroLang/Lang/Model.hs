@@ -11,6 +11,7 @@ data Safety = Safe | Unsafe deriving (Show, Eq)
 data Declaration
   = ImportDeclaration FQN
   | ExportDeclaration Declaration
+  | HideDeclaration Declaration
   | ConstDeclaration String Expression
   | EnumDeclaration String TypeArguments EnumItems
   | InterfaceDeclaration String TypeArguments InterfaceMethods
