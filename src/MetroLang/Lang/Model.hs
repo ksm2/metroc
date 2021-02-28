@@ -14,7 +14,7 @@ data Declaration
   | EnumDeclaration String TypeArguments EnumItems
   | InterfaceDeclaration String TypeArguments InterfaceMethods
   | ImplDeclaration Type Type ClassMethods
-  | ClassDeclaration String TypeArguments Arguments ClassMethods
+  | ClassDeclaration String TypeArguments Arguments Types Types ClassMethods
   | FnDeclaration String Safety Arguments ReturnType Statements
   deriving (Show)
 
@@ -74,6 +74,8 @@ data TypeArgument
   deriving (Show)
 
 type ReturnType = [Type]
+
+type Types = [Type]
 
 data Type
   = RefType String

@@ -146,7 +146,11 @@ InterfaceMethod       :: { InterfaceMethod }
 InterfaceMethod       : identifier Arguments ReturnType EOS               { InterfaceMethod $1 $2 $3 }
 
 ImplDeclaration       : impl Type for Type ClassBody                          { ImplDeclaration $2 $4 $5 }
-ClassDeclaration      : class identifier TypeArguments OptArguments ClassBody { ClassDeclaration $2 $3 $4 $5 }
+ClassDeclaration      : class identifier TypeArguments OptArguments ClassExtension ClassImplementation ClassBody { ClassDeclaration $2 $3 $4 $5 $6 $7 }
+ClassExtension        : {- empty -}           { [] }
+                      | extends TypeList      { reverse $2 }
+ClassImplementation   : {- empty -}           { [] }
+                      | impl TypeList         { reverse $2 }
 ClassBody             : BodyOpen ClassMethods BodyClose                       { reverse $2 }
 ClassMethods          : {- empty -}                                           { [] }
                       | ClassMethod                                           { [$1] }
