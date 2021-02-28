@@ -167,17 +167,17 @@ Safety            : unsafe        { Unsafe }
 Statements        :: { Statements }
 Statements        : {- empty -}               { [] }
                   | Statement                 { [$1] }
-                  | Statements EOS            { $1 }
-                  | Statements EOS Statement  { $3 : $1 }
+                  | Statements                { $1 }
+                  | Statements Statement      { $2 : $1 }
 
 Statement         :: { Statement }
-Statement         : VarList ':=' Expression                 { AssignStatement $1 $3 }
+Statement         : VarList ':=' Expression EOS             { AssignStatement $1 $3 }
                   | IfStatement                             { IfStatement $1 }
                   | while Expression Block OptElseStatement { WhileStatement $2 $3 $4 }
-                  | assert Expression AssertMessage         { AssertStatement $2 $3 }
-                  | return Expression ReturnCondition       { ReturnStatement $2 $3 }
+                  | assert Expression AssertMessage EOS     { AssertStatement $2 $3 }
+                  | return Expression ReturnCondition EOS   { ReturnStatement $2 $3 }
                   | unsafe Block                            { UnsafeStatement $2 }
-                  | Expression                              { ExpressionStatement $1 }
+                  | Expression EOS                          { ExpressionStatement $1 }
 
 IfStatement       :: { If }
 IfStatement       : if Expression Block OptElseStatement  { If $2 $3 $4 }
@@ -252,47 +252,13 @@ Expression        : '(' Expression ')'            { $2 }
                   | Literal                       { LiteralExpression $1 }
                   | identifier                    { VarExpression $1 }
                   | this                          { ThisExpression }
-                  | Expression Params             { CallExpression $1 $2 }
-                  | Expression Index              { IndexExpression $1 $2 }
-                  | Expression Access             { AccessExpression $1 $2 }
                   | '-' Expression %prec NEG      { UnaryExpression Neg $2 }
                   | not Expression %prec LNOT     { UnaryExpression LogicalNot $2 }
                   | '~' Expression %prec BNOT     { UnaryExpression BitwiseNot $2 }
-                  | Expression '*'    Expression  { BinaryExpression Multiply $1 $3 }
-                  | Expression '/'    Expression  { BinaryExpression Divide $1 $3 }
-                  | Expression '%'    Expression  { BinaryExpression Modulo $1 $3 }
-                  | Expression '+'    Expression  { BinaryExpression Add $1 $3 }
-                  | Expression '-'    Expression  { BinaryExpression Subtract $1 $3 }
-                  | Expression '>>'   Expression  { BinaryExpression ShiftRight $1 $3 }
-                  | Expression '<<'   Expression  { BinaryExpression ShiftLeft $1 $3 }
-                  | Expression '%>'   Expression  { BinaryExpression RotateRight $1 $3 }
-                  | Expression '<%'   Expression  { BinaryExpression RotateLeft $1 $3 }
-                  | Expression '<'    Expression  { BinaryExpression LessThan $1 $3 }
-                  | Expression '<='   Expression  { BinaryExpression LessThanOrEqual $1 $3 }
-                  | Expression '>'    Expression  { BinaryExpression GreaterThan $1 $3 }
-                  | Expression '>='   Expression  { BinaryExpression GreaterThanOrEqual $1 $3 }
-                  | Expression '=='   Expression  { BinaryExpression Equal $1 $3 }
-                  | Expression '!='   Expression  { BinaryExpression Unequal $1 $3 }
-                  | Expression is     Expression  { BinaryExpression Is $1 $3 }
-                  | Expression as     Expression  { BinaryExpression As $1 $3 }
-                  | Expression '&'    Expression  { BinaryExpression BitwiseAnd $1 $3 }
-                  | Expression '^'    Expression  { BinaryExpression BitwiseXor $1 $3 }
-                  | Expression '|'    Expression  { BinaryExpression BitwiseOr $1 $3 }
-                  | Expression and    Expression  { BinaryExpression LogicalAnd $1 $3 }
-                  | Expression or     Expression  { BinaryExpression LogicalOr $1 $3 }
-                  | Expression '*='   Expression  { BinaryExpression AssignMultiply $1 $3 }
-                  | Expression '/='   Expression  { BinaryExpression AssignDivide $1 $3 }
-                  | Expression '%='   Expression  { BinaryExpression AssignModulo $1 $3 }
-                  | Expression '+='   Expression  { BinaryExpression AssignAdd $1 $3 }
-                  | Expression '-='   Expression  { BinaryExpression AssignSubtract $1 $3 }
-                  | Expression '>>='  Expression  { BinaryExpression AssignShiftRight $1 $3 }
-                  | Expression '<<='  Expression  { BinaryExpression AssignShiftLeft $1 $3 }
-                  | Expression '%>='  Expression  { BinaryExpression AssignRotateRight $1 $3 }
-                  | Expression '<%='  Expression  { BinaryExpression AssignRotateLeft $1 $3 }
-                  | Expression '&='   Expression  { BinaryExpression AssignBitwiseAnd $1 $3 }
-                  | Expression '^='   Expression  { BinaryExpression AssignBitwiseXor $1 $3 }
-                  | Expression '|='   Expression  { BinaryExpression AssignBitwiseOr $1 $3 }
-                  | Expression '='    Expression  { BinaryExpression Assignment $1 $3 }
+                  | Expression Params             { CallExpression $1 $2 }
+                  | Expression Index              { IndexExpression $1 $2 }
+                  | Expression Access             { AccessExpression $1 $2 }
+                  | BinaryExpression              { $1 }
 
 Index             :: { Expressions }
 Index             : '[' ExpressionList ']' { reverse $2 }
@@ -304,6 +270,43 @@ OptAccess         : {- empty -}         { Nothing }
 Access            :: { Access }
 Access            : '.' identifier OptAccess { Access $2 $3 }
                   | '?.' identifier OptAccess { OptAccess $2 $3 }
+
+BinaryExpression  :: { Expression }
+BinaryExpression  : Expression '*'   OptEOS Expression { BinaryExpression Multiply $1 $4 }
+                  | Expression '/'   OptEOS Expression { BinaryExpression Divide $1 $4 }
+                  | Expression '%'   OptEOS Expression { BinaryExpression Modulo $1 $4 }
+                  | Expression '+'   OptEOS Expression { BinaryExpression Add $1 $4 }
+                  | Expression '-'   OptEOS Expression { BinaryExpression Subtract $1 $4 }
+                  | Expression '>>'  OptEOS Expression { BinaryExpression ShiftRight $1 $4 }
+                  | Expression '<<'  OptEOS Expression { BinaryExpression ShiftLeft $1 $4 }
+                  | Expression '%>'  OptEOS Expression { BinaryExpression RotateRight $1 $4 }
+                  | Expression '<%'  OptEOS Expression { BinaryExpression RotateLeft $1 $4 }
+                  | Expression '<'   OptEOS Expression { BinaryExpression LessThan $1 $4 }
+                  | Expression '<='  OptEOS Expression { BinaryExpression LessThanOrEqual $1 $4 }
+                  | Expression '>'   OptEOS Expression { BinaryExpression GreaterThan $1 $4 }
+                  | Expression '>='  OptEOS Expression { BinaryExpression GreaterThanOrEqual $1 $4 }
+                  | Expression '=='  OptEOS Expression { BinaryExpression Equal $1 $4 }
+                  | Expression '!='  OptEOS Expression { BinaryExpression Unequal $1 $4 }
+                  | Expression is    OptEOS Expression { BinaryExpression Is $1 $4 }
+                  | Expression as    OptEOS Expression { BinaryExpression As $1 $4 }
+                  | Expression '&'   OptEOS Expression { BinaryExpression BitwiseAnd $1 $4 }
+                  | Expression '^'   OptEOS Expression { BinaryExpression BitwiseXor $1 $4 }
+                  | Expression '|'   OptEOS Expression { BinaryExpression BitwiseOr $1 $4 }
+                  | Expression and   OptEOS Expression { BinaryExpression LogicalAnd $1 $4 }
+                  | Expression or    OptEOS Expression { BinaryExpression LogicalOr $1 $4 }
+                  | Expression '*='  OptEOS Expression { BinaryExpression AssignMultiply $1 $4 }
+                  | Expression '/='  OptEOS Expression { BinaryExpression AssignDivide $1 $4 }
+                  | Expression '%='  OptEOS Expression { BinaryExpression AssignModulo $1 $4 }
+                  | Expression '+='  OptEOS Expression { BinaryExpression AssignAdd $1 $4 }
+                  | Expression '-='  OptEOS Expression { BinaryExpression AssignSubtract $1 $4 }
+                  | Expression '>>=' OptEOS Expression { BinaryExpression AssignShiftRight $1 $4 }
+                  | Expression '<<=' OptEOS Expression { BinaryExpression AssignShiftLeft $1 $4 }
+                  | Expression '%>=' OptEOS Expression { BinaryExpression AssignRotateRight $1 $4 }
+                  | Expression '<%=' OptEOS Expression { BinaryExpression AssignRotateLeft $1 $4 }
+                  | Expression '&='  OptEOS Expression { BinaryExpression AssignBitwiseAnd $1 $4 }
+                  | Expression '^='  OptEOS Expression { BinaryExpression AssignBitwiseXor $1 $4 }
+                  | Expression '|='  OptEOS Expression { BinaryExpression AssignBitwiseOr $1 $4 }
+                  | Expression '='   OptEOS Expression { BinaryExpression Assignment $1 $4 }
 
 Params            :: { Params }
 Params            : '(' ')'                   { [] }
