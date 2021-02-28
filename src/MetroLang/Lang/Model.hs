@@ -40,11 +40,21 @@ type Statements = [Statement]
 
 data Statement
   = AssignStatement Vars Expression
+  | IfStatement If
   | AssertStatement Expression (Maybe String)
   | ExpressionStatement Expression
   | ReturnStatement Expression (Maybe Expression)
   | UnsafeStatement Statements
   deriving (Show)
+
+data If
+  = If Expression Statements (Maybe Else)
+  deriving Show
+
+data Else
+  = ElseIf If
+  | Else Statements
+  deriving Show
 
 type Vars = [Var]
 

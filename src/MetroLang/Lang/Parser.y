@@ -172,10 +172,19 @@ Statements        : {- empty -}               { [] }
 
 Statement         :: { Statement }
 Statement         : VarList ':=' Expression                 { AssignStatement $1 $3 }
+                  | IfStatement                             { IfStatement $1 }
                   | assert Expression AssertMessage         { AssertStatement $2 $3 }
                   | return Expression ReturnCondition       { ReturnStatement $2 $3 }
                   | unsafe Block                            { UnsafeStatement $2 }
                   | Expression                              { ExpressionStatement $1 }
+
+IfStatement       :: { If }
+IfStatement       : if Expression Block OptElseStatement  { If $2 $3 $4 }
+OptElseStatement  : {- empty -}   { Nothing }
+                  | ElseStatement { Just $1 }
+ElseStatement     :: { Else }
+ElseStatement     : else IfStatement  { ElseIf $2 }
+                  | else Block        { Else $2 }
 
 AssertMessage     : {- empty -}               { Nothing }
                   | ':' string                { Just $2 }
