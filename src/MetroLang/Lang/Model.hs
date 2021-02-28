@@ -50,12 +50,12 @@ data Statement
 
 data If
   = If Expression Statements (Maybe Else)
-  deriving Show
+  deriving (Show)
 
 data Else
   = ElseIf If
   | Else Statements
-  deriving Show
+  deriving (Show)
 
 type Vars = [Var]
 
@@ -96,6 +96,7 @@ data Expression
   | CallExpression Expression Params
   | IndexExpression Expression Expressions
   | AccessExpression Expression Access
+  | MatchExpression Expression MatchRules
   | UnaryExpression UnaryOperator Expression
   | BinaryExpression BinaryOperator Expression Expression
   deriving (Show)
@@ -108,6 +109,17 @@ data Access
 data Literal
   = IntLiteral Int
   | StringLiteral String
+  deriving (Show)
+
+type MatchRules = [MatchRule]
+
+data MatchRule
+  = MatchRule MatchCondition Expression
+  deriving (Show)
+
+data MatchCondition
+  = MatchWildcard
+  | MatchPattern Literal
   deriving (Show)
 
 data UnaryOperator

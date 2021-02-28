@@ -49,6 +49,7 @@ data Token
   | TokenDot
   | TokenEq
   | TokenEqEq
+  | TokenEqGt
   | TokenExclEq
   | TokenGt
   | TokenGtEq
@@ -79,6 +80,7 @@ data Token
   | TokenRemGtEq
   | TokenRParen
   | TokenTilde
+  | TokenUnderscore
   | -- Literals
     TokenIdentifier String
   | TokenInt Int

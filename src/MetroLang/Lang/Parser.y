@@ -75,6 +75,7 @@ import System.Environment
       '<='            { TokenLtEq }
       '='             { TokenEq }
       '=='            { TokenEqEq }
+      '=>'            { TokenEqGt }
       '>'             { TokenGt }
       '>='            { TokenGtEq }
       '>>'            { TokenGtGt }
@@ -85,6 +86,7 @@ import System.Environment
       ']'             { TokenRBrack }
       '^'             { TokenCaret }
       '^='            { TokenCaretEq }
+      '_'             { TokenUnderscore }
       '{'             { TokenLBrace }
       '|'             { TokenBar }
       '|='            { TokenBarEq }
@@ -256,12 +258,11 @@ Expression        : '(' Expression ')'            { $2 }
                   | Literal                       { LiteralExpression $1 }
                   | identifier                    { VarExpression $1 }
                   | this                          { ThisExpression }
-                  | '-' Expression %prec NEG      { UnaryExpression Neg $2 }
-                  | not Expression %prec LNOT     { UnaryExpression LogicalNot $2 }
-                  | '~' Expression %prec BNOT     { UnaryExpression BitwiseNot $2 }
                   | Expression Params             { CallExpression $1 $2 }
                   | Expression Index              { IndexExpression $1 $2 }
                   | Expression Access             { AccessExpression $1 $2 }
+                  | MatchExpression               { $1 }
+                  | UnaryExpression               { $1 }
                   | BinaryExpression              { $1 }
 
 Index             :: { Expressions }
@@ -274,6 +275,20 @@ OptAccess         : {- empty -}         { Nothing }
 Access            :: { Access }
 Access            : '.' identifier OptAccess { Access $2 $3 }
                   | '?.' identifier OptAccess { OptAccess $2 $3 }
+
+MatchExpression   :: { Expression }
+MatchExpression   : match Expression MatchBody      { MatchExpression $2 $3 }
+MatchBody         : BodyOpen MatchRules BodyClose   { reverse $2 }
+MatchRules        : MatchRule                       { [$1] }
+                  | MatchRules EOS MatchRule        { $3 : $1 }
+MatchRule         : MatchCondition '=>' Expression  { MatchRule $1 $3 }
+MatchCondition    : '_'       { MatchWildcard }
+                  | Literal   { MatchPattern $1 }
+
+UnaryExpression   :: { Expression }
+UnaryExpression   : '-' Expression %prec NEG      { UnaryExpression Neg $2 }
+                  | not Expression %prec LNOT     { UnaryExpression LogicalNot $2 }
+                  | '~' Expression %prec BNOT     { UnaryExpression BitwiseNot $2 }
 
 BinaryExpression  :: { Expression }
 BinaryExpression  : Expression '*'   OptEOS Expression { BinaryExpression Multiply $1 $4 }

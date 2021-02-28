@@ -15,6 +15,11 @@ lexer cont s@(c : cs)
   | isAlpha c = lexVar cont s
   | isDigit c = lexNum cont s
   | c == '"' = lexStr cont s
+lexer cont s@('_' : c : cs)
+  | isAlphaNum c = lexVar cont s
+  | c == '_' = lexVar cont s
+  | otherwise = \col -> cont TokenUnderscore cs (col + 1)
+lexer cont ['_'] = \col -> cont TokenUnderscore [] (col + 1)
 lexer cont ('!' : '=' : cs) = \col -> cont TokenExclEq cs (col + 2)
 lexer cont ('%' : '=' : cs) = \col -> cont TokenRemEq cs (col + 2)
 lexer cont ('%' : '>' : '=' : cs) = \col -> cont TokenRemGtEq cs (col + 3)
@@ -43,6 +48,7 @@ lexer cont ('<' : '<' : cs) = \col -> cont TokenLtLt cs (col + 2)
 lexer cont ('<' : '=' : cs) = \col -> cont TokenLtEq cs (col + 2)
 lexer cont ('<' : cs) = \col -> cont TokenLt cs (col + 1)
 lexer cont ('=' : '=' : cs) = \col -> cont TokenEqEq cs (col + 2)
+lexer cont ('=' : '>' : cs) = \col -> cont TokenEqGt cs (col + 2)
 lexer cont ('=' : cs) = \col -> cont TokenEq cs (col + 1)
 lexer cont ('>' : '=' : cs) = \col -> cont TokenGtEq cs (col + 2)
 lexer cont ('>' : '>' : '=' : cs) = \col -> cont TokenGtGtEq cs (col + 3)
@@ -74,6 +80,7 @@ lexMultiLineComment cont [] = cont TokenEOF []
 
 lexNumSuffix :: Int -> (Token -> P a) -> P a
 lexNumSuffix num cont ('U' : cs) = \col -> cont (TokenInt num) cs (col + 1)
+lexNumSuffix num cont ('B' : cs) = \col -> cont (TokenInt num) cs (col + 1)
 lexNumSuffix num cont cs = cont (TokenInt num) cs
 
 lexNum :: (Token -> P a) -> P a
