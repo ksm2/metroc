@@ -120,15 +120,22 @@ Module                  : OptEOS Declarations                           { Module
 Declarations            : Declaration                                   { [$1] }
                         | Declarations Declaration                      { $2 : $1 }
 
+Declaration             :: { Declaration }
 Declaration             : ImportDeclaration                             { $1 }
-                        | ConstDeclaration                              { $1 }
+                        | ExportDeclaration                             { $1 }
+                        | ImplDeclaration                               { $1 }
+                        | ExportableDeclaration                         { $1 }
+
+ExportableDeclaration   :: { Declaration }
+ExportableDeclaration   : ConstDeclaration                              { $1 }
                         | EnumDeclaration                               { $1 }
                         | InterfaceDeclaration                          { $1 }
-                        | ImplDeclaration                               { $1 }
                         | ClassDeclaration                              { $1 }
                         | FnDeclaration                                 { $1 }
 
 ImportDeclaration       : import FQN EOS                                { ImportDeclaration (reverse $2) }
+
+ExportDeclaration       : export ExportableDeclaration                  { ExportDeclaration $2 }
 
 ConstDeclaration        : const id '=' Expression EOS                   { ConstDeclaration $2 $4 }
 
