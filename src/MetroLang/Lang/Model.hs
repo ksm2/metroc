@@ -67,6 +67,7 @@ type ReturnType = [Type]
 data Type
   = RefType String
   | ArrayType Type
+  | ArgumentType Type TypeArguments
   deriving (Show)
 
 type FQN = [String]

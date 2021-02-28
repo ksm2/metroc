@@ -227,6 +227,7 @@ TypeArgument      : identifier                              { TypeArgument $1 }
 Type              :: { Type }
 Type              : identifier                              { RefType $1 }
                   | '[' Type ']'                            { ArrayType $2 }
+                  | Type '<' TypeArgumentList '>'           { ArgumentType $1 (reverse $3) }
 
 FQN               :: { FQN }
 FQN               : identifier                              { [$1] }
