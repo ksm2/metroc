@@ -41,6 +41,7 @@ type Statements = [Statement]
 data Statement
   = AssignStatement Vars Expression
   | IfStatement If
+  | LetStatement Let
   | WhileStatement Expression Statements (Maybe Else)
   | AssertStatement Expression (Maybe String)
   | ExpressionStatement Expression
@@ -52,10 +53,19 @@ data If
   = If Expression Statements (Maybe Else)
   deriving (Show)
 
+data Let
+  = Let LetLeft Expression Statements (Maybe Else)
+  deriving Show
+
 data Else
   = ElseIf If
+  | ElseLet Let
   | Else Statements
   deriving (Show)
+
+data LetLeft
+  = LetEnumMatch String Vars
+  deriving Show
 
 type Vars = [Var]
 

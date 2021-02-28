@@ -33,6 +33,7 @@ import System.Environment
       import            { TokenImport }
       interface         { TokenInterface }
       is                { TokenIs }
+      let               { TokenLet }
       match             { TokenMatch }
       not               { TokenNot }
       null              { TokenNull }
@@ -180,18 +181,26 @@ Statements              : {- empty -}                                   { [] }
 Statement               :: { Statement }
 Statement               : VarList ':=' Expression EOS                   { AssignStatement $1 $3 }
                         | IfStatement                                   { IfStatement $1 }
-                        | while Expression Block OptElseStatement       { WhileStatement $2 $3 $4 }
+                        | LetStatement                                  { LetStatement $1 }
+                        | while Expression Block OptElse                { WhileStatement $2 $3 $4 }
                         | assert Expression AssertMessage EOS           { AssertStatement $2 $3 }
                         | return Expression ReturnCondition EOS         { ReturnStatement $2 $3 }
                         | unsafe Block                                  { UnsafeStatement $2 }
                         | Expression EOS                                { ExpressionStatement $1 }
 
 IfStatement             :: { If }
-IfStatement             : if Expression Block OptElseStatement          { If $2 $3 $4 }
-OptElseStatement        : {- empty -}                                   { Nothing }
+IfStatement             : if Expression Block OptElse                   { If $2 $3 $4 }
+
+LetStatement            :: { Let }
+LetStatement            : let LetLeft '=' Expression Block OptElse      { Let $2 $4 $5 $6 }
+LetLeft                 :: { LetLeft }
+LetLeft                 : id '(' VarList ')'                            { LetEnumMatch $1 $3 }
+
+OptElse                 : {- empty -}                                   { Nothing }
                         | ElseStatement                                 { Just $1 }
 ElseStatement           :: { Else }
 ElseStatement           : else IfStatement                              { ElseIf $2 }
+                        | else LetStatement                             { ElseLet $2 }
                         | else Block                                    { Else $2 }
 
 AssertMessage           : {- empty -}                                   { Nothing }
