@@ -92,9 +92,38 @@ type Types = [Type]
 
 data Type
   = RefType String
+  | PrimitiveType PrimitiveType
   | ArrayType Type
   | ArgumentType Type TypeArguments
   deriving (Show)
+
+data PrimitiveType
+  = TBool
+  | TIntXS
+  | TByte
+  | TIntS
+  | TWord
+  | TInt
+  | TUInt
+  | TIntL
+  | TUIntL
+  | TFloat
+  | TFloatL
+  | TChar
+  | TString
+  deriving (Bounded, Enum, Show, Eq)
+
+instance Ord PrimitiveType where
+  a <= b
+    | a == b = True
+    | a == TIntXS = b >= TIntS
+    | a == TIntS = b >= TInt
+    | a == TInt = b >= TIntL
+    | a == TByte = b >= TWord
+    | a == TWord = b >= TUInt
+    | a == TUInt = b >= TUIntL
+    | a == TFloat = b >= TFloatL
+    | otherwise = False
 
 type FQN = [String]
 

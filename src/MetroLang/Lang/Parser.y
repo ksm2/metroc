@@ -47,6 +47,20 @@ import MetroLang.Lang.Token
       while             { TokenWhile }
       xor               { TokenXor }
 
+      Bool      { TokenTBool }
+      IntXS     { TokenTIntXS }
+      Byte      { TokenTByte }
+      IntS      { TokenTIntS }
+      Word      { TokenTWord }
+      Int       { TokenTInt }
+      UInt      { TokenTUInt }
+      IntL      { TokenTIntL }
+      UIntL     { TokenTUIntL }
+      Float     { TokenTFloat }
+      FloatL    { TokenTFloatL }
+      Char      { TokenTChar }
+      String    { TokenTString }
+
       '!='      { TokenExclEq }
       '%'       { TokenRem }
       '%='      { TokenRemEq }
@@ -266,8 +280,24 @@ TypeArgument            : id                                            { TypeAr
 
 Type                    :: { Type }
 Type                    : id                                            { RefType $1 }
+                        | PrimitiveType                                 { PrimitiveType $1 }
                         | '[' Type ']'                                  { ArrayType $2 }
                         | Type '<' TypeArgumentList '>'                 { ArgumentType $1 (reverse $3) }
+
+PrimitiveType           :: { PrimitiveType }
+PrimitiveType           : Bool                                          { TBool }
+                        | IntXS                                         { TIntXS }
+                        | Byte                                          { TByte }
+                        | IntS                                          { TIntS }
+                        | Word                                          { TWord }
+                        | Int                                           { TInt }
+                        | UInt                                          { TUInt }
+                        | IntL                                          { TIntL }
+                        | UIntL                                         { TUIntL }
+                        | Float                                         { TFloat }
+                        | FloatL                                        { TFloatL }
+                        | Char                                          { TChar }
+                        | String                                        { TString }
 
 FQN                     :: { FQN }
 FQN                     : id                                            { [$1] }

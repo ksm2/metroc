@@ -1,8 +1,7 @@
 module MetroLang.Lang.Token where
 
 data Token
-  = -- Keywords
-    TokenAnd
+  = TokenAnd -- Keywords
   | TokenAs
   | TokenAssert
   | TokenClass
@@ -34,8 +33,20 @@ data Token
   | TokenUnsafe
   | TokenWhile
   | TokenXor
-  | -- Operators
-    TokenAmp
+  | TokenTBool -- Primitive Types
+  | TokenTIntXS
+  | TokenTByte
+  | TokenTIntS
+  | TokenTWord
+  | TokenTInt
+  | TokenTUInt
+  | TokenTIntL
+  | TokenTUIntL
+  | TokenTFloat
+  | TokenTFloatL
+  | TokenTChar
+  | TokenTString
+  | TokenAmp -- Operators
   | TokenAmpEq
   | TokenBar
   | TokenBarEq
@@ -81,11 +92,9 @@ data Token
   | TokenRParen
   | TokenTilde
   | TokenUnderscore
-  | -- Literals
-    TokenIdentifier String
+  | TokenIdentifier String -- Literals
   | TokenInt Int
   | TokenString String
-  | -- Commands
-    TokenEOS
+  | TokenEOS -- Commands
   | TokenEOF
   deriving (Eq, Show)

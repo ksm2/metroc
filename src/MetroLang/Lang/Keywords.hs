@@ -36,7 +36,20 @@ keywords =
     ("true", TokenTrue),
     ("unsafe", TokenUnsafe),
     ("while", TokenWhile),
-    ("xor", TokenXor)
+    ("xor", TokenXor),
+    ("Bool", TokenTBool),
+    ("IntXS", TokenTIntXS),
+    ("Byte", TokenTByte),
+    ("IntS", TokenTIntS),
+    ("Word", TokenTWord),
+    ("Int", TokenTInt),
+    ("UInt", TokenTUInt),
+    ("IntL", TokenTIntL),
+    ("UIntL", TokenTUIntL),
+    ("Float", TokenTFloat),
+    ("FloatL", TokenTFloatL),
+    ("Char", TokenTChar),
+    ("String", TokenTString)
   ]
 
 findKeywordToken :: String -> Maybe Token
