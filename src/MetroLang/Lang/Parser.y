@@ -243,12 +243,17 @@ FQN               :: { FQN }
 FQN               : identifier                              { [$1] }
                   | FQN '.' identifier                      { $3 : $1 }
 
+ExpressionList    :: { Expressions }
+ExpressionList    : Expression                    { [$1] }
+                  | ExpressionList ',' Expression { $3 : $1 }
 
+Expression        :: { Expression }
 Expression        : '(' Expression ')'            { $2 }
                   | Literal                       { LiteralExpression $1 }
                   | identifier                    { VarExpression $1 }
                   | this                          { ThisExpression }
                   | Expression Params             { CallExpression $1 $2 }
+                  | Expression Index              { IndexExpression $1 $2 }
                   | Expression Access             { AccessExpression $1 $2 }
                   | '-' Expression %prec NEG      { UnaryExpression Neg $2 }
                   | not Expression %prec LNOT     { UnaryExpression LogicalNot $2 }
@@ -288,6 +293,9 @@ Expression        : '(' Expression ')'            { $2 }
                   | Expression '^='   Expression  { BinaryExpression AssignBitwiseXor $1 $3 }
                   | Expression '|='   Expression  { BinaryExpression AssignBitwiseOr $1 $3 }
                   | Expression '='    Expression  { BinaryExpression Assignment $1 $3 }
+
+Index             :: { Expressions }
+Index             : '[' ExpressionList ']' { reverse $2 }
 
 OptAccess         :: { Maybe Access }
 OptAccess         : {- empty -}         { Nothing }

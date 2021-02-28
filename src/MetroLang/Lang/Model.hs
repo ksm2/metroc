@@ -85,11 +85,14 @@ type FQN = [String]
 
 type Params = [Expression]
 
+type Expressions = [Expression]
+
 data Expression
   = LiteralExpression Literal
   | VarExpression Var
   | ThisExpression
   | CallExpression Expression Params
+  | IndexExpression Expression Expressions
   | AccessExpression Expression Access
   | UnaryExpression UnaryOperator Expression
   | BinaryExpression BinaryOperator Expression Expression
