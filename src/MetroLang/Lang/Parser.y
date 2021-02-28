@@ -145,7 +145,7 @@ InterfaceMethods      : {- empty -}                                       { [] }
 InterfaceMethod       :: { InterfaceMethod }
 InterfaceMethod       : identifier Arguments ReturnType EOS               { InterfaceMethod $1 $2 $3 }
 
-ImplDeclaration       : impl identifier for Type ClassBody                { ImplDeclaration $2 $4 $5 }
+ImplDeclaration       : impl Type for Type ClassBody                      { ImplDeclaration $2 $4 $5 }
 ClassDeclaration      : class identifier TypeArguments ClassBody          { ClassDeclaration $2 $3 $4 }
 ClassBody             : BodyOpen ClassMethods BodyClose                   { reverse $2 }
 ClassMethods          : {- empty -}                                       { [] }

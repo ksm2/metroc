@@ -13,7 +13,7 @@ data Declaration
   | ConstDeclaration String Expression
   | EnumDeclaration String TypeArguments EnumItems
   | InterfaceDeclaration String TypeArguments InterfaceMethods
-  | ImplDeclaration String Type ClassMethods
+  | ImplDeclaration Type Type ClassMethods
   | ClassDeclaration String TypeArguments ClassMethods
   | FnDeclaration String Safety Arguments ReturnType Statements
   deriving (Show)
