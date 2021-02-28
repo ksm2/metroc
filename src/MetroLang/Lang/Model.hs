@@ -14,7 +14,7 @@ data Declaration
   | EnumDeclaration String TypeArguments EnumItems
   | InterfaceDeclaration String TypeArguments InterfaceMethods
   | ImplDeclaration Type Type ClassMethods
-  | ClassDeclaration String TypeArguments ClassMethods
+  | ClassDeclaration String TypeArguments Arguments ClassMethods
   | FnDeclaration String Safety Arguments ReturnType Statements
   deriving (Show)
 

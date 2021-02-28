@@ -145,13 +145,13 @@ InterfaceMethods      : {- empty -}                                       { [] }
 InterfaceMethod       :: { InterfaceMethod }
 InterfaceMethod       : identifier Arguments ReturnType EOS               { InterfaceMethod $1 $2 $3 }
 
-ImplDeclaration       : impl Type for Type ClassBody                      { ImplDeclaration $2 $4 $5 }
-ClassDeclaration      : class identifier TypeArguments ClassBody          { ClassDeclaration $2 $3 $4 }
-ClassBody             : BodyOpen ClassMethods BodyClose                   { reverse $2 }
-ClassMethods          : {- empty -}                                       { [] }
-                      | ClassMethod                                       { [$1] }
-                      | ClassMethods ClassMethod                          { $2 : $1 }
-ClassMethod           : Static Safety identifier Arguments ReturnType Block { ClassMethod $3 $1 $2 $4 $5 $6 }
+ImplDeclaration       : impl Type for Type ClassBody                          { ImplDeclaration $2 $4 $5 }
+ClassDeclaration      : class identifier TypeArguments OptArguments ClassBody { ClassDeclaration $2 $3 $4 $5 }
+ClassBody             : BodyOpen ClassMethods BodyClose                       { reverse $2 }
+ClassMethods          : {- empty -}                                           { [] }
+                      | ClassMethod                                           { [$1] }
+                      | ClassMethods ClassMethod                              { $2 : $1 }
+ClassMethod           : Static Safety identifier Arguments ReturnType Block   { ClassMethod $3 $1 $2 $4 $5 $6 }
 
 FnDeclaration     : Safety fn identifier Arguments ReturnType Block       { FnDeclaration $3 $1 $4 $5 $6 }
 Block             : BodyOpen Statements BodyClose                         { reverse $2 }
