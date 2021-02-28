@@ -5,7 +5,6 @@ import MetroLang.Lang.Exception
 import MetroLang.Lang.Lexer
 import MetroLang.Lang.Model
 import MetroLang.Lang.Token
-import System.Environment
 }
 
 %name calc
@@ -372,14 +371,10 @@ EOS                     : eos                                           {}
                         | EOS eos                                       {}
 
 {
-parse :: IO ()
-parse = do
-  argv <- getArgs
-  let (filePath:rest) = argv
-  contents <- readFile filePath
-
+parse :: String -> String -> Either Module String
+parse filePath contents =
   let result = calc contents 1 1 filePath contents
-  case result of
-    Ok a      -> print a
-    Failed e  -> error e
+  in case result of
+    Ok a      -> Left a
+    Failed e  -> Right e
 }
