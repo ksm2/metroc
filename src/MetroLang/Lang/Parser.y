@@ -173,6 +173,7 @@ Statements        : {- empty -}               { [] }
 Statement         :: { Statement }
 Statement         : VarList ':=' Expression                 { AssignStatement $1 $3 }
                   | IfStatement                             { IfStatement $1 }
+                  | while Expression Block OptElseStatement { WhileStatement $2 $3 $4 }
                   | assert Expression AssertMessage         { AssertStatement $2 $3 }
                   | return Expression ReturnCondition       { ReturnStatement $2 $3 }
                   | unsafe Block                            { UnsafeStatement $2 }

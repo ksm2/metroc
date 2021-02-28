@@ -41,6 +41,7 @@ type Statements = [Statement]
 data Statement
   = AssignStatement Vars Expression
   | IfStatement If
+  | WhileStatement Expression Statements (Maybe Else)
   | AssertStatement Expression (Maybe String)
   | ExpressionStatement Expression
   | ReturnStatement Expression (Maybe Expression)
