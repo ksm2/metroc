@@ -168,6 +168,7 @@ data Expression
   | CastExpression Expression Type
   | CallExpression Identifier Arguments
   | MethodCallExpression Expression Identifier Arguments
+  | TypeExpression Type
   | IndexExpression Expression Expression
   | MatchExpression Expression MatchRules
   | UnaryExpression UnaryOperator Expression

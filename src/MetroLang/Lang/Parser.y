@@ -331,6 +331,7 @@ Expression              : '(' Expression ')'                            { $2 }
                         | id Arguments                                  { CallExpression $1 $2 }
                         | Expression Index                              { IndexExpression $1 $2 }
                         | Expression '.' id Arguments                   { MethodCallExpression $1 $3 $4 }
+                        | Type                                          { TypeExpression $1 }
                         | MatchExpression                               { $1 }
                         | UnaryExpression                               { $1 }
                         | BinaryExpression                              { $1 }

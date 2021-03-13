@@ -44,6 +44,19 @@ describeToken TokenEOF = "end of file"
 describeToken TokenEOS = "end of statement"
 describeToken (TokenInt _) = "integer literal"
 describeToken (TokenString _) = "string literal"
+describeToken TokenTBool = "Bool"
+describeToken TokenTIntXS = "IntXS"
+describeToken TokenTByte = "Byte"
+describeToken TokenTIntS = "IntS"
+describeToken TokenTWord = "Word"
+describeToken TokenTInt = "Int"
+describeToken TokenTUInt = "UInt"
+describeToken TokenTIntL = "IntL"
+describeToken TokenTUIntL = "UIntL"
+describeToken TokenTFloat = "Float"
+describeToken TokenTFloatL = "FloatL"
+describeToken TokenTChar = "Char"
+describeToken TokenTString = "String"
 describeToken t
   | isKeywordToken t = map toLower (drop 5 $ show t) ++ " keyword"
   | otherwise = drop 5 $ show t
@@ -51,6 +64,19 @@ describeToken t
 startOfToken :: Token -> Int -> Int
 startOfToken (TokenIdentifier iden) col = col - (length iden)
 startOfToken (TokenString str) col = col - strLength str
+startOfToken TokenTBool col = col - 4
+startOfToken TokenTIntXS col = col - 5
+startOfToken TokenTByte col = col - 4
+startOfToken TokenTIntS col = col - 4
+startOfToken TokenTWord col = col - 4
+startOfToken TokenTInt col = col - 3
+startOfToken TokenTUInt col = col - 4
+startOfToken TokenTIntL col = col - 4
+startOfToken TokenTUIntL col = col - 5
+startOfToken TokenTFloat col = col - 5
+startOfToken TokenTFloatL col = col - 6
+startOfToken TokenTChar col = col - 4
+startOfToken TokenTString col = col - 6
 startOfToken token col
   | token == TokenEOF || token == TokenEOS = col
   | isKeywordToken token = col - (length (show token)) + 5

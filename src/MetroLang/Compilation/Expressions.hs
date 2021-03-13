@@ -56,6 +56,7 @@ expr (Metro.MethodCallExpression obj methodName args) =
     objValue <- expr obj
     argValues <- arguments args
     methodCall objValue methodName argValues
+expr (Metro.TypeExpression t) = return $ Value (MetaType t) $ i32Const 0 -- TODO: Use meaningful const
 
 literal :: Metro.Literal -> Compiler Value
 literal (Metro.BoolLiteral True) = return trueValue
