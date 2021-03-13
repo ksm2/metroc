@@ -225,8 +225,8 @@ Safety                  : unsafe                                        { Unsafe
 Statements              :: { [Statement] }
 Statements              : {- empty -}                                   { [] }
                         | Statement                                     { [$1] }
-                        | Block                                         { $1 }
-                        | Block Statement                               { $2 : $1 }
+                        | Statements                                    { $1 }
+                        | Statements Statement                          { $2 : $1 }
 
 Statement               :: { Statement }
 Statement               : id ':=' Expression EOS                        { AssignStatement $1 $3 }
