@@ -1,5 +1,5 @@
 {
-module MetroLang.Lang.Parser (parse) where
+module MetroLang.Lang.Parser (parse, merge) where
 import MetroLang.Lang.Error
 import MetroLang.Lang.Exception
 import MetroLang.Lang.Lexer
@@ -424,4 +424,7 @@ parse filePath contents =
   in case result of
     Ok a      -> Left a
     Failed e  -> Right e
+
+merge :: Module -> Module -> Module
+merge (Module m1) (Module m2) = Module (m1 ++ m2)
 }
