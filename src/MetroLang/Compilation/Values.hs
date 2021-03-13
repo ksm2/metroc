@@ -1,6 +1,6 @@
 module MetroLang.Compilation.Values where
 
-import MetroLang.AST
+import MetroLang.Lang.Model
 import MetroLang.WebAssembly.AST
 
 data Value = Value
@@ -10,9 +10,9 @@ data Value = Value
   deriving (Show)
 
 dataTypeToValtype :: Type -> Valtype
-dataTypeToValtype (Primitive TFloatL) = F64
-dataTypeToValtype (Primitive TFloat) = F32
-dataTypeToValtype (Primitive TIntL) = I64
+dataTypeToValtype (PrimitiveType TFloatL) = F64
+dataTypeToValtype (PrimitiveType TFloat) = F32
+dataTypeToValtype (PrimitiveType TIntL) = I64
 dataTypeToValtype _ = I32
 
 unsigned :: PrimitiveType -> PrimitiveType

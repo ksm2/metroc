@@ -2,8 +2,8 @@ module MetroLang.Compilation.Context where
 
 import Control.Monad.State (State, get, put, runState)
 import Data.Map (Map, adjust, empty, fromList, insert, member, union, (!))
-import MetroLang.AST
 import MetroLang.Bytes (utf8Length)
+import MetroLang.Lang.Model
 import MetroLang.Types
 
 data CompileContext = CompileContext
@@ -68,7 +68,7 @@ requireThisContext =
   do
     CompileContext {thisContext} <- get
     case thisContext of
-      TVoid -> error "You cannot use this in this context"
+      VoidType -> error "You cannot use this in this context"
       f -> return f
 
 declareConst :: String -> Type -> Compiler ()
@@ -107,7 +107,7 @@ mergeClassInfo ci1 ci2 =
       ClassInfo fields2 methods2 = ci2
    in ClassInfo (union fields1 fields2) (union methods1 methods2)
 
-createClassInfo :: [Param] -> ClassBody -> ClassInfo
+createClassInfo :: Params -> ClassBody -> ClassInfo
 createClassInfo classParams classBody =
   let fields = snd $ createClassFields $ reverse classParams
       methods = readClassBody classBody
@@ -115,15 +115,15 @@ createClassInfo classParams classBody =
 
 createClassFields :: [Param] -> (Int, Map String Int)
 createClassFields [] = (0, empty)
-createClassFields ((Par fieldName t) : params) =
+createClassFields ((Param fieldName t) : params) =
   let (offset, existingMap) = createClassFields params
       newOffset = (sizeOf t) + offset
    in (newOffset, insert fieldName offset existingMap)
 
 readClassBody :: ClassBody -> Map String FunctionInfo
-readClassBody (ClassBody decls) = readMethods decls
+readClassBody decls = readMethods decls
 
-readMethods :: [ClassBodyDeclaration] -> Map String FunctionInfo
+readMethods :: [ClassElement] -> Map String FunctionInfo
 readMethods [] = empty
 readMethods (m : ms) =
   case m of
@@ -135,13 +135,13 @@ insertMethod :: Bool -> MethodSignature -> Map Identifier FunctionInfo -> Map Id
 insertMethod isStatic (MethodSignature methodSafety methodName methodParams methodReturn) ms =
   insert methodName (createFunctionInfo isStatic (methodSafety == Unsafe) methodParams methodReturn) ms
 
-createFunctionInfo :: Bool -> Bool -> [Param] -> ReturnType -> FunctionInfo
-createFunctionInfo isStatic isUnsafe params returnType =
-  let paramTypes = map getParamType params
-   in FunctionInfo isStatic isUnsafe paramTypes returnType
+createFunctionInfo :: Bool -> Bool -> Params -> ReturnType -> FunctionInfo
+createFunctionInfo isStatic isUnsafe args returnType =
+  let argTypes = map getParamType args
+   in FunctionInfo isStatic isUnsafe argTypes returnType
 
 getParamType :: Param -> Type
-getParamType (Par _ t) = t
+getParamType (Param _ t) = t
 
 getFieldOffset :: String -> String -> Compiler Int
 getFieldOffset className fieldName =
@@ -189,7 +189,7 @@ lookupFunction fnName =
       else error $ "Function does not exist: \"" ++ fnName ++ "\""
 
 -- | pushScope adds a new empty scope on top of all scopes.
-pushScope :: [Param] -> Compiler ()
+pushScope :: Params -> Compiler ()
 pushScope p =
   let newScope = Scope $ scopeFromParams p
    in do
@@ -208,7 +208,7 @@ popScope =
 
 scopeFromParams :: [Param] -> Map String Type
 scopeFromParams [] = empty
-scopeFromParams ((Par paramName paramType) : ps) = insert paramName paramType $ scopeFromParams ps
+scopeFromParams ((Param paramName paramType) : ps) = insert paramName paramType $ scopeFromParams ps
 
 declareVariable :: String -> Type -> Compiler ()
 declareVariable varName varType =
@@ -249,14 +249,14 @@ createClassInfoForPrimitiveType p =
 primitiveMethods :: PrimitiveType -> Map String FunctionInfo
 primitiveMethods p =
   fromList
-    [ ("load", FunctionInfo True True [Primitive TInt] (Primitive p)),
-      ("store", FunctionInfo False True [Primitive TInt] (TVoid))
+    [ ("load", FunctionInfo True True [PrimitiveType TInt] (PrimitiveType p)),
+      ("store", FunctionInfo False True [PrimitiveType TInt] (VoidType))
     ]
 
 builtInFunctions :: Map String FunctionInfo
 builtInFunctions =
   fromList
-    [ ("__allocate", FunctionInfo True True [Primitive TInt] (Primitive TInt))
+    [ ("__allocate", FunctionInfo True True [PrimitiveType TInt] (PrimitiveType TInt))
     ]
 
 assertionsEnabled :: Compiler Bool
@@ -273,7 +273,7 @@ runCompiler enableAssertions cb =
           { blockCtr = 0,
             stringOffset = 1024,
             strings = empty,
-            thisContext = TVoid,
+            thisContext = VoidType,
             consts = empty,
             classes = builtInTypes,
             functions = builtInFunctions,

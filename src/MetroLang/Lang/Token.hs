@@ -95,6 +95,8 @@ data Token
   | TokenUnderscore
   | TokenIdentifier String -- Literals
   | TokenInt Int
+  | TokenUInt Int
+  | TokenByte Int
   | TokenString String
   | TokenEOS -- Commands
   | TokenEOF

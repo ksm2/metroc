@@ -79,8 +79,8 @@ lexMultiLineComment cont (_ : cs) = \col -> lexMultiLineComment cont cs (col + 1
 lexMultiLineComment cont [] = cont TokenEOF []
 
 lexNumSuffix :: Int -> (Token -> P a) -> P a
-lexNumSuffix num cont ('U' : cs) = \col -> cont (TokenInt num) cs (col + 1)
-lexNumSuffix num cont ('B' : cs) = \col -> cont (TokenInt num) cs (col + 1)
+lexNumSuffix num cont ('U' : cs) = \col -> cont (TokenUInt num) cs (col + 1)
+lexNumSuffix num cont ('B' : cs) = \col -> cont (TokenByte num) cs (col + 1)
 lexNumSuffix num cont cs = cont (TokenInt num) cs
 
 lexNum :: (Token -> P a) -> P a

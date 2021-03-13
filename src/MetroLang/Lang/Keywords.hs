@@ -1,6 +1,5 @@
 module MetroLang.Lang.Keywords where
 
-import Data.List
 import MetroLang.Lang.Token
 
 keywords :: [(String, Token)]

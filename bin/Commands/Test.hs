@@ -6,7 +6,7 @@ import Builder.Instance (Instance, callFuncErr, withInstance)
 import Builder.Runtime (withRuntime)
 import Chalk
 import Control.Monad
-import MetroLang.AST as MetroAST
+import MetroLang.Lang.Model as MetroAST
 import MetroLang.Utils
 import System.Directory
 import System.IO
@@ -88,15 +88,15 @@ printStatistics tests =
     putStatisticLine "Test Suites" countPassedTestSuites countTestSuites
     putStatisticLine "Tests" countPassedTests countTests
 
-findTests :: MetroAST.Module -> [(MetroAST.Identifier, MetroAST.TestBody)]
-findTests (MetroAST.Mod []) = []
-findTests (MetroAST.Mod ((MetroAST.Test i b) : xs)) = (i, b) : findTests (MetroAST.Mod xs)
-findTests (MetroAST.Mod (_ : xs)) = findTests (MetroAST.Mod xs)
+findTests :: MetroAST.Module -> [(MetroAST.Identifier, [MetroAST.TestStatement])]
+findTests (MetroAST.Module []) = []
+findTests (MetroAST.Module ((MetroAST.TestDeclaration i b) : xs)) = (i, b) : findTests (MetroAST.Module xs)
+findTests (MetroAST.Module (_ : xs)) = findTests (MetroAST.Module xs)
 
-printRuns :: [(MetroAST.Identifier, MetroAST.TestBody)] -> IO ()
+printRuns :: [(MetroAST.Identifier, [MetroAST.TestStatement])] -> IO ()
 printRuns = mapM_ printRun
 
-printRun :: (MetroAST.Identifier, MetroAST.TestBody) -> IO ()
+printRun :: (MetroAST.Identifier, [MetroAST.TestStatement]) -> IO ()
 printRun (testName, _) = printTestName Yellow "RUNS" testName ""
 
 readWhileNotEOF :: Handle -> IO String
@@ -110,11 +110,11 @@ readWhileNotEOF stderrHandle =
         next <- readWhileNotEOF stderrHandle
         return $ line ++ "\n" ++ next
 
-runTestSuites :: Instance -> Handle -> [(MetroAST.Identifier, MetroAST.TestBody)] -> IO [TestSuiteResult]
+runTestSuites :: Instance -> Handle -> [(MetroAST.Identifier, [MetroAST.TestStatement])] -> IO [TestSuiteResult]
 runTestSuites inst stderrHandle = mapM $ runTestSuite inst stderrHandle
 
-runTestSuite :: Instance -> Handle -> (MetroAST.Identifier, MetroAST.TestBody) -> IO TestSuiteResult
-runTestSuite inst stderrHandle (suiteName, (MetroAST.TestBody stmts)) =
+runTestSuite :: Instance -> Handle -> (MetroAST.Identifier, [MetroAST.TestStatement]) -> IO TestSuiteResult
+runTestSuite inst stderrHandle (suiteName, stmts) =
   do
     passedCases <- runTestCases inst stmts
     totalCases <- return $ length stmts
@@ -126,10 +126,10 @@ runTestSuite inst stderrHandle (suiteName, (MetroAST.TestBody stmts)) =
       False -> printTestFailed suiteName stderrText
     return $ TestSuiteResult {suiteName, passedCases, totalCases}
 
-runTestCases :: Instance -> [MetroAST.TestStmt] -> IO Int
+runTestCases :: Instance -> [MetroAST.TestStatement] -> IO Int
 runTestCases inst = foldM (combineResult (runTestCase inst)) 0
 
-combineResult :: (MetroAST.TestStmt -> IO TestResult) -> Int -> MetroAST.TestStmt -> IO Int
+combineResult :: (MetroAST.TestStatement -> IO TestResult) -> Int -> MetroAST.TestStatement -> IO Int
 combineResult cb passedSoFar stmt =
   do
     result <- cb stmt
@@ -137,8 +137,8 @@ combineResult cb passedSoFar stmt =
       Pass -> return $ passedSoFar + 1
       Fail _ -> return passedSoFar
 
-runTestCase :: Instance -> MetroAST.TestStmt -> IO TestResult
-runTestCase inst (MetroAST.ItStmt testCase _) =
+runTestCase :: Instance -> MetroAST.TestStatement -> IO TestResult
+runTestCase inst (MetroAST.TestStatement testCase _) =
   do
     maybeError <- callFuncErr inst testCase
     case maybeError of

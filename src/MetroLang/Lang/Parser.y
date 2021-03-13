@@ -111,6 +111,8 @@ import MetroLang.Lang.Token
 
       id        { TokenIdentifier $$ }
       int       { TokenInt $$ }
+      uint      { TokenUInt $$ }
+      byte      { TokenByte $$ }
       string    { TokenString $$ }
 
       eos       { TokenEOS }
@@ -181,7 +183,7 @@ EnumItems               : EnumItem                                      { [$1] }
                         | EnumItems EOS EnumItem                        { $3 : $1 }
 
 EnumItem                :: { EnumItem }
-EnumItem                : id OptArguments                               { EnumItem $1 $2 }
+EnumItem                : id OptParams                                  { EnumItem $1 $2 }
 
 InterfaceDeclaration    : interface id TypeArguments InterfaceBody      { InterfaceDeclaration $2 $3 $4 }
 InterfaceBody           : BodyOpen InterfaceMethods BodyClose           { reverse $2 }
@@ -193,40 +195,43 @@ InterfaceMethod         : id Arguments ReturnType EOS                   { Interf
 
 ImplDeclaration         : impl Type for Type ClassBody                  { ImplDeclaration $2 $4 $5 }
 
-ClassDeclaration        : class id TypeArguments OptArguments ClassExtension ClassImplementation ClassBody { ClassDeclaration $2 $3 $4 $5 $6 $7 }
+ClassDeclaration        : class id TypeArguments OptParams ClassExtension ClassImplementation ClassBody { ClassDeclaration $2 $3 $4 $5 $6 $7 }
 ClassExtension          : {- empty -}                                   { [] }
                         | extends TypeList                              { reverse $2 }
 ClassImplementation     : {- empty -}                                   { [] }
                         | impl TypeList                                 { reverse $2 }
+ClassBody               :: { ClassBody }
 ClassBody               : BodyOpen ClassElements BodyClose              { reverse $2 }
 ClassElements           : {- empty -}                                   { [] }
                         | ClassElement                                  { [$1] }
                         | ClassElements ClassElement                    { $2 : $1 }
-ClassElement            : static id ':=' Expression EOS                 { ClassField $2 Static $4 }
-                        | static id Arguments ReturnType Block          { ClassMethod $2 Static Safe $3 $4 $5 }
-                        | static unsafe id Arguments ReturnType Block   { ClassMethod $3 Static Unsafe $4 $5 $6 }
-                        | id ':=' Expression EOS                        { ClassField $1 Instance $3 }
-                        | id Arguments ReturnType Block                 { ClassMethod $1 Instance Safe $2 $3 $4 }
-                        | unsafe id Arguments ReturnType Block          { ClassMethod $2 Instance Unsafe $3 $4 $5 }
+ClassElement            : static id ':=' Expression EOS                 { StaticField $2 $4 }
+                        | static MethodSignature Block                  { StaticMethod $2 $3 }
+                        | id ':=' Expression EOS                        { Field $1 $3 }
+                        | MethodSignature Block                         { Method $1 $2 }
 
-FnDeclaration           : Safety fn id Arguments ReturnType Block       { FnDeclaration $3 $1 $4 $5 $6 }
+MethodSignature         :: { MethodSignature }
+MethodSignature         : id Params ReturnType                          { MethodSignature Safe $1 $2 $3 }
+                        | unsafe id Params ReturnType                   { MethodSignature Unsafe $2 $3 $4 }
+
+FnDeclaration           : Safety fn id Params ReturnType Block          { FnDeclaration $3 $1 $4 $5 $6 }
+Block                   :: { Block }
 Block                   : BodyOpen Statements BodyClose                 { reverse $2 }
 
 Safety                  :: { Safety }
 Safety                  : unsafe                                        { Unsafe }
                         | {- empty -}                                   { Safe }
 
-Statements              :: { Statements }
+Statements              :: { [Statement] }
 Statements              : {- empty -}                                   { [] }
                         | Statement                                     { [$1] }
-                        | Statements                                    { $1 }
-                        | Statements Statement                          { $2 : $1 }
+                        | Block                                         { $1 }
+                        | Block Statement                               { $2 : $1 }
 
 Statement               :: { Statement }
-Statement               : VarList ':=' Expression EOS                   { AssignStatement $1 $3 }
+Statement               : id ':=' Expression EOS                        { AssignStatement $1 $3 }
                         | IfStatement                                   { IfStatement $1 }
-                        | LetStatement                                  { LetStatement $1 }
-                        | while Expression Block OptElse                { WhileStatement $2 $3 $4 }
+                        | while Expression Block                        { WhileStatement $2 $3 }
                         | assert Expression AssertMessage EOS           { AssertStatement $2 $3 }
                         | return Expression ReturnCondition EOS         { ReturnStatement $2 $3 }
                         | unsafe Block                                  { UnsafeStatement $2 }
@@ -235,20 +240,14 @@ Statement               : VarList ':=' Expression EOS                   { Assign
 IfStatement             :: { If }
 IfStatement             : if Expression Block OptElse                   { If $2 $3 $4 }
 
-LetStatement            :: { Let }
-LetStatement            : let LetLeft '=' Expression Block OptElse      { Let $2 $4 $5 $6 }
-LetLeft                 :: { LetLeft }
-LetLeft                 : id '(' VarList ')'                            { LetEnumMatch $1 $3 }
-
 OptElse                 : {- empty -}                                   { Nothing }
                         | ElseStatement                                 { Just $1 }
 ElseStatement           :: { Else }
 ElseStatement           : else IfStatement                              { ElseIf $2 }
-                        | else LetStatement                             { ElseLet $2 }
                         | else Block                                    { Else $2 }
 
-AssertMessage           : {- empty -}                                   { Nothing }
-                        | ':' string                                    { Just $2 }
+AssertMessage           :: { String }
+AssertMessage           : ':' string                                    { $2 }
 
 ReturnCondition         : {- empty -}                                   { Nothing }
                         | if Expression                                 { Just $2 }
@@ -257,26 +256,25 @@ VarList                 : Vars                                          { revers
 Vars                    : id                                            { [$1] }
                         | Vars ',' id                                   { $3 : $1 }
 
-OptArguments            :: { Arguments }
-OptArguments            : {- empty -}                                   { [] }
-                        | '(' ArgumentList ')'                          { $2 }
+OptParams               :: { Params }
+OptParams               : {- empty -}                                   { [] }
+                        | '(' ParamList ')'                             { $2 }
 
-Arguments               :: { Arguments }
-Arguments               : '(' ')'                                       { [] }
-                        | '(' ArgumentList ')'                          { reverse $2 }
+Params                  :: { Params }
+Params                  : '(' ')'                                       { [] }
+                        | '(' ParamList ')'                             { reverse $2 }
 
-ArgumentList            :: { Arguments }
-ArgumentList            : Argument                                      { [$1] }
-                        | ArgumentList ','                              { $1 }
-                        | ArgumentList ',' Argument                     { $3 : $1 }
+ParamList               :: { Params }
+ParamList               : Param                                         { [$1] }
+                        | ParamList ','                                 { $1 }
+                        | ParamList ',' Param                           { $3 : $1 }
 
-Argument                :: { Argument }
-Argument                : id Type                                       { Argument $1 $2 }
+Param                   :: { Param }
+Param                   : id Type                                       { Param $1 $2 }
 
 ReturnType              :: { ReturnType }
-ReturnType              : {- empty -}                                   { [] }
-                        | Type                                          { [$1] }
-                        | '(' TypeList ')'                              { reverse $2 }
+ReturnType              : {- empty -}                                   { VoidType }
+                        | Type                                          { $1 }
 
 TypeList                :: { [Type] }
 TypeList                : Type                                          { [$1] }
@@ -298,7 +296,7 @@ Type                    :: { Type }
 Type                    : id                                            { RefType $1 }
                         | PrimitiveType                                 { PrimitiveType $1 }
                         | '[' Type ']'                                  { ArrayType $2 }
-                        | Type '<' TypeArgumentList '>'                 { ArgumentType $1 (reverse $3) }
+                        | Type '<' TypeArgumentList '>'                 { GenericType $1 (reverse $3) }
 
 PrimitiveType           :: { PrimitiveType }
 PrimitiveType           : Bool                                          { TBool }
@@ -329,23 +327,16 @@ Expression              : '(' Expression ')'                            { $2 }
                         | id                                            { VarExpression $1 }
                         | this                                          { ThisExpression }
                         | null                                          { NullExpression }
-                        | Expression Params                             { CallExpression $1 $2 }
+                        | Expression as Type                            { CastExpression $1 $3 }
+                        | id Arguments                                  { CallExpression $1 $2 }
                         | Expression Index                              { IndexExpression $1 $2 }
-                        | Expression Access                             { AccessExpression $1 $2 }
+                        | Expression '.' id Arguments                   { MethodCallExpression $1 $3 $4 }
                         | MatchExpression                               { $1 }
                         | UnaryExpression                               { $1 }
                         | BinaryExpression                              { $1 }
 
-Index                   :: { Expressions }
-Index                   : '[' ExpressionList ']'                        { reverse $2 }
-
-OptAccess               :: { Maybe Access }
-OptAccess               : {- empty -}                                   { Nothing }
-                        | Access                                        { Just $1 }
-
-Access                  :: { Access }
-Access                  : '.' id OptAccess                              { Access $2 $3 }
-                        | '?.' id OptAccess                             { OptAccess $2 $3 }
+Index                   :: { Expression }
+Index                   : '[' Expression ']'                            { $2 }
 
 MatchExpression         :: { Expression }
 MatchExpression         : match Expression MatchBody                    { MatchExpression $2 $3 }
@@ -378,7 +369,6 @@ BinaryExpression        : Expression '*'   OptEOS Expression            { Binary
                         | Expression '=='  OptEOS Expression            { BinaryExpression Equal $1 $4 }
                         | Expression '!='  OptEOS Expression            { BinaryExpression Unequal $1 $4 }
                         | Expression is    OptEOS Expression            { BinaryExpression Is $1 $4 }
-                        | Expression as    OptEOS Expression            { BinaryExpression As $1 $4 }
                         | Expression '&'   OptEOS Expression            { BinaryExpression BitwiseAnd $1 $4 }
                         | Expression '^'   OptEOS Expression            { BinaryExpression BitwiseXor $1 $4 }
                         | Expression '|'   OptEOS Expression            { BinaryExpression BitwiseOr $1 $4 }
@@ -398,15 +388,20 @@ BinaryExpression        : Expression '*'   OptEOS Expression            { Binary
                         | Expression '|='  OptEOS Expression            { BinaryExpression AssignBitwiseOr $1 $4 }
                         | Expression '='   OptEOS Expression            { BinaryExpression Assignment $1 $4 }
 
-Params                  :: { Params }
-Params                  : '(' ')'                                       { [] }
-                        | '(' ParamList ')'                             { reverse $2 }
-ParamList               : Expression                                    { [$1] }
-                        | ParamList ','                                 { $1 }
-                        | ParamList ',' Expression                      { $3 : $1 }
+Arguments               :: { Arguments }
+Arguments               : '(' ')'                                       { [] }
+                        | '(' ArgumentList ')'                          { reverse $2 }
+ArgumentList            : Expression                                    { [$1] }
+                        | ArgumentList ','                              { $1 }
+                        | ArgumentList ',' Expression                   { $3 : $1 }
 
+Literal                 :: { Literal }
 Literal                 : int                                           { IntLiteral $1 }
+                        | uint                                          { UIntLiteral $1 }
+                        | byte                                          { ByteLiteral $1 }
                         | string                                        { StringLiteral $1 }
+                        | true                                          { BoolLiteral True }
+                        | false                                         { BoolLiteral False }
 
 BodyOpen                : OptEOS '{' OptEOS                             {}
 BodyClose               : OptEOS '}' OptEOS                             {}
@@ -418,12 +413,12 @@ EOS                     : eos                                           {}
                         | EOS eos                                       {}
 
 {
-parse :: String -> String -> Either Module String
+parse :: String -> String -> Module
 parse filePath contents =
   let result = calc contents 1 1 filePath contents
   in case result of
-    Ok a      -> Left a
-    Failed e  -> Right e
+    Ok a      -> a
+    Failed e  -> error e
 
 merge :: Module -> Module -> Module
 merge (Module m1) (Module m2) = Module (m1 ++ m2)

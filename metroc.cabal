@@ -37,10 +37,7 @@ library
   hs-source-dirs:     src
   build-tools:				happy
   exposed-modules:
-    MetroLang.AST
     MetroLang.Bytes
-    MetroLang.Parser
-    MetroLang.Pretty
     MetroLang.WebAssembly.AST
     MetroLang.WebAssembly.Generator
     MetroLang.WebAssembly.MemoryInstr

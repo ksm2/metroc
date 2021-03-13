@@ -8,8 +8,6 @@ data Module
   = Module [Declaration]
   deriving (Show)
 
-data Static = Static | Instance deriving (Show, Eq)
-
 data Safety = Safe | Unsafe deriving (Show, Eq)
 
 data Declaration
@@ -17,13 +15,13 @@ data Declaration
   | ExportDeclaration Declaration
   | TestDeclaration Identifier [TestStatement]
   | HideDeclaration Declaration
-  | ConstDeclaration String Expression
+  | ConstDeclaration Identifier Expression
   | ExternalDeclaration ModuleName External
-  | EnumDeclaration String TypeArguments EnumItems
-  | InterfaceDeclaration String TypeArguments InterfaceMethods
-  | ImplDeclaration Type Type ClassElements
-  | ClassDeclaration String TypeArguments Arguments Types Types ClassElements
-  | FnDeclaration String Safety Arguments ReturnType Statements
+  | EnumDeclaration Identifier TypeArguments EnumItems
+  | InterfaceDeclaration Identifier TypeArguments InterfaceMethods
+  | ImplDeclaration Type Type ClassBody
+  | ClassDeclaration Identifier TypeArguments Params Types Types ClassBody
+  | FnDeclaration Identifier Safety Params ReturnType Block
   deriving (Show)
 
 data TestStatement
@@ -61,11 +59,10 @@ data MethodSignature
 type Block = [Statement]
 
 data Statement
-  = AssignStatement Vars Expression
+  = AssignStatement Var Expression
   | IfStatement If
-  | LetStatement Let
-  | WhileStatement Expression Block (Maybe Else)
-  | AssertStatement Expression (Maybe String)
+  | WhileStatement Expression Block
+  | AssertStatement Expression String
   | ExpressionStatement Expression
   | ReturnStatement Expression (Maybe Expression)
   | UnsafeStatement Block
@@ -75,21 +72,10 @@ data If
   = If Expression Block (Maybe Else)
   deriving (Show)
 
-data Let
-  = Let LetLeft Expression Block (Maybe Else)
-  deriving (Show)
-
 data Else
   = ElseIf If
-  | ElseLet Let
   | Else Block
   deriving (Show)
-
-data LetLeft
-  = LetEnumMatch Identifier Vars
-  deriving (Show)
-
-type Vars = [Var]
 
 type Var = Identifier
 
@@ -183,19 +169,15 @@ data Expression
   | CallExpression Identifier Arguments
   | MethodCallExpression Expression Identifier Arguments
   | IndexExpression Expression Expression
-  | AccessExpression Expression Identifier
   | MatchExpression Expression MatchRules
   | UnaryExpression UnaryOperator Expression
   | BinaryExpression BinaryOperator Expression Expression
   deriving (Show)
 
-data Access
-  = Access Var (Maybe Access)
-  | OptAccess Var (Maybe Access)
-  deriving (Show)
-
 data Literal
   = IntLiteral Int
+  | UIntLiteral Int
+  | ByteLiteral Int
   | StringLiteral String
   | BoolLiteral Bool
   deriving (Show)
