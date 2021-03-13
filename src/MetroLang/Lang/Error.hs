@@ -23,7 +23,7 @@ underlineString text line start end =
       lastLine = min (length textLines) (line + contextLines)
       maxLength = length (show lastLine)
       visibleLines = ((take (lastLine - firstLine + 1)) . (drop (firstLine - 1))) textLines
-      indexedLines = zipWith (\idx line -> " " ++ inGray (padLeft maxLength idx ++ " | ") ++ line) [firstLine .. lastLine] visibleLines
+      indexedLines = zipWith (\idx l -> " " ++ inGray (padLeft maxLength idx ++ " | ") ++ l) [firstLine .. lastLine] visibleLines
       scatteredLines = insertAt (line - firstLine + 1) (" " ++ repeatSpaces maxLength ++ inGray " | " ++ underline start end) indexedLines
    in unlines scatteredLines
 
@@ -33,8 +33,10 @@ underline start end =
   where
     strokes = repeat '^'
 
+inRed :: String -> String
 inRed text = "\x1b[91;1m" ++ text ++ "\x1b[m"
 
+inGray :: String -> String
 inGray text = "\x1b[90m" ++ text ++ "\x1b[m"
 
 describeToken :: Token -> String
@@ -54,6 +56,7 @@ startOfToken token col
   | isKeywordToken token = col - (length (show token)) + 5
   | otherwise = col - 1
 
+strLength :: String -> Int
 strLength [] = 2
 strLength ('"' : cs) = 2 + strLength cs
 strLength (c : cs) = 1 + strLength cs

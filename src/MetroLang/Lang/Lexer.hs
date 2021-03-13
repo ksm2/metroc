@@ -93,10 +93,12 @@ lexNum cont cs =
   where
     (num, rest) = span isDigit cs
 
+parseHex :: String -> Int
 parseHex "" = 0
 parseHex [c] = parseHexChar c
 parseHex cs = parseHexChar (last cs) + 16 * parseHex (init cs)
 
+parseHexChar :: Char -> Int
 parseHexChar '0' = 0
 parseHexChar '1' = 1
 parseHexChar '2' = 2
@@ -119,6 +121,7 @@ parseHexChar 'e' = 14
 parseHexChar 'E' = 14
 parseHexChar 'f' = 15
 parseHexChar 'F' = 15
+parseHexChar _ = undefined
 
 lexVar :: (Token -> P a) -> P a
 lexVar cont cs =
@@ -130,6 +133,7 @@ lexVar cont cs =
 
 lexStr :: (Token -> P a) -> P a
 lexStr cont (c : cs) = \col -> lexStrRec "" cont cs (col + 1)
+lexStr cont [] = cont TokenEOF []
 
 lexStrRec :: String -> (Token -> P a) -> P a
 lexStrRec str cont ('\\' : '"' : cs) = \col -> lexStrRec ('"' : str) cont cs (col + 2)
