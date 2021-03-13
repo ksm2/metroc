@@ -1,5 +1,7 @@
 module MetroLang.Lang.Model where
 
+type Identifier = String
+
 data Module
   = Module [Declaration]
   deriving (Show)
@@ -11,6 +13,7 @@ data Safety = Safe | Unsafe deriving (Show, Eq)
 data Declaration
   = ImportDeclaration FQN
   | ExportDeclaration Declaration
+  | TestDeclaration Identifier [TestStatement]
   | HideDeclaration Declaration
   | ConstDeclaration String Expression
   | EnumDeclaration String TypeArguments EnumItems
@@ -18,6 +21,10 @@ data Declaration
   | ImplDeclaration Type Type ClassElements
   | ClassDeclaration String TypeArguments Arguments Types Types ClassElements
   | FnDeclaration String Safety Arguments ReturnType Statements
+  deriving (Show)
+
+data TestStatement
+  = TestStatement String Block
   deriving (Show)
 
 type EnumItems = [EnumItem]

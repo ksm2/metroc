@@ -137,6 +137,7 @@ Declarations            : Declaration                                   { [$1] }
 Declaration             :: { Declaration }
 Declaration             : ImportDeclaration                             { $1 }
                         | ExportDeclaration                             { $1 }
+                        | TestDeclaration                               { $1 }
                         | HideDeclaration                               { $1 }
                         | HideableDeclaration                           { $1 }
 
@@ -154,6 +155,15 @@ ExportableDeclaration   : ConstDeclaration                              { $1 }
 ImportDeclaration       : import FQN EOS                                { ImportDeclaration (reverse $2) }
 
 ExportDeclaration       : export ExportableDeclaration                  { ExportDeclaration $2 }
+
+TestDeclaration         : test id TestBlock                             { TestDeclaration $2 $3 }
+TestBlock               : BodyOpen TestStatements BodyClose             { reverse $2 }
+TestStatements          :: { [TestStatement] }
+TestStatements          : {- empty -}                                   { [] }
+                        | TestStatement                                 { [$1] }
+                        | TestStatements TestStatement                  { $2 : $1 }
+TestStatement           :: { TestStatement }
+TestStatement           : it string Block                               { TestStatement $2 $3 }
 
 HideDeclaration         : hide HideableDeclaration                      { HideDeclaration $2 }
 
