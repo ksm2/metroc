@@ -23,6 +23,7 @@ import MetroLang.Lang.Token
       enum              { TokenEnum }
       export            { TokenExport }
       extends           { TokenExtends }
+      external          { TokenExternal }
       false             { TokenFalse }
       fn                { TokenFn }
       for               { TokenFor }
@@ -147,6 +148,7 @@ HideableDeclaration     : ImplDeclaration                               { $1 }
 
 ExportableDeclaration   :: { Declaration }
 ExportableDeclaration   : ConstDeclaration                              { $1 }
+                        | ExternalDeclaration                           { $1 }
                         | EnumDeclaration                               { $1 }
                         | InterfaceDeclaration                          { $1 }
                         | ClassDeclaration                              { $1 }
@@ -168,6 +170,10 @@ TestStatement           : it string Block                               { TestSt
 HideDeclaration         : hide HideableDeclaration                      { HideDeclaration $2 }
 
 ConstDeclaration        : const id '=' Expression EOS                   { ConstDeclaration $2 $4 }
+
+ExternalDeclaration     : external string External EOS                  { ExternalDeclaration $2 $3 }
+External                :: { External }
+External                : fn id Params ReturnType                       { FnExternal $2 $3 $4 }
 
 EnumDeclaration         : enum id TypeArguments EnumBody                { EnumDeclaration $2 $3 $4 }
 EnumBody                : BodyOpen EnumItems BodyClose                  { reverse $2 }

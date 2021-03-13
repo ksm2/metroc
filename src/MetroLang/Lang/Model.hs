@@ -2,6 +2,8 @@ module MetroLang.Lang.Model where
 
 type Identifier = String
 
+type ModuleName = String
+
 data Module
   = Module [Declaration]
   deriving (Show)
@@ -16,6 +18,7 @@ data Declaration
   | TestDeclaration Identifier [TestStatement]
   | HideDeclaration Declaration
   | ConstDeclaration String Expression
+  | ExternalDeclaration ModuleName External
   | EnumDeclaration String TypeArguments EnumItems
   | InterfaceDeclaration String TypeArguments InterfaceMethods
   | ImplDeclaration Type Type ClassElements
@@ -27,82 +30,115 @@ data TestStatement
   = TestStatement String Block
   deriving (Show)
 
+data External = FnExternal Identifier Params ReturnType
+  deriving (Show)
+
 type EnumItems = [EnumItem]
 
 data EnumItem
-  = EnumItem String Arguments
+  = EnumItem Identifier Params
   deriving (Show)
 
 type InterfaceMethods = [InterfaceMethod]
 
 data InterfaceMethod
-  = InterfaceMethod String Arguments ReturnType
+  = InterfaceMethod Identifier Arguments ReturnType
   deriving (Show)
 
-type ClassElements = [ClassElement]
+type ClassBody = [ClassElement]
 
 data ClassElement
-  = ClassMethod String Static Safety Arguments ReturnType Statements
-  | ClassField String Static Expression
+  = Method MethodSignature Block
+  | StaticMethod MethodSignature Block
+  | Field String Expression
+  | StaticField String Expression
   deriving (Show)
 
-type Statements = [Statement]
+data MethodSignature
+  = MethodSignature Safety Identifier Params ReturnType
+  deriving (Show)
+
+type Block = [Statement]
 
 data Statement
   = AssignStatement Vars Expression
   | IfStatement If
   | LetStatement Let
-  | WhileStatement Expression Statements (Maybe Else)
+  | WhileStatement Expression Block (Maybe Else)
   | AssertStatement Expression (Maybe String)
   | ExpressionStatement Expression
   | ReturnStatement Expression (Maybe Expression)
-  | UnsafeStatement Statements
+  | UnsafeStatement Block
   deriving (Show)
 
 data If
-  = If Expression Statements (Maybe Else)
+  = If Expression Block (Maybe Else)
   deriving (Show)
 
 data Let
-  = Let LetLeft Expression Statements (Maybe Else)
+  = Let LetLeft Expression Block (Maybe Else)
   deriving (Show)
 
 data Else
   = ElseIf If
   | ElseLet Let
-  | Else Statements
+  | Else Block
   deriving (Show)
 
 data LetLeft
-  = LetEnumMatch String Vars
+  = LetEnumMatch Identifier Vars
   deriving (Show)
 
 type Vars = [Var]
 
-type Var = String
+type Var = Identifier
 
-type Arguments = [Argument]
+type Params = [Param]
 
-data Argument
-  = Argument String Type
+data Param
+  = Param Identifier Type
   deriving (Show)
 
 type TypeArguments = [TypeArgument]
 
 data TypeArgument
-  = TypeArgument String
-  deriving (Show)
+  = TypeArgument Identifier
+  deriving (Eq, Show)
 
-type ReturnType = [Type]
+type ReturnType = Type
 
 type Types = [Type]
 
 data Type
-  = RefType String
+  = VoidType
+  | RefType Identifier
+  | MetaType Type
   | PrimitiveType PrimitiveType
   | ArrayType Type
-  | ArgumentType Type TypeArguments
-  deriving (Show)
+  | GenericType Type TypeArguments
+
+instance Eq Type where
+  VoidType == VoidType = True
+  RefType a == RefType b = a == b
+  MetaType a == MetaType b = a == b
+  PrimitiveType a == PrimitiveType b = a == b
+  ArrayType a == ArrayType b = a == b
+  GenericType a1 a2 == GenericType b1 b2 = a1 == b1 && a2 == b2
+  _ == _ = False
+
+instance Show Type where
+  show VoidType = "Void"
+  show (RefType s) = show s
+  show (MetaType t) = "type of type " ++ show t
+  show (PrimitiveType p) = let (_ : xs) = show p in xs
+  show (ArrayType t) = "[" ++ (show t) ++ "]"
+  show (GenericType s []) = show s
+  show (GenericType s args) = show s ++ "<" ++ joinArgs args ++ ">"
+
+joinArgs :: (Show a) => [a] -> String
+joinArgs [] = ""
+joinArgs [element] = show element
+joinArgs (x : xs) = (show x) ++ ", " ++ (joinArgs xs)
 
 data PrimitiveType
   = TBool
@@ -132,9 +168,9 @@ instance Ord PrimitiveType where
     | a == TFloat = b >= TFloatL
     | otherwise = False
 
-type FQN = [String]
+type FQN = [Identifier]
 
-type Params = [Expression]
+type Arguments = [Expression]
 
 type Expressions = [Expression]
 
@@ -143,9 +179,11 @@ data Expression
   | VarExpression Var
   | ThisExpression
   | NullExpression
-  | CallExpression Expression Params
-  | IndexExpression Expression Expressions
-  | AccessExpression Expression Access
+  | CastExpression Expression Type
+  | CallExpression Identifier Arguments
+  | MethodCallExpression Expression Identifier Arguments
+  | IndexExpression Expression Expression
+  | AccessExpression Expression Identifier
   | MatchExpression Expression MatchRules
   | UnaryExpression UnaryOperator Expression
   | BinaryExpression BinaryOperator Expression Expression
@@ -159,6 +197,7 @@ data Access
 data Literal
   = IntLiteral Int
   | StringLiteral String
+  | BoolLiteral Bool
   deriving (Show)
 
 type MatchRules = [MatchRule]

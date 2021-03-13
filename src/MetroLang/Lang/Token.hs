@@ -10,6 +10,7 @@ data Token
   | TokenEnum
   | TokenExport
   | TokenExtends
+  | TokenExternal
   | TokenFalse
   | TokenFn
   | TokenFor

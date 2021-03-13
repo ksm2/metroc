@@ -14,6 +14,7 @@ keywords =
     ("enum", TokenEnum),
     ("export", TokenExport),
     ("extends", TokenExtends),
+    ("external", TokenExternal),
     ("false", TokenFalse),
     ("fn", TokenFn),
     ("for", TokenFor),
