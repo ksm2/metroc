@@ -56,6 +56,10 @@ expr (Metro.MethodCallExpression obj methodName args) =
     objValue <- expr obj
     argValues <- arguments args
     methodCall objValue methodName argValues
+expr (Metro.AccessExpression obj fieldName) =
+  do
+    objValue <- expr obj
+    fieldAccess objValue fieldName
 expr (Metro.TypeExpression t) = return $ Value (MetaType t) $ i32Const 0 -- TODO: Use meaningful const
 
 literal :: Metro.Literal -> Compiler Value
@@ -161,10 +165,6 @@ binaryExpr Metro.AssignAdd e1 e2 = assignmentOp Metro.Add e1 e2
 binaryExpr Metro.AssignModulo e1 e2 = assignmentOp Metro.Modulo e1 e2
 binaryExpr Metro.AssignDivide e1 e2 = assignmentOp Metro.Divide e1 e2
 binaryExpr Metro.AssignMultiply e1 e2 = assignmentOp Metro.Multiply e1 e2
-binaryExpr Metro.Chain obj (Metro.VarExpression fieldName) =
-  do
-    objValue <- expr obj
-    fieldAccess objValue fieldName
 binaryExpr op e1 e2 =
   do
     f1 <- expr e1
@@ -321,7 +321,7 @@ assignmentOp op left right =
 
 leftHandSideGetter :: Metro.Expression -> Compiler Value
 leftHandSideGetter (Metro.VarExpression varName) = localVarExpr varName
-leftHandSideGetter (Metro.BinaryExpression Metro.Chain Metro.ThisExpression (Metro.VarExpression fieldName)) =
+leftHandSideGetter (Metro.AccessExpression Metro.ThisExpression fieldName) =
   do
     classType <- requireThisContext
     fieldOffset <- getFieldOffset (show classType) fieldName
@@ -330,7 +330,7 @@ leftHandSideGetter _ = error "Not a valid left-hand side assignment expression."
 
 leftHandSideSetter :: Metro.Expression -> Compiler (WASM.Expr -> WASM.Expr)
 leftHandSideSetter (Metro.VarExpression i) = return $ setLocal i
-leftHandSideSetter (Metro.BinaryExpression Metro.Chain Metro.ThisExpression (Metro.VarExpression fieldName)) =
+leftHandSideSetter (Metro.AccessExpression Metro.ThisExpression fieldName) =
   do
     classType <- requireThisContext
     fieldOffset <- getFieldOffset (show classType) fieldName

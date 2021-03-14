@@ -168,6 +168,7 @@ data Expression
   | CastExpression Expression Type
   | CallExpression Identifier Arguments
   | MethodCallExpression Expression Identifier Arguments
+  | AccessExpression Expression Identifier
   | TypeExpression Type
   | IndexExpression Expression Expression
   | MatchExpression Expression MatchRules
@@ -236,6 +237,4 @@ data BinaryOperator
   | Modulo
   | Divide
   | Multiply
-  | OptChain
-  | Chain
   deriving (Show)
