@@ -1,5 +1,5 @@
-import "wasi_unstable" fn fd_read(fd Int, ciovecArrayPtr Int, ciovecArrayLen Int, numReadPtr Int) Int
-import "wasi_unstable" fn fd_write(fd Int, ciovecArrayPtr Int, ciovecArrayLen Int, numWrittenPtr Int) Int
+external "wasi_unstable" fn fd_read(fd Int, ciovecArrayPtr Int, ciovecArrayLen Int, numReadPtr Int) Int
+external "wasi_unstable" fn fd_write(fd Int, ciovecArrayPtr Int, ciovecArrayLen Int, numWrittenPtr Int) Int
 
 const FD_STDIN = 0
 const FD_STDOUT = 1

@@ -1,6 +1,6 @@
 module MetroLang.WebAssembly.MemoryInstr where
 
-import MetroLang.AST
+import MetroLang.Lang.Model
 import MetroLang.WebAssembly.AST
 
 intToMaybe :: Int -> Maybe Integer

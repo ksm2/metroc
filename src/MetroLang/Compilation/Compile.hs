@@ -2,51 +2,51 @@ module MetroLang.Compilation.Compile (compile) where
 
 import Control.Monad (liftM)
 import Data.Map (assocs, toAscList)
-import MetroLang.AST as Metro (PrimitiveType (..), Type (..))
-import qualified MetroLang.AST as Metro
 import MetroLang.Compilation.Combinators
 import MetroLang.Compilation.Context
 import MetroLang.Compilation.Expressions
 import MetroLang.Compilation.Values
+import MetroLang.Lang.Model (PrimitiveType (..), Type (..))
+import qualified MetroLang.Lang.Model as Metro
 import MetroLang.Types
 import qualified MetroLang.WebAssembly.AST as WASM
 import MetroLang.WebAssembly.MemoryInstr
 import MetroLang.WebAssembly.Utils
 
 compileModule :: Metro.Module -> Compiler WASM.Module
-compileModule (Metro.Mod d) = liftM WASM.Mod $ declarations d
+compileModule (Metro.Module d) = liftM WASM.Mod $ declarations d
 
 declarations :: [Metro.Declaration] -> Compiler [WASM.Declaration]
 declarations = flatMany declaration
 
 declaration :: Metro.Declaration -> Compiler [WASM.Declaration]
-declaration (Metro.Import moduleName specifier) =
+declaration (Metro.ExternalDeclaration moduleName specifier) =
   do
     wasmImportName <- importName specifier
-    wasmImportSpecifier <- importSpecifier specifier
+    wasmImportSpecifier <- external specifier
     return [WASM.Import moduleName wasmImportName wasmImportSpecifier]
-declaration (Metro.Const constName value) =
+declaration (Metro.ConstDeclaration constName value) =
   do
     Value valueType valueExpr <- expr value
     declareConst constName valueType
     return [WASM.Global constName (WASM.Imut (dataTypeToValtype valueType)) valueExpr]
-declaration (Metro.Enumeration _name _typeArgs _) = return []
-declaration (Metro.Interface _name _typeArgs _ _) = return []
-declaration (Metro.Class name _typeArgs pars _ _ body) =
+declaration (Metro.EnumDeclaration _name _typeArgs _) = return []
+declaration (Metro.InterfaceDeclaration _name _typeArgs _) = return []
+declaration (Metro.ClassDeclaration name _typeArgs pars _ _ body) =
   do
     maybeType <- strToTypeMaybe name
-    thisCtx <- return $ maybe (Generic name []) id maybeType
+    thisCtx <- return $ maybe (RefType name) id maybeType
     setThisContext thisCtx
     declareClass name (createClassInfo pars body)
     parsedBody <- classBody body
     constr <- constructor name pars
     return $ constr : parsedBody
-declaration (Metro.Impl _ targetType body) =
+declaration (Metro.ImplDeclaration _ targetType body) =
   do
     setThisContext targetType
     enhanceClass (show targetType) (createClassInfo [] body)
     classBody body
-declaration (Metro.Func fnSafety fnName fnParams fnReturn body) =
+declaration (Metro.FnDeclaration fnName fnSafety fnParams fnReturn body) =
   do
     isUnsafe <- return $ fnSafety == Metro.Unsafe
     declareFunction fnName $ FunctionInfo True isUnsafe (map getParamType fnParams) fnReturn
@@ -55,13 +55,16 @@ declaration (Metro.Func fnSafety fnName fnParams fnReturn body) =
     bb <- fnBlock body fnParams
     fnExport <- return $ Just fnName
     return [WASM.Func fnName fnExport p r bb]
-declaration (Metro.Test testName body) = testDeclaration testName body
+declaration (Metro.TestDeclaration testName testStatements) = testDeclaration testName testStatements
+declaration (Metro.ImportDeclaration _) = error "Imports not supported yet"
+declaration (Metro.ExportDeclaration _) = error "Exports not supported yet"
+declaration (Metro.HideDeclaration _) = error "Hides not supported yet"
 
-importName :: Metro.ImportSpecifier -> Compiler String
-importName (Metro.FuncImport fnName _ _) = return fnName
+importName :: Metro.External -> Compiler String
+importName (Metro.FnExternal fnName _ _) = return fnName
 
-importSpecifier :: Metro.ImportSpecifier -> Compiler WASM.ImportSpecifier
-importSpecifier (Metro.FuncImport fnName fnParams fnReturn) =
+external :: Metro.External -> Compiler WASM.ImportSpecifier
+external (Metro.FnExternal fnName fnParams fnReturn) =
   do
     declareFunction fnName $ FunctionInfo True False (map getParamType fnParams) fnReturn
     p <- params fnParams
@@ -79,7 +82,7 @@ constructor name pars =
     return $ WASM.Func name Nothing p (Just (WASM.Res WASM.I32)) body
 
 assignField :: Metro.Param -> Compiler WASM.Expr
-assignField (Metro.Par fieldName _) =
+assignField (Metro.Param fieldName _) =
   do
     className <- requireThisContext
     fieldOffset <- getFieldOffset (show className) fieldName
@@ -87,17 +90,14 @@ assignField (Metro.Par fieldName _) =
 
 -- Classes
 classBody :: Metro.ClassBody -> Compiler [WASM.Declaration]
-classBody (Metro.ClassBody decls) = classBodyDeclarations decls
-
-classBodyDeclarations :: [Metro.ClassBodyDeclaration] -> Compiler [WASM.Declaration]
-classBodyDeclarations = flatMany classBodyDeclaration
+classBody = flatMany classElement
 
 data Owner = Static | Instance
 
-classBodyDeclaration :: Metro.ClassBodyDeclaration -> Compiler [WASM.Declaration]
-classBodyDeclaration (Metro.Method m b) = method Instance m b
-classBodyDeclaration (Metro.StaticMethod m b) = method Static m b
-classBodyDeclaration _ = return []
+classElement :: Metro.ClassElement -> Compiler [WASM.Declaration]
+classElement (Metro.Method m b) = method Instance m b
+classElement (Metro.StaticMethod m b) = method Static m b
+classElement _ = return []
 
 method :: Owner -> Metro.MethodSignature -> Metro.Block -> Compiler [WASM.Declaration]
 method o m@(Metro.MethodSignature _ _ methodParams _) b =
@@ -124,11 +124,11 @@ methodSignature Static (Metro.MethodSignature _safety name methodParams methodRe
 methodName :: Show a => a -> [Char] -> [Char]
 methodName className name = (show className) ++ "." ++ name
 
-testDeclaration :: String -> Metro.TestBody -> Compiler [WASM.Declaration]
-testDeclaration testName (Metro.TestBody s) = many (testStatement testName) s
+testDeclaration :: String -> [Metro.TestStatement] -> Compiler [WASM.Declaration]
+testDeclaration testName s = many (testStatement testName) s
 
-testStatement :: String -> Metro.TestStmt -> Compiler WASM.Declaration
-testStatement testName (Metro.ItStmt description body) =
+testStatement :: String -> Metro.TestStatement -> Compiler WASM.Declaration
+testStatement testName (Metro.TestStatement description body) =
   do
     l <- return $ testName ++ "$" ++ testDescriptionToIdentifier description
     b <- block body
@@ -139,32 +139,32 @@ testDescriptionToIdentifier = map (\c -> if c == ' ' then '_' else c)
 
 -- Statements
 fnBlock :: Metro.Block -> [Metro.Param] -> Compiler [WASM.Expr]
-fnBlock (Metro.Block b) p =
+fnBlock b p =
   do
     pushScope p
     x <- stmts b
     Scope found <- popScope
-    ls <- return $ makeLocalStmts (filter (isNotParam p) (assocs found))
+    ls <- return $ makeLocalStatements (filter (isNotParam p) (assocs found))
     return $ ls ++ x
 
 isNotParam :: [Metro.Param] -> (Metro.Identifier, Metro.Type) -> Bool
 isNotParam fnParams (varName, _) = not $ any (paramNameEquals varName) fnParams
 
 paramNameEquals :: String -> Metro.Param -> Bool
-paramNameEquals expected (Metro.Par actual _) = expected == actual
+paramNameEquals expected (Metro.Param actual _) = expected == actual
 
 block :: Metro.Block -> Compiler [WASM.Expr]
-block (Metro.Block b) = stmts b
+block b = stmts b
 
-stmts :: [Metro.Stmt] -> Compiler [WASM.Expr]
+stmts :: [Metro.Statement] -> Compiler [WASM.Expr]
 stmts = flatMany stmt
 
-stmt :: Metro.Stmt -> Compiler [WASM.Expr]
-stmt (Metro.IfStmt i) = ifStmt i
-stmt (Metro.WhileStmt cond whileBlock) =
+stmt :: Metro.Statement -> Compiler [WASM.Expr]
+stmt (Metro.IfStatement i) = ifStatement i
+stmt (Metro.WhileStatement cond whileBlock) =
   do
     Value condType condExpr <- expr cond
-    if condType /= Metro.Primitive TBool
+    if condType /= Metro.PrimitiveType TBool
       then error "The while condition must be of type Bool."
       else do
         whileLabel <- label "while"
@@ -172,61 +172,69 @@ stmt (Metro.WhileStmt cond whileBlock) =
         b <- block whileBlock
         condBr <- return $ brIf whileLabel $ i32Eqz condExpr
         return [WASM.Block whileLabel Nothing $ [WASM.Loop continueLabel $ condBr : b ++ [br continueLabel]]]
-stmt (Metro.ReturnStmt e Nothing) =
+stmt (Metro.ReturnStatement e Nothing) =
   do
     value <- expr e
     wasmEx <- return $ wasmExpr value
     return [WASM.Return wasmEx]
-stmt (Metro.ReturnStmt e (Just c)) =
+stmt (Metro.ReturnStatement e (Just c)) =
   do
     l <- label "return"
     value <- expr e
     cond <- ifCond l c
     wasmEx <- return $ wasmExpr value
     return [WASM.Block l Nothing $ [cond, WASM.Return wasmEx]]
-stmt (Metro.UnsafeStmt body) = block body
-stmt (Metro.AssertStmt cond message) =
+stmt (Metro.UnsafeStatement body) = block body
+stmt (Metro.AssertStatement cond message) =
   do
     isEnabled <- assertionsEnabled
     if isEnabled
       then assertion cond message
       else return []
-stmt (Metro.ExprStmt e) =
+stmt (Metro.ExpressionStatement e) =
   do
     value <- expr e
     wasmEx <- return $ wasmExpr value
-    if (dataType value) /= TVoid
+    if (dataType value) /= VoidType
       then return [dropInstr wasmEx]
       else return [wasmEx]
+stmt (Metro.AssignStatement e1 e2) = definitionExpr e1 e2
+
+definitionExpr :: Metro.Var -> Metro.Expression -> Compiler [WASM.Expr]
+definitionExpr varName ex =
+  do
+    varValue <- expr ex
+    declareVariable varName (dataType varValue)
+    return [setLocal varName $ wasmExpr varValue]
 
 -- If
-ifStmt :: Metro.If -> Compiler [WASM.Expr]
-ifStmt (Metro.If cond thenBlock Nothing) = thenStmt cond thenBlock []
-ifStmt (Metro.If cond thenBlock (Just e)) =
+ifStatement :: Metro.If -> Compiler [WASM.Expr]
+ifStatement (Metro.If cond thenBlock Nothing) = thenStatement cond thenBlock []
+ifStatement (Metro.If cond thenBlock (Just e)) =
   do
     l <- label "else"
-    t <- thenStmt cond thenBlock [br l]
-    f <- elseStmt e
+    t <- thenStatement cond thenBlock [br l]
+    f <- elseStatement e
     return [WASM.Block l Nothing $ t ++ f]
 
-thenStmt :: Metro.Expression -> Metro.Block -> [WASM.Expr] -> Compiler [WASM.Expr]
-thenStmt cond thenBlock elseCond =
+thenStatement :: Metro.Expression -> Metro.Block -> [WASM.Expr] -> Compiler [WASM.Expr]
+thenStatement cond thenBlock elseCond =
   do
     l <- label "if"
     c <- ifCond l cond
     b <- block thenBlock
     return [WASM.Block l Nothing $ (c : b) ++ elseCond]
 
-elseStmt :: Metro.Else -> Compiler [WASM.Expr]
-elseStmt (Metro.ElseStmt b) = block b
-elseStmt (Metro.ElseIfStmt i) = ifStmt i
+elseStatement :: Metro.Else -> Compiler [WASM.Expr]
+elseStatement (Metro.Else b) = block b
+elseStatement (Metro.ElseIf i) = ifStatement i
 
 ifCond :: String -> Metro.Expression -> Compiler WASM.Expr
 ifCond i cond =
   do
     value <- expr cond
     case value of
-      Value (Primitive TBool) wasmCond -> return $ brIf i $ i32Eqz wasmCond
+      Value (Metro.PrimitiveType TBool) wasmCond -> return $ brIf i $ i32Eqz wasmCond
       _ -> error "The if condition must be of type Bool."
 
 assertion :: Metro.Expression -> String -> Compiler [WASM.Expr]
@@ -234,7 +242,7 @@ assertion cond message =
   do
     l <- label "assert"
     Value condType condExpr <- expr cond
-    if condType /= Primitive TBool
+    if condType /= PrimitiveType TBool
       then error "Assertion condition must be a Bool."
       else do
         assertCond <- return $ brIf l condExpr
@@ -245,17 +253,17 @@ params :: [Metro.Param] -> Compiler [WASM.Param]
 params = many param
 
 param :: Metro.Param -> Compiler WASM.Param
-param (Metro.Par i t) = return $ WASM.Par i $ dataTypeToValtype t
+param (Metro.Param i t) = return $ WASM.Par i $ dataTypeToValtype t
 
 returnType :: Metro.ReturnType -> Compiler WASM.ReturnType
-returnType TVoid = return Nothing
+returnType VoidType = return Nothing
 returnType rt = return $ Just $ WASM.Res $ dataTypeToValtype rt
 
-makeLocalStmts :: [(Metro.Identifier, Metro.Type)] -> [WASM.Expr]
-makeLocalStmts = map makeLocalStmt
+makeLocalStatements :: [(Metro.Identifier, Metro.Type)] -> [WASM.Expr]
+makeLocalStatements = map makeLocalStatement
 
-makeLocalStmt :: (Metro.Identifier, Metro.Type) -> WASM.Expr
-makeLocalStmt (i, dt) = WASM.Local i $ dataTypeToValtype dt
+makeLocalStatement :: (Metro.Identifier, Metro.Type) -> WASM.Expr
+makeLocalStatement (i, dt) = WASM.Local i $ dataTypeToValtype dt
 
 compiling :: (a -> Compiler WASM.Module) -> Bool -> String -> a -> WASM.Module
 compiling cab enableAssertions mainMethod a =
