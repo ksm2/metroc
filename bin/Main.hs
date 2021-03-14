@@ -11,10 +11,10 @@ startsWith y (x : _) = x == y
 
 lcFirst :: String -> String
 lcFirst [] = []
-lcFirst (x : xs) = (toLower x) : xs
+lcFirst (x : xs) = toLower x : xs
 
 strToCommand :: String -> Maybe Command
-strToCommand str = find (\cmd -> str == (lcFirst $ show cmd)) commands
+strToCommand str = find (\cmd -> str == lcFirst (show cmd)) commands
 
 parseArgs :: [String] -> ([String], Maybe Command, [String])
 parseArgs [] = ([], Nothing, [])

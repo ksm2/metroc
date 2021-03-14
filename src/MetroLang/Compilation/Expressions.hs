@@ -31,11 +31,10 @@ expr (Metro.VarExpression varName) =
         refType <- strToTypeMaybe varName
         case refType of
           Just theType -> return $ Value (MetaType theType) $ i32Const 0
-          Nothing -> do
-            localVarExpr varName
+          Nothing -> localVarExpr varName
 expr (Metro.LiteralExpression lit) = literal lit
-expr (Metro.NullExpression) = return $ Value VoidType $ i32Const 0
-expr (Metro.ThisExpression) =
+expr Metro.NullExpression = return $ Value VoidType $ i32Const 0
+expr Metro.ThisExpression =
   do
     classType <- requireThisContext
     return $ Value classType $ getLocal "this"
@@ -77,7 +76,7 @@ functionCall :: String -> [Value] -> Compiler Value
 functionCall fnName args =
   do
     functionInfo <- lookupFunction fnName
-    wasmArgs <- return $ checkFunctionSignature 1 fnName (parameters functionInfo) args
+    let wasmArgs = checkFunctionSignature 1 fnName (parameters functionInfo) args
     return $ Value (returnDataType functionInfo) $ call fnName wasmArgs
 
 castExpr :: Metro.Expression -> Metro.Type -> Compiler Value
@@ -97,7 +96,7 @@ strToType str =
 strToTypeMaybe :: String -> Compiler (Maybe Type)
 strToTypeMaybe str =
   do
-    isPrimitive <- return $ strToPrimitiveType str
+    let isPrimitive = strToPrimitiveType str
     isClass <- strToClass str
     return $ isPrimitive ?? isClass
 
@@ -149,7 +148,7 @@ unaryExprWasm Metro.BitwiseNot (Value (PrimitiveType p) e)
   | p == TWord || p == TIntS = Value (PrimitiveType p) $ i32Xor (i32Const 0xFFFF) e
   | p == TUInt || p == TInt = Value (PrimitiveType p) $ i32Xor (i32Const 0xFFFFFFFF) e
   | p == TUIntL || p == TIntL = Value (PrimitiveType p) $ i64Xor (i64Const 0xFFFFFFFFFFFFFFFF) e
-unaryExprWasm Metro.BitwiseNot (Value t _) = error $ "Cannot apply '~' on " ++ (show t)
+unaryExprWasm Metro.BitwiseNot (Value t _) = error $ "Cannot apply '~' on " ++ show t
 
 binaryExpr :: Metro.BinaryOperator -> Metro.Expression -> Metro.Expression -> Compiler Value
 binaryExpr Metro.Assignment e1 e2 = assignment e1 e2
@@ -172,7 +171,7 @@ binaryExpr op e1 e2 =
     return $ binaryExprWasm op f1 f2
 
 fieldAccess :: Value -> String -> Compiler Value
-fieldAccess (Value (MetaType (PrimitiveType TInt)) _) "MIN_VALUE" = return $ Value (PrimitiveType TInt) $ i32Const $ 0 - 2147483648
+fieldAccess (Value (MetaType (PrimitiveType TInt)) _) "MIN_VALUE" = return $ Value (PrimitiveType TInt) $ i32Const $ negate 2147483648
 fieldAccess (Value (MetaType (PrimitiveType TInt)) _) "MAX_VALUE" = return $ Value (PrimitiveType TInt) $ i32Const 2147483647
 fieldAccess (Value (PrimitiveType TUInt) obj) "lowWord" = return $ convertTo TUInt TWord obj
 fieldAccess (Value (PrimitiveType TUInt) obj) "highWord" = return $ Value (PrimitiveType TWord) $ i32Shru obj $ i32Const 16
@@ -199,7 +198,7 @@ methodCall (Value (PrimitiveType p) obj) "store" [arg0] = return $ Value VoidTyp
 methodCall (Value (PrimitiveType p) obj) "countLeadingZeros" [] = return $ clz p obj
 methodCall (Value (PrimitiveType p) obj) "countTrailingZeros" [] = return $ ctz p obj
 methodCall (Value (PrimitiveType p) obj) "countOnes" [] = return $ popcnt p obj
-methodCall (Value (PrimitiveType TString) obj) "toByteList" [] = return $ Value (ArrayType (PrimitiveType TByte)) $ obj
+methodCall (Value (PrimitiveType TString) obj) "toByteList" [] = return $ Value (ArrayType (PrimitiveType TByte)) obj
 methodCall (Value (MetaType typeRef) _) methodName args = staticClassMethodCall typeRef methodName args
 methodCall (Value objType obj) methodName args = classMethodCall (show objType) obj methodName args
 
@@ -211,14 +210,14 @@ staticClassMethodCall (PrimitiveType p) "store" [arg0, arg1] = return $ Value Vo
 staticClassMethodCall typeRef methodName args =
   do
     method <- lookupClassMethod (show typeRef) methodName
-    wasmArgs <- return $ checkFunctionSignature 1 methodName (parameters method) args
-    return $ Value (returnDataType method) $ call ((show typeRef) ++ "." ++ methodName) wasmArgs
+    let wasmArgs = checkFunctionSignature 1 methodName (parameters method) args
+    return $ Value (returnDataType method) $ call (show typeRef ++ "." ++ methodName) wasmArgs
 
 classMethodCall :: String -> WASM.Expr -> String -> [Value] -> Compiler Value
 classMethodCall className obj methodName args =
   do
     method <- lookupClassMethod className methodName
-    wasmArgs <- return $ checkFunctionSignature 1 methodName (parameters method) args
+    let wasmArgs = checkFunctionSignature 1 methodName (parameters method) args
     return $ Value (returnDataType method) $ call (className ++ "." ++ methodName) $ obj : wasmArgs
 
 clz :: Metro.PrimitiveType -> WASM.Expr -> Value
@@ -227,19 +226,19 @@ clz p e
   | p == TWord || p == TIntS = Value (PrimitiveType TByte) $ WASM.Method "clz" WASM.I32 [i32Shl (i32Const 16) e]
   | p == TUInt || p == TInt = Value (PrimitiveType TByte) $ WASM.Method "clz" WASM.I32 [e]
   | p == TUIntL || p == TIntL = Value (PrimitiveType TByte) $ WASM.Method "clz" WASM.I64 [e]
-  | otherwise = error $ "Cannot count leading zeros for " ++ (show p)
+  | otherwise = error $ "Cannot count leading zeros for " ++ show p
 
 ctz :: Metro.PrimitiveType -> WASM.Expr -> Value
 ctz p e
   | p <= TUInt || p <= TInt = Value (PrimitiveType TByte) $ WASM.Method "ctz" WASM.I32 [e]
   | p == TUIntL || p == TIntL = Value (PrimitiveType TByte) $ WASM.Method "ctz" WASM.I64 [e]
-  | otherwise = error $ "Cannot count trailing zeros for " ++ (show p)
+  | otherwise = error $ "Cannot count trailing zeros for " ++ show p
 
 popcnt :: Metro.PrimitiveType -> WASM.Expr -> Value
 popcnt p e
   | p <= TUInt || p <= TInt = Value (PrimitiveType TByte) $ WASM.Method "popcnt" WASM.I32 [e]
   | p == TUIntL || p == TIntL = Value (PrimitiveType TByte) $ WASM.Method "popcnt" WASM.I64 [e]
-  | otherwise = error $ "Cannot count ones for " ++ (show p)
+  | otherwise = error $ "Cannot count ones for " ++ show p
 
 listAccessExpr :: Metro.Expression -> Metro.Expression -> Compiler Value
 listAccessExpr obj key =
@@ -275,13 +274,13 @@ matchRules (c : cs) target =
         return $ Value valType $ WASM.Select valExpr elseExpr cond
 
 makeMatchRuleCond :: Metro.Expression -> Metro.MatchCondition -> Compiler WASM.Expr
-makeMatchRuleCond left (Metro.MatchWildcard) = expr left >>= (\value -> return $ wasmExpr value)
+makeMatchRuleCond left Metro.MatchWildcard = wasmExpr <$> expr left
 makeMatchRuleCond left (Metro.MatchPattern lit) =
   do
     Value leftType leftExpr <- expr left
     Value rightType rightExpr <- literal lit
     if leftType /= rightType
-      then error $ "Match rule condition type " ++ (show rightType) ++ " does not match type of value to match " ++ (show leftType)
+      then error $ "Match rule condition type " ++ show rightType ++ " does not match type of value to match " ++ show leftType
       else return $ i32Eq leftExpr rightExpr
 
 load :: Type -> WASM.Expr -> Value
@@ -293,8 +292,8 @@ checkFunctionSignature _ _ [] [] = []
 checkFunctionSignature no fnName (p : params) (a : args) =
   let Value dt ex = a
    in if p == dt
-        then ex : (checkFunctionSignature (no + 1) fnName params args)
-        else error $ "The " ++ (ordnum no) ++ " parameter type of \"" ++ fnName ++ "\" does not match: Expected " ++ (show p) ++ ", but was " ++ (show dt)
+        then ex : checkFunctionSignature (no + 1) fnName params args
+        else error $ "The " ++ ordnum no ++ " parameter type of \"" ++ fnName ++ "\" does not match: Expected " ++ show p ++ ", but was " ++ show dt
 checkFunctionSignature _ fnName [] _ = error $ "Too many arguments provided to method \"" ++ fnName ++ "\""
 checkFunctionSignature _ fnName _ [] = error $ "Not enough arguments provided to method \"" ++ fnName ++ "\""
 
@@ -302,7 +301,7 @@ ordnum :: Int -> String
 ordnum 1 = "1st"
 ordnum 2 = "2nd"
 ordnum 3 = "3rd"
-ordnum x = (show x) ++ "th"
+ordnum x = show x ++ "th"
 
 assignment :: Metro.Expression -> Metro.Expression -> Compiler Value
 assignment left right =
@@ -360,7 +359,7 @@ binaryExprWasm Metro.Add v1 v2 = arithmeticExpr "add" v1 v2
 binaryExprWasm Metro.Modulo v1 v2 = signedArithmeticExpr "rem" v1 v2
 binaryExprWasm Metro.Divide v1 v2 = signedArithmeticExpr "div" v1 v2
 binaryExprWasm Metro.Multiply v1 v2 = arithmeticExpr "mul" v1 v2
-binaryExprWasm op _ _ = error $ (show op) ++ " not implemented yet"
+binaryExprWasm op _ _ = error $ show op ++ " not implemented yet"
 
 --binaryExpr Metro.OptChain e1 e2 = TODO!
 --binaryExpr Metro.Chain e1 e2 = TODO!
@@ -380,14 +379,14 @@ comparingExpr op (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2
   | left == right = Value (PrimitiveType TBool) $ WASM.Method op (dataTypeToValtype (PrimitiveType right)) [e1, e2]
   | left < right = Value (PrimitiveType TBool) $ WASM.Method op (dataTypeToValtype (PrimitiveType right)) [convertToExpr left right e1, e2]
   | left > right = Value (PrimitiveType TBool) $ WASM.Method op (dataTypeToValtype (PrimitiveType left)) [e1, convertToExpr right left e2]
-comparingExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
+comparingExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ show left ++ " and " ++ show right ++ "."
 
 arithmeticExpr :: String -> Value -> Value -> Value
 arithmeticExpr op (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
   | left == right = maskTo right $ WASM.Method op (dataTypeToValtype (PrimitiveType right)) [e1, e2]
   | left < right = maskTo right $ WASM.Method op (dataTypeToValtype (PrimitiveType right)) [convertToExpr left right e1, e2]
   | left > right = maskTo left $ WASM.Method op (dataTypeToValtype (PrimitiveType left)) [e1, convertToExpr right left e2]
-arithmeticExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ (show left) ++ " and " ++ (show right) ++ "."
+arithmeticExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ show left ++ " and " ++ show right ++ "."
 
 signedArithmeticExpr :: String -> Value -> Value -> Value
 signedArithmeticExpr op (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
@@ -396,7 +395,7 @@ signedArithmeticExpr op (Value (PrimitiveType left) e1) (Value (PrimitiveType ri
 signedArithmeticExpr _ _ _ = error "Cannot perform signed operation on mixed signed/unsigned type"
 
 maskTo :: Metro.PrimitiveType -> WASM.Expr -> Value
-maskTo dest = (Value $ PrimitiveType dest) . (maskToExpr dest)
+maskTo dest = Value (PrimitiveType dest) . maskToExpr dest
 
 maskToExpr :: Metro.PrimitiveType -> WASM.Expr -> WASM.Expr
 maskToExpr TByte = i32And (i32Const 0xFF)
@@ -406,23 +405,23 @@ maskToExpr TIntS = i32And (i32Const 0xFFFF)
 maskToExpr _ = id
 
 convertTo :: Metro.PrimitiveType -> Metro.PrimitiveType -> WASM.Expr -> Value
-convertTo src dest = (Value $ PrimitiveType dest) . (convertToExpr src dest)
+convertTo src dest = Value (PrimitiveType dest) . convertToExpr src dest
 
 convertToExpr :: Metro.PrimitiveType -> Metro.PrimitiveType -> WASM.Expr -> WASM.Expr
 convertToExpr src TUIntL
   | src <= TInt = i64ExtendI32U
   | src <= TUInt = i64ExtendI32U
-  | otherwise = error $ "Cannot convert " ++ (show src) ++ " to UIntL"
+  | otherwise = error $ "Cannot convert " ++ show src ++ " to UIntL"
 convertToExpr src TIntL
   | src <= TInt = i64ExtendI32S
   | src <= TUInt = i64ExtendI32S
-  | otherwise = error $ "Cannot convert " ++ (show src) ++ " to IntL"
+  | otherwise = error $ "Cannot convert " ++ show src ++ " to IntL"
 convertToExpr src dest
   | src == dest = id
   | src < dest = id
   | src > dest = maskToExpr dest
   | src == unsigned dest = id
-  | otherwise = error $ "Cannot convert " ++ (show src) ++ " to " ++ (show dest)
+  | otherwise = error $ "Cannot convert " ++ show src ++ " to " ++ show dest
 
 arguments :: Metro.Arguments -> Compiler [Value]
-arguments (e) = exprs e
+arguments = exprs

@@ -43,4 +43,4 @@ metroToAST enableAssertions inputs =
 astToWAT :: Bool -> String -> Module -> String
 astToWAT enableAssertions mainMethod =
   let wasmStdLib = parseWASM $(embedStringFile "std/std.wat")
-   in generateString . (mergeWASM wasmStdLib) . (compile enableAssertions mainMethod)
+   in generateString . mergeWASM wasmStdLib . compile enableAssertions mainMethod

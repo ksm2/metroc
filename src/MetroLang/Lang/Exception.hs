@@ -19,25 +19,25 @@ m `thenP` k = \s c l i content ->
     Failed e -> Failed e
 
 returnP :: a -> P a
-returnP a = \s c l i content -> Ok a
+returnP a s c l i content = Ok a
 
 failP :: String -> P a
-failP err = \s c l i content -> Failed err
+failP err s c l i content = Failed err
 
 catchP :: P a -> (String -> P a) -> P a
-catchP m k = \s c l i content ->
+catchP m k s c l i content =
   case m s c l i content of
     Ok a -> Ok a
     Failed e -> k e s c l i content
 
 getColNo :: P ColNumber
-getColNo = \s c l i content -> Ok c
+getColNo s c l i content = Ok c
 
 getLineNo :: P LineNumber
-getLineNo = \s c l i content -> Ok l
+getLineNo s c l i content = Ok l
 
 getInputFile :: P InputFile
-getInputFile = \s c l i content -> Ok i
+getInputFile s c l i content = Ok i
 
 getInputContent :: P InputContent
-getInputContent = \s c l i content -> Ok content
+getInputContent s c l i = Ok

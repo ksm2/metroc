@@ -1,5 +1,6 @@
 module Tty where
 
+import Control.Monad
 import System.Posix.IO (stdOutput)
 import System.Posix.Terminal (queryTerminal)
 
@@ -33,4 +34,4 @@ ifTty :: IO () -> IO ()
 ifTty cb =
   do
     tty <- isTty
-    if tty then cb else return ()
+    when tty cb

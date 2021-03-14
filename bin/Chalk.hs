@@ -27,23 +27,23 @@ boldLn text =
 
 background :: Color -> String -> IO ()
 background color text =
-  putTty text $ "\x1b[1;7;" ++ (show $ 30 + (colorToNum color)) ++ "m" ++ text ++ "\x1b[0m"
+  putTty text $ "\x1b[1;7;" ++ show (30 + colorToNum color) ++ "m" ++ text ++ "\x1b[0m"
 
 putColored :: Color -> String -> IO ()
 putColored color text =
-  putTty text $ "\x1b[" ++ (show $ 30 + (colorToNum color)) ++ "m" ++ text ++ "\x1b[0m"
+  putTty text $ "\x1b[" ++ show (30 + colorToNum color) ++ "m" ++ text ++ "\x1b[0m"
 
 putColoredBold :: Color -> String -> IO ()
 putColoredBold color text =
-  putTty text $ "\x1b[1;" ++ (show $ 30 + (colorToNum color)) ++ "m" ++ text ++ "\x1b[0m"
+  putTty text $ "\x1b[1;" ++ show (30 + colorToNum color) ++ "m" ++ text ++ "\x1b[0m"
 
 moveUp :: Int -> IO ()
 moveUp n =
-  ifTty $ do putStr $ "\x1b[" ++ (show n) ++ "A"
+  ifTty $ putStr $ "\x1b[" ++ show n ++ "A"
 
 clearLine :: IO ()
 clearLine =
-  ifTty $ do putStr "\x1b[2K"
+  ifTty $ putStr "\x1b[2K"
 
 colorToNum :: Color -> Int
 colorToNum Black = 0

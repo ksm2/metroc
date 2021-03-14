@@ -6,6 +6,7 @@ import Builder.WASI
 import qualified Codec.Binary.UTF8.String as UTF8
 import Data.ByteString (ByteString, empty, pack)
 import Data.ByteString.UTF8 (toString)
+import Data.Maybe
 import Foreign.C.String
 import Foreign.C.Types (CChar (..), CInt (..), CSize (..))
 import Foreign.Marshal.Alloc (alloca, free)
@@ -87,7 +88,7 @@ returningByteString :: (Ptr CSize -> IO (Ptr CChar)) -> IO ByteString
 returningByteString cb =
   do
     byteString <- returningMaybeByteString cb
-    return $ maybe empty id byteString
+    return $ fromMaybe empty byteString
 
 -- | returningMaybeByteString invokes a callback and converts the result to a Maybe ByteString
 returningMaybeByteString :: (Ptr CSize -> IO (Ptr CChar)) -> IO (Maybe ByteString)
@@ -128,8 +129,8 @@ findFuncIndex m s = withCString s $ \cStr -> findFuncIndexC m cStr
 
 -- | convertStringToCChars converts a String to a CChar array
 convertStringToCChars :: String -> [CChar]
-convertStringToCChars = (map fromIntegral) . UTF8.encode
+convertStringToCChars = map fromIntegral . UTF8.encode
 
 -- | convertCCharsToByteString converts a CChar array to a ByteString
 convertCCharsToByteString :: [CChar] -> ByteString
-convertCCharsToByteString = pack . (map fromIntegral)
+convertCCharsToByteString = pack . map fromIntegral

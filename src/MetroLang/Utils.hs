@@ -1,7 +1,7 @@
 module MetroLang.Utils where
 
 indent2 :: [String] -> String
-indent2 = (prefix "\n") . (indent "  ") . unlines
+indent2 = prefix "\n" . indent "  " . unlines
 
 prefix :: String -> String -> String
 prefix pref str = pref ++ str

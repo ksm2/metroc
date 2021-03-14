@@ -36,7 +36,7 @@ data FunctionInfo = FunctionInfo
 newtype Scope = Scope (Map String Type) deriving (Show)
 
 label :: String -> Compiler String
-label s = incrCtr >>= \ctr -> return $ "___" ++ s ++ "_" ++ (show ctr)
+label s = incrCtr >>= \ctr -> return $ "___" ++ s ++ "_" ++ show ctr
 
 incrCtr :: Compiler Int
 incrCtr =
@@ -52,8 +52,8 @@ registerString str =
     if member str strings
       then return $ strings ! str
       else do
-        nextOffset <- return $ stringOffset + (utf8Length str) + 4
-        inserted <- return $ insert str stringOffset strings
+        let nextOffset = stringOffset + utf8Length str + 4
+        let inserted = insert str stringOffset strings
         put $ ctx {stringOffset = nextOffset, strings = inserted}
         return stringOffset
 
@@ -105,7 +105,7 @@ mergeClassInfo :: ClassInfo -> ClassInfo -> ClassInfo
 mergeClassInfo ci1 ci2 =
   let ClassInfo fields1 methods1 = ci1
       ClassInfo fields2 methods2 = ci2
-   in ClassInfo (union fields1 fields2) (union methods1 methods2)
+   in ClassInfo (fields1 `union` fields2) (methods1 `union` methods2)
 
 createClassInfo :: Params -> ClassBody -> ClassInfo
 createClassInfo classParams classBody =
@@ -115,13 +115,13 @@ createClassInfo classParams classBody =
 
 createClassFields :: [Param] -> (Int, Map String Int)
 createClassFields [] = (0, empty)
-createClassFields ((Param fieldName t) : params) =
+createClassFields (Param fieldName t : params) =
   let (offset, existingMap) = createClassFields params
-      newOffset = (sizeOf t) + offset
+      newOffset = sizeOf t + offset
    in (newOffset, insert fieldName offset existingMap)
 
 readClassBody :: ClassBody -> Map String FunctionInfo
-readClassBody decls = readMethods decls
+readClassBody = readMethods
 
 readMethods :: [ClassElement] -> Map String FunctionInfo
 readMethods [] = empty
@@ -132,8 +132,7 @@ readMethods (m : ms) =
     _ -> readMethods ms
 
 insertMethod :: Bool -> MethodSignature -> Map Identifier FunctionInfo -> Map Identifier FunctionInfo
-insertMethod isStatic (MethodSignature methodSafety methodName methodParams methodReturn) ms =
-  insert methodName (createFunctionInfo isStatic (methodSafety == Unsafe) methodParams methodReturn) ms
+insertMethod isStatic (MethodSignature methodSafety methodName methodParams methodReturn) = insert methodName (createFunctionInfo isStatic (methodSafety == Unsafe) methodParams methodReturn)
 
 createFunctionInfo :: Bool -> Bool -> Params -> ReturnType -> FunctionInfo
 createFunctionInfo isStatic isUnsafe args returnType =
@@ -147,15 +146,15 @@ getFieldOffset :: String -> String -> Compiler Int
 getFieldOffset className fieldName =
   do
     CompileContext {classes} <- get
-    classInfo <- return (classes ! className)
-    return $ (fields classInfo) ! fieldName
+    let classInfo = classes ! className
+    return $ fields classInfo ! fieldName
 
 lookupClassMethod :: String -> String -> Compiler FunctionInfo
 lookupClassMethod className methodName =
   do
     classInfo <- lookupClass className
     if member methodName (classMethods classInfo)
-      then return $ (classMethods classInfo) ! methodName
+      then return $ classMethods classInfo ! methodName
       else error $ "Class \"" ++ className ++ "\" has no method \"" ++ methodName ++ "\""
 
 lookupClass :: String -> Compiler ClassInfo
@@ -201,21 +200,21 @@ popScope :: Compiler Scope
 popScope =
   do
     ctx@CompileContext {scope} <- get
-    h <- return $ head scope
-    t <- return $ tail scope
+    let h = head scope
+    let t = tail scope
     put $ ctx {scope = t}
     return h
 
 scopeFromParams :: [Param] -> Map String Type
 scopeFromParams [] = empty
-scopeFromParams ((Param paramName paramType) : ps) = insert paramName paramType $ scopeFromParams ps
+scopeFromParams (Param paramName paramType : ps) = insert paramName paramType $ scopeFromParams ps
 
 declareVariable :: String -> Type -> Compiler ()
 declareVariable varName varType =
   do
     ctx@CompileContext {scope} <- get
     newScope <- declareVariableInScope varName varType $ head scope
-    put $ ctx {scope = newScope : (tail scope)}
+    put $ ctx {scope = newScope : tail scope}
 
 declareVariableInScope :: String -> Type -> Scope -> Compiler Scope
 declareVariableInScope varName varType (Scope varMap) =
@@ -231,9 +230,9 @@ lookupVariableType varName =
 
 lookupVariableTypeInScopes :: String -> [Scope] -> Type
 lookupVariableTypeInScopes varName [] = error $ "Could not find variable " ++ varName ++ " in scope."
-lookupVariableTypeInScopes varName ((Scope x) : xs) =
+lookupVariableTypeInScopes varName (Scope x : xs) =
   if member varName x
-    then (x ! varName)
+    then x ! varName
     else lookupVariableTypeInScopes varName xs
 
 primitiveTypes :: [PrimitiveType]
@@ -250,7 +249,7 @@ primitiveMethods :: PrimitiveType -> Map String FunctionInfo
 primitiveMethods p =
   fromList
     [ ("load", FunctionInfo True True [PrimitiveType TInt] (PrimitiveType p)),
-      ("store", FunctionInfo False True [PrimitiveType TInt] (VoidType))
+      ("store", FunctionInfo False True [PrimitiveType TInt] VoidType)
     ]
 
 builtInFunctions :: Map String FunctionInfo

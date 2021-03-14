@@ -13,8 +13,8 @@ fromString [] = []
 fromString ('\\' : a : b : xs) =
   let [(i, _)] = readHex [a, b]
       c = toEnum i
-   in (UTF8.encodeChar c) ++ (fromString xs)
-fromString (x : xs) = (UTF8.encodeChar x) ++ (fromString xs)
+   in UTF8.encodeChar c ++ fromString xs
+fromString (x : xs) = UTF8.encodeChar x ++ fromString xs
 
 toWasmStringLiteral :: Bytes -> String
 toWasmStringLiteral = enquote . toWasmStringUnquoted
@@ -23,7 +23,7 @@ enquote :: String -> String
 enquote str = "\"" ++ str ++ "\""
 
 toWasmStringUnquoted :: Bytes -> String
-toWasmStringUnquoted = (foldl (++) "") . (map encodeByte)
+toWasmStringUnquoted = concatMap encodeByte
 
 encodeByte :: Word8 -> String
 encodeByte c
@@ -34,10 +34,10 @@ encodeByte c
   | c == 0x27 = "\\'"
   | c == 0x5C = "\\\\"
   | c >= 0x20 && c < 0x7F = [toEnum (fromIntegral c)]
-  | otherwise = "\\" ++ (strPadLeft '0' 2 (showHex c ""))
+  | otherwise = "\\" ++ strPadLeft '0' 2 (showHex c "")
 
 strPadLeft :: Char -> Int -> String -> String
-strPadLeft c i str = if (Prelude.length str) < i then strPadLeft c i (c : str) else str
+strPadLeft c i str = if Prelude.length str < i then strPadLeft c i (c : str) else str
 
 int32ToBytes :: Int -> Bytes
 int32ToBytes i = unpack (encode (byteSwap32 (fromIntegral i)))

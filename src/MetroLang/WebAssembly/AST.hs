@@ -2,7 +2,7 @@ module MetroLang.WebAssembly.AST where
 
 import MetroLang.Bytes
 
-data Module = Mod [Declaration] deriving (Show)
+newtype Module = Mod [Declaration] deriving (Show)
 
 data Declaration
   = Import StringLiteral StringLiteral ImportSpecifier
@@ -24,33 +24,33 @@ instance Eq Declaration where
   _ == _ = False
 
 instance Ord Declaration where
-  (Import _ _ _) <= (Import _ _ _) = True
-  (Import _ _ _) <= (Memory _ _) = True
-  (Import _ _ _) <= (Export _ _) = True
-  (Import _ _ _) <= (Global _ _ _) = True
-  (Import _ _ _) <= (Data _ _) = True
-  (Import _ _ _) <= (Func _ _ _ _ _) = True
-  (Import _ _ _) <= (Start _) = True
+  Import {} <= Import {} = True
+  Import {} <= (Memory _ _) = True
+  Import {} <= (Export _ _) = True
+  Import {} <= Global {} = True
+  Import {} <= (Data _ _) = True
+  Import {} <= Func {} = True
+  Import {} <= (Start _) = True
   (Memory _ _) <= (Memory _ _) = True
   (Memory _ _) <= (Export _ _) = True
-  (Memory _ _) <= (Global _ _ _) = True
+  (Memory _ _) <= Global {} = True
   (Memory _ _) <= (Data _ _) = True
-  (Memory _ _) <= (Func _ _ _ _ _) = True
+  (Memory _ _) <= Func {} = True
   (Memory _ _) <= (Start _) = True
   (Export _ _) <= (Export _ _) = True
-  (Export _ _) <= (Global _ _ _) = True
+  (Export _ _) <= Global {} = True
   (Export _ _) <= (Data _ _) = True
-  (Export _ _) <= (Func _ _ _ _ _) = True
+  (Export _ _) <= Func {} = True
   (Export _ _) <= (Start _) = True
-  (Global _ _ _) <= (Global _ _ _) = True
-  (Global _ _ _) <= (Data _ _) = True
-  (Global _ _ _) <= (Func _ _ _ _ _) = True
-  (Global _ _ _) <= (Start _) = True
+  Global {} <= Global {} = True
+  Global {} <= (Data _ _) = True
+  Global {} <= Func {} = True
+  Global {} <= (Start _) = True
   (Data _ _) <= (Data _ _) = True
-  (Data _ _) <= (Func _ _ _ _ _) = True
+  (Data _ _) <= Func {} = True
   (Data _ _) <= (Start _) = True
-  (Func _ _ _ _ _) <= (Func _ _ _ _ _) = True
-  (Func _ _ _ _ _) <= (Start _) = True
+  Func {} <= Func {} = True
+  Func {} <= (Start _) = True
   (Start _) <= (Start _) = True
   _ <= _ = False
 
@@ -88,7 +88,7 @@ data Param
 
 type ReturnType = Maybe Result
 
-data Result = Res Valtype deriving (Show)
+newtype Result = Res Valtype deriving (Show)
 
 type Identifier = String
 

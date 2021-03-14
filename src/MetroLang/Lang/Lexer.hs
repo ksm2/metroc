@@ -111,7 +111,7 @@ lexNum cont ('0' : 'x' : cs) =
   where
     (num, rest) = span isHexDigit cs
 lexNum cont cs =
-  \col -> lexNumSuffix (read num) cont rest (col + (length num))
+  \col -> lexNumSuffix (read num) cont rest (col + length num)
   where
     (num, rest) = span isDigit cs
 
@@ -148,8 +148,8 @@ parseHexChar _ = undefined
 lexVar :: (Token -> P a) -> P a
 lexVar cont cs =
   case findKeywordToken keyword of
-    Just token -> \col -> cont token rest (col + (length keyword))
-    Nothing -> \col -> cont (TokenIdentifier keyword) rest (col + (length keyword))
+    Just token -> \col -> cont token rest (col + length keyword)
+    Nothing -> \col -> cont (TokenIdentifier keyword) rest (col + length keyword)
   where
     (keyword, rest) = span isIdentifierChar cs
 
