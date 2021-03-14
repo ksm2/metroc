@@ -29,6 +29,11 @@ jobs:
           ${{ runner.os }}-
     - name: Build
       run: make
+    - name: Lint
+      run: |
+        wget https://github.com/ndmitchell/hlint/releases/download/v3.3/hlint-3.3-x86_64-linux.tar.gz -O hlint.tar.gz
+        tar xzf hlint.tar.gz
+        ./hlint-3.3/hlint src bin
     - name: Install
       run: make destdir=. install
     - name: Upload Executable
