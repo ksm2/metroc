@@ -160,7 +160,7 @@ ImportDeclaration       : import FQN EOS                                { Import
 
 ExportDeclaration       : export ExportableDeclaration                  { ExportDeclaration $2 }
 
-TestDeclaration         : test id TestBlock                             { TestDeclaration $2 $3 }
+TestDeclaration         : test TypeName TestBlock                       { TestDeclaration $2 $3 }
 TestBlock               : BodyOpen TestStatements BodyClose             { reverse $2 }
 TestStatements          :: { [TestStatement] }
 TestStatements          : {- empty -}                                   { [] }
@@ -195,7 +195,7 @@ InterfaceMethod         : id Arguments ReturnType EOS                   { Interf
 
 ImplDeclaration         : impl Type for Type ClassBody                  { ImplDeclaration $2 $4 $5 }
 
-ClassDeclaration        : class id TypeArguments OptParams ClassExtension ClassImplementation ClassBody { ClassDeclaration $2 $3 $4 $5 $6 $7 }
+ClassDeclaration        : class TypeName TypeArguments OptParams ClassExtension ClassImplementation ClassBody { ClassDeclaration $2 $3 $4 $5 $6 $7 }
 ClassExtension          : {- empty -}                                   { [] }
                         | extends TypeList                              { reverse $2 }
 ClassImplementation     : {- empty -}                                   { [] }
@@ -298,6 +298,10 @@ Type                    : id                                            { RefTyp
                         | PrimitiveType                                 { PrimitiveType $1 }
                         | '[' Type ']'                                  { ArrayType $2 }
                         | Type '<' TypeArgumentList '>'                 { GenericType $1 (reverse $3) }
+
+TypeName                :: { String }
+TypeName                : id                                            { $1 }
+                        | PrimitiveType                                 { tail $ show $1 }
 
 PrimitiveType           :: { PrimitiveType }
 PrimitiveType           : Bool                                          { TBool }
