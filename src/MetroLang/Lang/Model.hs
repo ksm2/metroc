@@ -114,7 +114,7 @@ instance Eq Type where
 
 instance Show Type where
   show VoidType = "Void"
-  show (RefType s) = show s
+  show (RefType s) = s
   show (MetaType t) = "type of type " ++ show t
   show (PrimitiveType p) = let (_ : xs) = show p in xs
   show (ArrayType t) = "[" ++ (show t) ++ "]"
