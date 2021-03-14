@@ -232,7 +232,7 @@ Statement               :: { Statement }
 Statement               : id ':=' Expression EOS                        { AssignStatement $1 $3 }
                         | IfStatement                                   { IfStatement $1 }
                         | while Expression Block                        { WhileStatement $2 $3 }
-                        | assert Expression AssertMessage EOS           { AssertStatement $2 $3 }
+                        | AssertStatement                               { $1 }
                         | return Expression ReturnCondition EOS         { ReturnStatement $2 $3 }
                         | unsafe Block                                  { UnsafeStatement $2 }
                         | Expression EOS                                { ExpressionStatement $1 }
@@ -246,8 +246,9 @@ ElseStatement           :: { Else }
 ElseStatement           : else IfStatement                              { ElseIf $2 }
                         | else Block                                    { Else $2 }
 
-AssertMessage           :: { String }
-AssertMessage           : ':' string                                    { $2 }
+AssertStatement         :: { Statement }
+AssertStatement         : assert Expression EOS                         { AssertStatement $2 (show $2) }
+                        | assert Expression ':' string EOS              { AssertStatement $2 $4 }
 
 ReturnCondition         : {- empty -}                                   { Nothing }
                         | if Expression                                 { Just $2 }
