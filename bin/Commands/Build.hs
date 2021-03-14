@@ -38,8 +38,8 @@ build args =
     createDirectoryIfMissing True outDir
     inputStr <- readFile inputFile
 
-    ast <- return $ metroToAST enableAssertions [(inputFile, inputStr)]
-    wat <- return $ astToWAT enableAssertions "main" ast
+    let ast = metroToAST enableAssertions [(inputFile, inputStr)]
+    let wat = astToWAT enableAssertions "main" ast
     writeFile outWatFile wat
 
     wasm <- watToWasm wat
@@ -51,6 +51,6 @@ run args =
     let (enableAssertions, inputFile) = parseArgs args
 
     inputStr <- readFile inputFile
-    ast <- return $ metroToAST enableAssertions [(inputFile, inputStr)]
-    wat <- return $ astToWAT enableAssertions "" ast
+    let ast = metroToAST enableAssertions [(inputFile, inputStr)]
+    let wat = astToWAT enableAssertions "" ast
     runWAT wat

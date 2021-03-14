@@ -4,7 +4,7 @@ type Identifier = String
 
 type ModuleName = String
 
-data Module
+newtype Module
   = Module [Declaration]
   deriving (Show)
 
@@ -87,8 +87,7 @@ data Param
 
 type TypeArguments = [TypeArgument]
 
-data TypeArgument
-  = TypeArgument Identifier
+newtype TypeArgument = TypeArgument Identifier
   deriving (Eq, Show)
 
 type ReturnType = Type
@@ -117,14 +116,14 @@ instance Show Type where
   show (RefType s) = s
   show (MetaType t) = "type of type " ++ show t
   show (PrimitiveType p) = let (_ : xs) = show p in xs
-  show (ArrayType t) = "[" ++ (show t) ++ "]"
+  show (ArrayType t) = "[" ++ show t ++ "]"
   show (GenericType s []) = show s
   show (GenericType s args) = show s ++ "<" ++ joinArgs args ++ ">"
 
 joinArgs :: (Show a) => [a] -> String
 joinArgs [] = ""
 joinArgs [element] = show element
-joinArgs (x : xs) = (show x) ++ ", " ++ (joinArgs xs)
+joinArgs (x : xs) = show x ++ ", " ++ joinArgs xs
 
 data PrimitiveType
   = TBool

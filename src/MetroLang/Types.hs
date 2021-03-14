@@ -16,8 +16,7 @@ sizeOf (PrimitiveType TString) = 4
 sizeOf _ = 0 -- TODO: Calculate size of other class
 
 calculateSizeOfClass :: Params -> Int
-calculateSizeOfClass [] = 0
-calculateSizeOfClass (param : params) = (calculateSizeOfParam param) + (calculateSizeOfClass params)
+calculateSizeOfClass = foldr ((+) . calculateSizeOfParam) 0
 
 calculateSizeOfParam :: Param -> Int
 calculateSizeOfParam (Param _ t) = sizeOf t

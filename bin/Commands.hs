@@ -64,13 +64,13 @@ invalidCommand args =
     printHelp args
 
 strPadRight :: Char -> Int -> String -> String
-strPadRight c i str = if (length str) < i then strPadRight c i (str ++ [c]) else str
+strPadRight c i str = if length str < i then strPadRight c i (str ++ [c]) else str
 
 explainCommands :: [Command] -> IO ()
 explainCommands [] = return ()
 explainCommands (x : xs) =
   do
     progName <- getProgName
-    text <- return $ strPadRight ' ' 10 $ map toLower $ show x
-    putStrLn $ "  " ++ progName ++ " " ++ text ++ " " ++ (describeCommand x)
+    let text = strPadRight ' ' 10 $ map toLower $ show x
+    putStrLn $ "  " ++ progName ++ " " ++ text ++ " " ++ describeCommand x
     explainCommands xs

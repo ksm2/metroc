@@ -7,7 +7,7 @@ type Highlighter = String -> String
 
 highlight :: Highlighter
 highlight [] = []
-highlight s@('/' : '/' : _) = highlightPart inLightGray (\c -> c /= '\n') s
+highlight s@('/' : '/' : _) = highlightPart inLightGray (/= '\n') s
 highlight s@('/' : '*' : _) = highlightMultiLineComment "" s
 highlight ('"' : cs) = highlightString "\"" cs
 highlight s@(c : cs)
@@ -36,8 +36,7 @@ highlightPart highlighter cond str =
     (match, rest) = span cond str
 
 highlightIdentifier :: Highlighter
-highlightIdentifier str =
-  highlightPart highlighter isAlphaNum str
+highlightIdentifier = highlightPart highlighter isAlphaNum
   where
     highlighter iden = if isKeywordString iden then inBoldOrange iden else iden
 
@@ -49,7 +48,7 @@ highlightNumber ('0' : 'x' : cs) =
 highlightNumber ('0' : 'b' : cs) =
   inBlue ("0b" ++ match) ++ highlightNumberSuffix rest
   where
-    (match, rest) = span (\c -> elem c "01") cs
+    (match, rest) = span (`elem` "01") cs
 highlightNumber cs =
   inBlue match ++ highlightNumberSuffix rest
   where
@@ -58,7 +57,7 @@ highlightNumber cs =
 highlightNumberSuffix :: Highlighter
 highlightNumberSuffix ('X' : 'S' : cs) = inBlue "XS" ++ highlight cs
 highlightNumberSuffix s@(c : cs)
-  | elem c "USBWL" = inBlue [c] ++ highlight cs
+  | c `elem` "USBWL" = inBlue [c] ++ highlight cs
   | otherwise = highlight s
 highlightNumberSuffix [] = []
 

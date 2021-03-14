@@ -31,7 +31,7 @@ printTestName color label testName reason =
     putStr " "
     putBold testName
     putStr "  "
-    putColored Yellow (head ((lines reason) ++ [""]))
+    putColored Yellow (head (lines reason ++ [""]))
     putStrLn ""
 
 printTestPassed :: String -> IO ()
@@ -48,10 +48,10 @@ printTestFailed testName reason =
     tty <- isTty
     if tty
       then printTestName Red "FAIL" testName reason
-      else putStrLn $ "Failed: " ++ testName ++ "\n" ++ (indent "  " reason)
+      else putStrLn $ "Failed: " ++ testName ++ "\n" ++ indent "  " reason
 
 isTestSuitePassed :: TestSuiteResult -> Bool
-isTestSuitePassed suite = (passedCases suite) == (totalCases suite)
+isTestSuitePassed suite = passedCases suite == totalCases suite
 
 repeatStr :: Char -> Int -> String
 repeatStr _ 0 = ""
@@ -60,37 +60,33 @@ repeatStr c n = c : repeatStr c (n - 1)
 putStatisticLine :: String -> Int -> Int -> IO ()
 putStatisticLine label passed total =
   do
-    failed <- return $ total - passed
+    let failed = total - passed
     putBold label
     putBold ":"
-    putStr $ repeatStr ' ' $ 12 - (length label)
-    if failed > 0
-      then do
-        putColoredBold Red $ (show failed) ++ " failed"
+    putStr $ repeatStr ' ' $ 12 - length label
+    when (failed > 0) $
+      do
+        putColoredBold Red $ show failed ++ " failed"
         putStr ", "
-      else do
-        return ()
-    if passed > 0
-      then do
-        putColoredBold Green $ (show passed) ++ " passed"
+    when (passed > 0) $
+      do
+        putColoredBold Green $ show passed ++ " passed"
         putStr ", "
-      else do
-        return ()
-    putStrLn $ (show $ total) ++ " total"
+    putStrLn $ show total ++ " total"
 
 printStatistics :: [TestSuiteResult] -> IO ()
 printStatistics tests =
   do
-    countTestSuites <- return $ length tests
-    countPassedTestSuites <- return $ length $ filter isTestSuitePassed tests
-    countTests <- return $ foldl (+) 0 $ map totalCases tests
-    countPassedTests <- return $ foldl (+) 0 $ map passedCases tests
+    let countTestSuites = length tests
+    let countPassedTestSuites = length $ filter isTestSuitePassed tests
+    let countTests = sum $ map totalCases tests
+    let countPassedTests = sum $ map passedCases tests
     putStatisticLine "Test Suites" countPassedTestSuites countTestSuites
     putStatisticLine "Tests" countPassedTests countTests
 
 findTests :: MetroAST.Module -> [(MetroAST.Identifier, [MetroAST.TestStatement])]
 findTests (MetroAST.Module []) = []
-findTests (MetroAST.Module ((MetroAST.TestDeclaration i b) : xs)) = (i, b) : findTests (MetroAST.Module xs)
+findTests (MetroAST.Module (MetroAST.TestDeclaration i b : xs)) = (i, b) : findTests (MetroAST.Module xs)
 findTests (MetroAST.Module (_ : xs)) = findTests (MetroAST.Module xs)
 
 printRuns :: [(MetroAST.Identifier, [MetroAST.TestStatement])] -> IO ()
@@ -117,13 +113,11 @@ runTestSuite :: Instance -> Handle -> (MetroAST.Identifier, [MetroAST.TestStatem
 runTestSuite inst stderrHandle (suiteName, stmts) =
   do
     passedCases <- runTestCases inst stmts
-    totalCases <- return $ length stmts
-    isSuitePassed <- return $ passedCases == totalCases
+    let totalCases = length stmts
+    let isSuitePassed = passedCases == totalCases
     stderrText <- readWhileNotEOF stderrHandle
     clearLine
-    case isSuitePassed of
-      True -> printTestPassed suiteName
-      False -> printTestFailed suiteName stderrText
+    if isSuitePassed then printTestPassed suiteName else printTestFailed suiteName stderrText
     return $ TestSuiteResult {suiteName, passedCases, totalCases}
 
 runTestCases :: Instance -> [MetroAST.TestStatement] -> IO Int
@@ -148,15 +142,15 @@ runTestCase inst (MetroAST.TestStatement testCase _) =
 test :: [String] -> IO ()
 test args =
   do
-    relativeGlobs <- return $ if null args then ["tests/**/*.metro"] else args
+    let relativeGlobs = if null args then ["tests/**/*.metro"] else args
     globs <- mapM makeAbsolute relativeGlobs
     cwd <- getCurrentDirectory
     contents <- listDirectoryRecursive cwd
-    matches <- return $ matchGlobs globs contents
+    let matches = matchGlobs globs contents
     inputStrs <- mapM readFile matches
-    ast <- return $ metroToAST True $ zip matches inputStrs
-    wat <- return $ astToWAT True "" ast
-    tests <- return $ findTests ast
+    let ast = metroToAST True $ zip matches inputStrs
+    let wat = astToWAT True "" ast
+    let tests = findTests ast
 
     stderrPath <- emptySystemTempFile "metro"
     stderrHandle <- openFile stderrPath ReadMode

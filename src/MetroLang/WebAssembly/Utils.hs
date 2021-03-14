@@ -41,7 +41,7 @@ injectData i str m =
   let e = Method "const" I32 [Lit (toInteger i)]
       strBytes = Bytes.stringToBytes str
       len = length strBytes
-      bytes = (Bytes.int32ToBytes len) ++ strBytes
+      bytes = Bytes.int32ToBytes len ++ strBytes
    in injectDeclaration (Data e bytes) m
 
 -- Helpers
@@ -52,10 +52,10 @@ brIf :: Identifier -> Expr -> Expr
 brIf i cond = Instr "br_if" [Var i, cond]
 
 call :: Identifier -> [Expr] -> Expr
-call i args = Instr "call" $ (Var i) : args
+call i args = Instr "call" $ Var i : args
 
 select :: Expr -> Expr -> Expr -> Expr
-select left right cond = Select left right cond
+select = Select
 
 dropInstr :: Expr -> Expr
 dropInstr expr = Instr "drop" [expr]

@@ -22,7 +22,7 @@ underlineString text line start end =
       firstLine = max 1 (line - contextLines)
       lastLine = min (length textLines) (line + contextLines)
       maxLength = length (show lastLine)
-      visibleLines = ((take (lastLine - firstLine + 1)) . (drop (firstLine - 1))) textLines
+      visibleLines = (take (lastLine - firstLine + 1) . drop (firstLine - 1)) textLines
       indexedLines = zipWith (\idx l -> " " ++ inGray (padLeft maxLength idx ++ " | ") ++ l) [firstLine .. lastLine] visibleLines
       scatteredLines = insertAt (line - firstLine + 1) (" " ++ repeatSpaces maxLength ++ inGray " | " ++ underline start end) indexedLines
    in unlines scatteredLines
@@ -62,7 +62,7 @@ describeToken t
   | otherwise = drop 5 $ show t
 
 startOfToken :: Token -> Int -> Int
-startOfToken (TokenIdentifier iden) col = col - (length iden)
+startOfToken (TokenIdentifier iden) col = col - length iden
 startOfToken (TokenString str) col = col - strLength str
 startOfToken TokenTBool col = col - 4
 startOfToken TokenTIntXS col = col - 5
@@ -79,7 +79,7 @@ startOfToken TokenTChar col = col - 4
 startOfToken TokenTString col = col - 6
 startOfToken token col
   | token == TokenEOF || token == TokenEOS = col
-  | isKeywordToken token = col - (length (show token)) + 5
+  | isKeywordToken token = col - length (show token) + 5
   | otherwise = col - 1
 
 strLength :: String -> Int
@@ -91,9 +91,7 @@ padLeft :: Int -> Int -> String
 padLeft maxLength num =
   let str = show num
       actualLength = length str
-   in case actualLength < maxLength of
-        True -> repeatSpaces (maxLength - actualLength) ++ str
-        False -> str
+   in if actualLength < maxLength then repeatSpaces (maxLength - actualLength) ++ str else str
 
 repeatSpaces :: Int -> String
 repeatSpaces n = replicate n ' '

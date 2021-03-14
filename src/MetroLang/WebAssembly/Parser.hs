@@ -1,6 +1,5 @@
 module MetroLang.WebAssembly.Parser (parseString, parseFile, merge) where
 
-import Control.Monad (liftM)
 import Data.Functor.Identity
 import Data.List (intercalate)
 import MetroLang.Bytes
@@ -60,7 +59,7 @@ identifier =
     return $ intercalate "." $ h : t
 
 dotIdentifier :: Parser String
-dotIdentifier = (reservedOp ".") >> strIdentifier
+dotIdentifier = reservedOp "." >> strIdentifier
 
 reserved :: String -> Parser ()
 reserved = Token.reserved lexer -- parses a reserved name
@@ -259,10 +258,9 @@ memoryInstrExpr =
     reservedOp "."
     fn <- memoryOp
     props <- instrProps
-    offset <- return $ props ! "offset"
-    align <- return $ props ! "align"
-    e <- exprs
-    return $ MemoryInstr fn vt offset align e
+    let offset = props ! "offset"
+    let align = props ! "align"
+    MemoryInstr fn vt offset align <$> exprs
 
 memoryOp :: Parser String
 memoryOp = loadOp <|> storeOp
@@ -308,14 +306,13 @@ instrProp =
     key <- try strIdentifier
     reservedOp "="
     value <- integer
-    return $ (key, value)
+    return (key, value)
 
 instrExpr :: Parser Expr
 instrExpr =
   do
     fn <- strIdentifier
-    e <- exprs
-    return $ Instr fn e
+    Instr fn <$> exprs
 
 methodExpr :: Parser Expr
 methodExpr =
@@ -323,8 +320,7 @@ methodExpr =
     vt <- valtype
     reservedOp "."
     fn <- strIdentifier
-    e <- exprs
-    return $ Method fn vt e
+    Method fn vt <$> exprs
 
 selectExpr :: Parser Expr
 selectExpr =
@@ -332,20 +328,15 @@ selectExpr =
     reserved "select"
     left <- expr
     right <- expr
-    cond <- expr
-    return $ Select left right cond
+    Select left right <$> expr
 
 litExpr :: Parser Expr
 litExpr =
-  do
-    num <- integer
-    return $ Lit num
+    Lit <$> integer
 
 varExpr :: Parser Expr
 varExpr =
-  do
-    iden <- identifier
-    return $ Var iden
+    Var <$> identifier
 
 params :: Parser [Param]
 params = many param
@@ -354,7 +345,7 @@ param :: Parser Param
 param =
   do
     reserved "(param"
-    (par <|> anonymousPar)
+    par <|> anonymousPar
 
 par :: Parser Param
 par =
@@ -384,9 +375,7 @@ result =
 
 bytes :: Parser Bytes
 bytes =
-  do
-    stringValue <- stringLiteral
-    return $ fromString stringValue
+    fromString <$> stringLiteral
 
 stringLiteral :: Parser StringLiteral
 stringLiteral =
@@ -398,7 +387,7 @@ stringLiteral =
     return stringValue
 
 globaltype :: Parser Globaltype
-globaltype = mutableGlobal <|> (liftM Imut valtype)
+globaltype = mutableGlobal <|> fmap Imut valtype
 
 mutableGlobal :: Parser Globaltype
 mutableGlobal =
