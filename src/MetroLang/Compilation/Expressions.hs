@@ -372,7 +372,7 @@ signedComparingExpr :: String -> Value -> Value -> Value
 signedComparingExpr op (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
   | isSignedType left && isSignedType right = comparingExpr (op ++ "_s") (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
   | isUnsignedType left && isUnsignedType right = comparingExpr (op ++ "_u") (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
-signedComparingExpr _ _ _ = error "Cannot perform signed operation on mixed signed/unsigned type"
+signedComparingExpr op x y = error $ "Cannot perform comparation on mixed signed/unsigned type " ++ show op ++ ", x = " ++ show x ++ " y = " ++ show y
 
 comparingExpr :: String -> Value -> Value -> Value
 comparingExpr op (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
@@ -392,7 +392,7 @@ signedArithmeticExpr :: String -> Value -> Value -> Value
 signedArithmeticExpr op (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
   | isSignedType left && isSignedType right = arithmeticExpr (op ++ "_s") (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
   | isUnsignedType left && isUnsignedType right = arithmeticExpr (op ++ "_u") (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
-signedArithmeticExpr _ _ _ = error "Cannot perform signed operation on mixed signed/unsigned type"
+signedArithmeticExpr _ _ _ = error "Cannot perform arithmetics on mixed signed/unsigned type"
 
 maskTo :: Metro.PrimitiveType -> WASM.Expr -> Value
 maskTo dest = Value (PrimitiveType dest) . maskToExpr dest

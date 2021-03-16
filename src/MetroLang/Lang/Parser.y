@@ -1,121 +1,121 @@
 {
 module MetroLang.Lang.Parser (parse, merge) where
+
 import MetroLang.Lang.Error
-import MetroLang.Lang.Exception
 import MetroLang.Lang.Lexer
 import MetroLang.Lang.Model
 import MetroLang.Lang.Token
 }
 
 %name calc
-%tokentype { Token }
-%monad { P } { thenP } { returnP }
-%lexer { lexer } { TokenEOF }
+%tokentype { Lexeme }
+%monad { Alex }
+%lexer { lexer } { L _ TokenEOF _ }
 %error { parseError }
 
 %token
-      and               { TokenAnd }
-      as                { TokenAs }
-      assert            { TokenAssert }
-      class             { TokenClass }
-      const             { TokenConst }
-      else              { TokenElse }
-      enum              { TokenEnum }
-      export            { TokenExport }
-      extends           { TokenExtends }
-      external          { TokenExternal }
-      false             { TokenFalse }
-      fn                { TokenFn }
-      for               { TokenFor }
-      hide              { TokenHide }
-      if                { TokenIf }
-      it                { TokenIt }
-      impl              { TokenImpl }
-      import            { TokenImport }
-      interface         { TokenInterface }
-      is                { TokenIs }
-      let               { TokenLet }
-      match             { TokenMatch }
-      not               { TokenNot }
-      null              { TokenNull }
-      or                { TokenOr }
-      return            { TokenReturn }
-      static            { TokenStatic }
-      test              { TokenTest }
-      this              { TokenThis }
-      true              { TokenTrue }
-      unsafe            { TokenUnsafe }
-      while             { TokenWhile }
-      xor               { TokenXor }
+      and               { L _ TokenAnd _ }
+      as                { L _ TokenAs _ }
+      assert            { L _ TokenAssert _ }
+      class             { L _ TokenClass _ }
+      const             { L _ TokenConst _ }
+      else              { L _ TokenElse _ }
+      enum              { L _ TokenEnum _ }
+      export            { L _ TokenExport _ }
+      extends           { L _ TokenExtends _ }
+      external          { L _ TokenExternal _ }
+      false             { L _ TokenFalse _ }
+      fn                { L _ TokenFn _ }
+      for               { L _ TokenFor _ }
+      hide              { L _ TokenHide _ }
+      if                { L _ TokenIf _ }
+      it                { L _ TokenIt _ }
+      impl              { L _ TokenImpl _ }
+      import            { L _ TokenImport _ }
+      interface         { L _ TokenInterface _ }
+      is                { L _ TokenIs _ }
+      let               { L _ TokenLet _ }
+      match             { L _ TokenMatch _ }
+      not               { L _ TokenNot _ }
+      null              { L _ TokenNull _ }
+      or                { L _ TokenOr _ }
+      return            { L _ TokenReturn _ }
+      static            { L _ TokenStatic _ }
+      test              { L _ TokenTest _ }
+      this              { L _ TokenThis _ }
+      true              { L _ TokenTrue _ }
+      unsafe            { L _ TokenUnsafe _ }
+      while             { L _ TokenWhile _ }
+      xor               { L _ TokenXor _ }
 
-      Bool      { TokenTBool }
-      IntXS     { TokenTIntXS }
-      Byte      { TokenTByte }
-      IntS      { TokenTIntS }
-      Word      { TokenTWord }
-      Int       { TokenTInt }
-      UInt      { TokenTUInt }
-      IntL      { TokenTIntL }
-      UIntL     { TokenTUIntL }
-      Float     { TokenTFloat }
-      FloatL    { TokenTFloatL }
-      Char      { TokenTChar }
-      String    { TokenTString }
+      Bool      { L _ TokenTBool _ }
+      IntXS     { L _ TokenTIntXS _ }
+      Byte      { L _ TokenTByte _ }
+      IntS      { L _ TokenTIntS _ }
+      Word      { L _ TokenTWord _ }
+      Int       { L _ TokenTInt _ }
+      UInt      { L _ TokenTUInt _ }
+      IntL      { L _ TokenTIntL _ }
+      UIntL     { L _ TokenTUIntL _ }
+      Float     { L _ TokenTFloat _ }
+      FloatL    { L _ TokenTFloatL _ }
+      Char      { L _ TokenTChar _ }
+      String    { L _ TokenTString _ }
 
-      '!='      { TokenExclEq }
-      '%'       { TokenRem }
-      '%='      { TokenRemEq }
-      '%>'      { TokenRemGt }
-      '%>='     { TokenRemGtEq }
-      '&'       { TokenAmp }
-      '&='      { TokenAmpEq }
-      '('       { TokenLParen }
-      ')'       { TokenRParen }
-      '*'       { TokenMul }
-      '*='      { TokenMulEq }
-      '+'       { TokenPlus }
-      '+='      { TokenPlusEq }
-      ','       { TokenComma }
-      '-'       { TokenMinus }
-      '-='      { TokenMinusEq }
-      '.'       { TokenDot }
-      '/'       { TokenDiv }
-      '/='      { TokenDivEq }
-      ':'       { TokenColon }
-      ':='      { TokenColonEq }
-      '<%'      { TokenLtRem }
-      '<%='     { TokenLtRemEq }
-      '<'       { TokenLt }
-      '<<'      { TokenLtLt }
-      '<<='     { TokenLtLtEq }
-      '<='      { TokenLtEq }
-      '='       { TokenEq }
-      '=='      { TokenEqEq }
-      '=>'      { TokenEqGt }
-      '>'       { TokenGt }
-      '>='      { TokenGtEq }
-      '>>'      { TokenGtGt }
-      '>>='     { TokenGtGtEq }
-      '?'       { TokenQ }
-      '?.'      { TokenQDot }
-      '['       { TokenLBrack }
-      ']'       { TokenRBrack }
-      '^'       { TokenCaret }
-      '^='      { TokenCaretEq }
-      '_'       { TokenUnderscore }
-      '{'       { TokenLBrace }
-      '|'       { TokenBar }
-      '|='      { TokenBarEq }
-      '}'       { TokenRBrace }
-      '~'       { TokenTilde }
+      '!='      { L _ TokenExclEq _ }
+      '%'       { L _ TokenRem _ }
+      '%='      { L _ TokenRemEq _ }
+      '%>'      { L _ TokenRemGt _ }
+      '%>='     { L _ TokenRemGtEq _ }
+      '&'       { L _ TokenAmp _ }
+      '&='      { L _ TokenAmpEq _ }
+      '('       { L _ TokenLParen _ }
+      ')'       { L _ TokenRParen _ }
+      '*'       { L _ TokenMul _ }
+      '*='      { L _ TokenMulEq _ }
+      '+'       { L _ TokenPlus _ }
+      '+='      { L _ TokenPlusEq _ }
+      ','       { L _ TokenComma _ }
+      '-'       { L _ TokenMinus _ }
+      '-='      { L _ TokenMinusEq _ }
+      '.'       { L _ TokenDot _ }
+      '/'       { L _ TokenDiv _ }
+      '/='      { L _ TokenDivEq _ }
+      ':'       { L _ TokenColon _ }
+      ':='      { L _ TokenColonEq _ }
+      '<%'      { L _ TokenLtRem _ }
+      '<%='     { L _ TokenLtRemEq _ }
+      '<'       { L _ TokenLt _ }
+      '<<'      { L _ TokenLtLt _ }
+      '<<='     { L _ TokenLtLtEq _ }
+      '<='      { L _ TokenLtEq _ }
+      '='       { L _ TokenEq _ }
+      '=='      { L _ TokenEqEq _ }
+      '=>'      { L _ TokenEqGt _ }
+      '>'       { L _ TokenGt _ }
+      '>='      { L _ TokenGtEq _ }
+      '>>'      { L _ TokenGtGt _ }
+      '>>='     { L _ TokenGtGtEq _ }
+      '?'       { L _ TokenQ _ }
+      '?.'      { L _ TokenQDot _ }
+      '['       { L _ TokenLBrack _ }
+      ']'       { L _ TokenRBrack _ }
+      '^'       { L _ TokenCaret _ }
+      '^='      { L _ TokenCaretEq _ }
+      '_'       { L _ TokenUnderscore _ }
+      '{'       { L _ TokenLBrace _ }
+      '|'       { L _ TokenBar _ }
+      '|='      { L _ TokenBarEq _ }
+      '}'       { L _ TokenRBrace _ }
+      '~'       { L _ TokenTilde _ }
 
-      id        { TokenIdentifier $$ }
-      int       { TokenInt $$ }
-      uint      { TokenUInt $$ }
-      byte      { TokenByte $$ }
-      string    { TokenString $$ }
+      id        { L _ (TokenIdentifier $$) _ }
+      int       { L _ (TokenInt $$) _ }
+      uint      { L _ (TokenUInt $$) _ }
+      byte      { L _ (TokenByte $$) _ }
+      string    { L _ (TokenString $$) _ }
 
-      eos       { TokenEOS }
+      eos       { L _ TokenEOS _ }
 
 %left '*=' '/=' '%=' '+=' '-='  '>>=' '<<=' '%>=' '<%=' '&=' '^=' '|=' ':=' '='
 %left and or
@@ -422,10 +422,10 @@ EOS                     : eos                                           {}
 {
 parse :: String -> String -> Module
 parse filePath contents =
-  let result = calc contents 1 1 filePath contents
+  let result = runLexer filePath contents calc
   in case result of
-    Ok a      -> a
-    Failed e  -> error e
+    Right a     -> a
+    Left e      -> error e
 
 merge :: Module -> Module -> Module
 merge (Module m1) (Module m2) = Module (m1 ++ m2)
