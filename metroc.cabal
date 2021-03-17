@@ -35,7 +35,7 @@ source-repository head
 library
   import: deps
   hs-source-dirs:     src
-  build-tools:				happy
+  build-tools:				alex, happy
   exposed-modules:
     MetroLang.Bytes
     MetroLang.WebAssembly.AST
@@ -49,7 +49,7 @@ library
     MetroLang.Compilation.Expressions
     MetroLang.Compilation.Values
     MetroLang.Lang.Error
-    MetroLang.Lang.Exception
+    MetroLang.Lang.ErrorRenderer
     MetroLang.Lang.Highlight
     MetroLang.Lang.Keywords
     MetroLang.Lang.Lexer
