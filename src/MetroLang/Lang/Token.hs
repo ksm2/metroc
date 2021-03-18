@@ -33,7 +33,6 @@ data Token
   | TokenTrue
   | TokenUnsafe
   | TokenWhile
-  | TokenXor
   | TokenTBool -- Primitive Types
   | TokenTIntXS
   | TokenTByte

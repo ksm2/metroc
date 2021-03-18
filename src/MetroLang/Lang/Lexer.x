@@ -74,7 +74,6 @@ tokens :-
   <0> true              { mkL $ \s -> TokenTrue }
   <0> unsafe            { mkL $ \s -> TokenUnsafe }
   <0> while             { mkL $ \s -> TokenWhile }
-  <0> xor               { mkL $ \s -> TokenXor }
 
   <0> Bool              { mkL $ \s -> TokenTBool }
   <0> IntXS             { mkL $ \s -> TokenTIntXS }

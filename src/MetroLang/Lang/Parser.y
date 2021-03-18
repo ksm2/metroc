@@ -46,7 +46,6 @@ import MetroLang.Lang.Token
       true              { L _ TokenTrue _ }
       unsafe            { L _ TokenUnsafe _ }
       while             { L _ TokenWhile _ }
-      xor               { L _ TokenXor _ }
 
       Bool      { L _ TokenTBool _ }
       IntXS     { L _ TokenTIntXS _ }

@@ -36,7 +36,6 @@ keywords =
     ("true", TokenTrue),
     ("unsafe", TokenUnsafe),
     ("while", TokenWhile),
-    ("xor", TokenXor),
     ("Bool", TokenTBool),
     ("IntXS", TokenTIntXS),
     ("Byte", TokenTByte),
