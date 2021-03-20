@@ -100,3 +100,41 @@ data Token
   | TokenEOS -- Commands
   | TokenEOF
   deriving (Eq, Show)
+
+isKeyword :: Token -> Bool
+isKeyword =
+  flip
+    elem
+    [ TokenAnd,
+      TokenAs,
+      TokenAssert,
+      TokenClass,
+      TokenConst,
+      TokenElse,
+      TokenEnum,
+      TokenExport,
+      TokenExtends,
+      TokenExternal,
+      TokenFalse,
+      TokenFn,
+      TokenFor,
+      TokenHide,
+      TokenIf,
+      TokenImpl,
+      TokenImport,
+      TokenInterface,
+      TokenIs,
+      TokenIt,
+      TokenLet,
+      TokenMatch,
+      TokenNot,
+      TokenNull,
+      TokenOr,
+      TokenReturn,
+      TokenStatic,
+      TokenTest,
+      TokenThis,
+      TokenTrue,
+      TokenUnsafe,
+      TokenWhile
+    ]

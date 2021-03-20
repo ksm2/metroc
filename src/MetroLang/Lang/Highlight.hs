@@ -1,7 +1,6 @@
 module MetroLang.Lang.Highlight (highlight) where
 
 import Data.Char
-import MetroLang.Lang.Keywords
 
 type Highlighter = String -> String
 
@@ -82,3 +81,41 @@ inLightGreen text = "\x1b[38;2;106;135;89m" ++ text ++ "\x1b[m"
 
 inItalicLightGreen :: Highlighter
 inItalicLightGreen text = "\x1b[3;38;2;98;151;85m" ++ text ++ "\x1b[m"
+
+isKeywordString :: String -> Bool
+isKeywordString =
+  flip
+    elem
+    [ "and",
+      "as",
+      "assert",
+      "class",
+      "const",
+      "else",
+      "enum",
+      "export",
+      "extends",
+      "external",
+      "false",
+      "fn",
+      "for",
+      "hide",
+      "if",
+      "impl",
+      "import",
+      "interface",
+      "is",
+      "it",
+      "let",
+      "match",
+      "not",
+      "null",
+      "or",
+      "return",
+      "static",
+      "test",
+      "this",
+      "true",
+      "unsafe",
+      "while"
+    ]

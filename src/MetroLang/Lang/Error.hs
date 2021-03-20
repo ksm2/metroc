@@ -1,7 +1,6 @@
 module MetroLang.Lang.Error (parseError) where
 
 import Data.Char
-import MetroLang.Lang.Keywords
 import MetroLang.Lang.Lexer
 import MetroLang.Lang.Token
 
@@ -29,5 +28,5 @@ describeToken TokenTFloatL = "FloatL"
 describeToken TokenTChar = "Char"
 describeToken TokenTString = "String"
 describeToken t
-  | isKeywordToken t = map toLower (drop 5 $ show t) ++ " keyword"
+  | isKeyword t = map toLower (drop 5 $ show t) ++ " keyword"
   | otherwise = drop 5 $ show t
