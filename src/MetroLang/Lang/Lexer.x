@@ -13,8 +13,6 @@ $newline    = [\r\n]
 $large      = [A-Z \xc0-\xd6 \xd8-\xde]
 $small      = [a-z \xdf-\xf6 \xf8-\xff \_]
 $alpha      = [$small $large]
-$quote      = \"
-$nonquote   = [^"]
 
 $digit      = 0-9
 $nonzerodigit = 1-9
@@ -24,7 +22,6 @@ $hexdig     = [0-9A-Fa-f]
 
 $idchar     = [$alpha $digit]
 @identifier = $alpha $idchar*
-@string     = $quote $nonquote* $quote
 @decint     = $nonzerodigit $digit* | 0
 @decuint    = @decint U
 @decbyte    = @decint B
@@ -98,7 +95,15 @@ tokens :-
   <singlelinecomment> $newline  { metroBegin 0 }
   <singlelinecomment> [^]       { metroSkip }
 
-  <0> @string           { mkL $ TokenString . ignoreLast . (drop 1) }
+  <0> \"                { metroBegin string }
+  <string> "\t"         { addchar "\t" }
+  <string> "\n"         { addchar "\n" }
+  <string> "\f"         { addchar "\f" }
+  <string> "\v"         { addchar "\v" }
+  <string> "\r"         { addchar "\r" }
+  <string> "\e"         { addchar "\x1b" }
+  <string> [^"]         { stringchar }
+  <string> \"           { endstring `andBegin` 0 }
 
   <0> "{"               { mkL $ \s -> TokenLBrace }
   <0> "}"               { mkL $ \s -> TokenRBrace }
@@ -168,17 +173,8 @@ tokens :-
 data AlexUserState =
   AlexUserState { inputFile    :: String
                 , inputContent :: String
+                , stringStack  :: String
                 }
-
-alexInitUserState :: AlexUserState
-alexInitUserState = AlexUserState "" ""
-
-data Lexeme = L AlexPosn Token String
-
-mkL :: (String -> Token) -> AlexInput -> Int -> Alex Lexeme
-mkL t (p,_,_,rest) len =
-  return (L p (t str) str)
-  where str = (take len rest)
 
 getInputFile :: Alex String
 getInputFile = inputFile <$> alexGetUserState
@@ -188,6 +184,35 @@ getInputContent = inputContent <$> alexGetUserState
 
 alexEOF :: Alex Lexeme
 alexEOF = return (L undefined TokenEOF "")
+alexInitUserState :: AlexUserState
+alexInitUserState = AlexUserState "" "" ""
+
+data Lexeme = L AlexPosn Token String
+
+mkL :: (String -> Token) -> AlexInput -> Int -> Alex Lexeme
+mkL t (p,_,_,rest) len =
+  return (L p (t str) str)
+  where str = (take len rest)
+
+stringchar :: AlexInput -> Int -> Alex Lexeme
+stringchar p@(_,_,_,rest) len =
+  addchar (take len rest) p len
+
+addchar :: String -> AlexInput -> Int -> Alex Lexeme
+addchar n _ _ =
+  do
+    s <- alexGetUserState
+    alexSetUserState s{stringStack = stringStack s ++ n}
+    metroMonadScan
+
+endstring :: AlexInput -> Int -> Alex Lexeme
+endstring (p,_,_,_) _ =
+  do
+    s <- alexGetUserState
+    let str = stringStack s
+    res <- return (L p (TokenString str) str)
+    alexSetUserState s{stringStack = ""}
+    return res
 
 alexRenderError :: AlexPosn -> String -> String -> Alex a
 alexRenderError (AlexPn _ line col) msg str =
@@ -260,5 +285,5 @@ lexer = (metroMonadScan >>=)
 
 runLexer :: String -> String -> Alex a -> Either String a
 runLexer fileInput contents calc = runAlex contents $
-  alexSetUserState (AlexUserState fileInput contents) >> calc
+  alexSetUserState (AlexUserState fileInput contents "") >> calc
 }
