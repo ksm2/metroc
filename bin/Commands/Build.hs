@@ -5,6 +5,7 @@ import Builder.Conversion
 import Builder.Instance (callFunc, withInstance)
 import Builder.Runtime (withRuntime)
 import qualified Data.ByteString as B
+import MetroLang.Location
 import System.Directory
 import System.FilePath.Posix
 
@@ -38,7 +39,7 @@ build args =
     createDirectoryIfMissing True outDir
     inputStr <- readFile inputFile
 
-    let ast = metroToAST enableAssertions [(inputFile, inputStr)]
+    let ast = metroToAST enableAssertions [(Source inputFile, inputStr)]
     let wat = astToWAT enableAssertions "main" ast
     writeFile outWatFile wat
 
@@ -51,6 +52,6 @@ run args =
     let (enableAssertions, inputFile) = parseArgs args
 
     inputStr <- readFile inputFile
-    let ast = metroToAST enableAssertions [(inputFile, inputStr)]
+    let ast = metroToAST enableAssertions [(Source inputFile, inputStr)]
     let wat = astToWAT enableAssertions "" ast
     runWAT wat

@@ -2,15 +2,18 @@
 module MetroLang.Lang.Parser (parse, merge) where
 
 import MetroLang.Lang.Error
+import MetroLang.Lang.Lexeme
 import MetroLang.Lang.Lexer
 import MetroLang.Lang.Model
+import MetroLang.Lang.Parlex
 import MetroLang.Lang.Pretty
 import MetroLang.Lang.Token
+import MetroLang.Location
 }
 
 %name calc
 %tokentype { Lexeme }
-%monad { Alex }
+%monad { Parlex }
 %lexer { lexer } { L _ TokenEOF _ }
 %error { parseError }
 
@@ -420,12 +423,11 @@ EOS                     : eos                                           {}
                         | EOS eos                                       {}
 
 {
-parse :: String -> String -> Module
-parse filePath contents =
-  let result = runLexer filePath contents calc
-  in case result of
-    Right a     -> a
-    Left e      -> error e
+parseError :: Lexeme -> Parlex a
+parseError l = Parlex $ const $ Left $ ParserError l
+
+parse :: Source -> String -> Either MetroError Module
+parse source content = runLexer source content calc
 
 merge :: Module -> Module -> Module
 merge (Module m1) (Module m2) = Module (m1 ++ m2)
