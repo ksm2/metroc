@@ -1,10 +1,11 @@
 module MetroLang.Lang.ErrorRenderer (renderError) where
 
 import MetroLang.Lang.Highlight
+import MetroLang.Location
 
-renderError :: String -> String -> String -> Int -> Int -> Int -> String
-renderError reason filename content line column len =
-  "Error in " ++ filename ++ " on line " ++ show line ++ ", column " ++ show column ++ ": " ++ reason ++ ":\n\n" ++ underlineString content line column (column + len)
+renderError :: String -> SourceLocation -> String
+renderError reason (SourceLocation source content (Position line column) (Position _ end)) =
+  "Error in " ++ source ++ " on line " ++ show line ++ ", column " ++ show column ++ ": " ++ reason ++ ":\n\n" ++ underlineString content line column end
 
 underlineString :: String -> Int -> Int -> Int -> String
 underlineString text line start end =

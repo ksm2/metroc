@@ -3,6 +3,7 @@ module MetroLang.Lang.Lexer (Alex, AlexPosn(..), Lexeme(..), alexRenderError, ge
 
 import MetroLang.Lang.ErrorRenderer
 import MetroLang.Lang.Token
+import MetroLang.Location
 }
 
 %wrapper "monadUserState"
@@ -187,12 +188,17 @@ alexEOF = return (L undefined TokenEOF "")
 alexInitUserState :: AlexUserState
 alexInitUserState = AlexUserState "" "" ""
 
-data Lexeme = L AlexPosn Token String
+data Lexeme = L SourceLocation Token String
 
 mkL :: (String -> Token) -> AlexInput -> Int -> Alex Lexeme
 mkL t (p,_,_,rest) len =
-  return (L p (t str) str)
-  where str = (take len rest)
+  do
+    s <- alexGetUserState
+    return (L (convertPosn p s len) (t str) str)
+    where str = (take len rest)
+
+convertPosn :: AlexPosn -> AlexUserState -> Int -> SourceLocation
+convertPosn (AlexPn _ line col) (AlexUserState source content _) len = SourceLocation source content (Position line col) (Position line (col + len))
 
 stringchar :: AlexInput -> Int -> Alex Lexeme
 stringchar p@(_,_,_,rest) len =
@@ -210,17 +216,12 @@ endstring (p,_,_,_) _ =
   do
     s <- alexGetUserState
     let str = stringStack s
-    res <- return (L p (TokenString str) str)
+    res <- return (L (convertPosn p s (length str)) (TokenString str) str)
     alexSetUserState s{stringStack = ""}
     return res
 
-alexRenderError :: AlexPosn -> String -> String -> Alex a
-alexRenderError (AlexPn _ line col) msg str =
-  do
-    input <- getInputFile
-    content <- getInputContent
-    alexError $
-      renderError msg input content line col (length str)
+alexRenderError :: SourceLocation -> String -> String -> Alex a
+alexRenderError loc msg str = alexError $ renderError msg loc
 
 metroMonadScan :: Alex Lexeme
 metroMonadScan = do
@@ -228,7 +229,9 @@ metroMonadScan = do
   sc <- alexGetStartCode
   case alexScan inp__ sc of
     AlexEOF -> alexEOF
-    AlexError (p,_,_,s) -> alexRenderError p ("Lexical error, unexpected " ++ head s : "") [head s]
+    AlexError (p,_,_,s) -> do
+        source <- alexGetUserState
+        alexRenderError (convertPosn p source 0) ("Lexical error, unexpected " ++ head s : "") [head s]
     AlexSkip  inp__' _len -> do
         alexSetInput inp__'
         metroMonadScan
