@@ -1,8 +1,10 @@
 module MetroLang.Compilation.Context where
 
+import Control.Monad.Except
 import Control.Monad.State (State, get, put, runState)
 import Data.Map (Map, adjust, empty, fromList, insert, member, union, (!))
 import MetroLang.Bytes (utf8Length)
+import MetroLang.Lang.Error
 import MetroLang.Lang.Model
 import MetroLang.Types
 
@@ -265,7 +267,7 @@ assertionsEnabled =
     return enableAssertions
 
 -- | runCompiler executes the compilation of a module
-runCompiler :: Bool -> Compiler b -> (b, CompileContext)
+runCompiler :: Bool -> Compiler b -> (Either MetroError b, CompileContext)
 runCompiler enableAssertions cb =
   let initialState =
         CompileContext
@@ -279,6 +281,6 @@ runCompiler enableAssertions cb =
             scope = [],
             enableAssertions
           }
-   in runState cb initialState
+   in runState (runExceptT cb) initialState
 
-type Compiler = State CompileContext
+type Compiler a = ExceptT MetroError (State CompileContext) a

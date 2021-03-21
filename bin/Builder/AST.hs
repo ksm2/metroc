@@ -67,6 +67,13 @@ metroToAST enableAssertions inputs =
 
 -- | astToWAT compiles Metro AST to WebAssembly Text Format
 astToWAT :: Bool -> String -> Module -> String
-astToWAT enableAssertions mainMethod =
-  let wasmStdLib = parseWASM $(embedStringFile "std/std.wat")
-   in generateString . mergeWASM wasmStdLib . compile enableAssertions mainMethod
+astToWAT enableAssertions mainMethod metroModule =
+  case go metroModule of
+    Left err -> error $ renderError stdModules err
+    Right a -> a
+  where
+    wasmStdLib = parseWASM $(embedStringFile "std/std.wat")
+    go m =
+      do
+        compiled <- compile enableAssertions mainMethod m
+        return $ generateString $ mergeWASM wasmStdLib compiled
