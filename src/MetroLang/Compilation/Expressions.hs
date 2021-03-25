@@ -63,12 +63,12 @@ expr (Metro.AccessExpression obj fieldName) =
 expr (Metro.TypeExpression t) = return $ Value (MetaType t) $ i32Const 0 -- TODO: Use meaningful const
 
 literal :: Metro.Literal -> Compiler Value
-literal (Metro.BoolLiteral True) = return trueValue
-literal (Metro.BoolLiteral False) = return falseValue
-literal (Metro.IntLiteral n) = return $ Value (PrimitiveType TInt) $ i32Const $ toInteger n
-literal (Metro.UIntLiteral n) = return $ Value (PrimitiveType TUInt) $ i32Const $ toInteger n
-literal (Metro.ByteLiteral n) = return $ Value (PrimitiveType TByte) $ i32Const $ toInteger n
-literal (Metro.StringLiteral l) =
+literal (Metro.BoolLiteral True _) = return trueValue
+literal (Metro.BoolLiteral False _) = return falseValue
+literal (Metro.IntLiteral n _) = return $ Value (PrimitiveType TInt) $ i32Const $ toInteger n
+literal (Metro.UIntLiteral n _) = return $ Value (PrimitiveType TUInt) $ i32Const $ toInteger n
+literal (Metro.ByteLiteral n _) = return $ Value (PrimitiveType TByte) $ i32Const $ toInteger n
+literal (Metro.StringLiteral l _) =
   do
     ptr <- registerString l
     return $ Value (PrimitiveType TString) $ i32Const (toInteger ptr)

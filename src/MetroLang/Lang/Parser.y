@@ -113,10 +113,10 @@ import MetroLang.Location
       '~'       { L _ TokenTilde _ }
 
       id        { L _ TokenIdentifier _ }
-      int       { L _ (TokenInt $$) _ }
-      uint      { L _ (TokenUInt $$) _ }
-      byte      { L _ (TokenByte $$) _ }
-      string    { L _ (TokenString $$) _ }
+      int       { L _ (TokenInt _) _ }
+      uint      { L _ (TokenUInt _) _ }
+      byte      { L _ (TokenByte _) _ }
+      string    { L _ (TokenString _) _ }
 
       eos       { L _ TokenEOS _ }
 
@@ -170,13 +170,13 @@ TestStatements          : {- empty -}                                   { [] }
                         | TestStatement                                 { [$1] }
                         | TestStatements TestStatement                  { $2 : $1 }
 TestStatement           :: { TestStatement }
-TestStatement           : it string Block                               { TestStatement $2 $3 }
+TestStatement           : it string Block                               { TestStatement (lexemeStringLiteral $2) $3 }
 
 HideDeclaration         : hide HideableDeclaration                      { HideDeclaration $2 }
 
 ConstDeclaration        : const id '=' Expression EOS                   { ConstDeclaration (lexemeText $2) $4 }
 
-ExternalDeclaration     : external string External EOS                  { ExternalDeclaration $2 $3 }
+ExternalDeclaration     : external string External EOS                  { ExternalDeclaration (lexemeStringLiteral $2) $3 }
 External                :: { External }
 External                : fn id Params ReturnType                       { FnExternal (lexemeText $2) $3 $4 }
 
@@ -250,7 +250,7 @@ ElseStatement           : else IfStatement                              { ElseIf
 
 AssertStatement         :: { Statement }
 AssertStatement         : assert Expression EOS                         { AssertStatement $2 (pretty $2) }
-                        | assert Expression ':' string EOS              { AssertStatement $2 $4 }
+                        | assert Expression ':' string EOS              { AssertStatement $2 (lexemeStringLiteral $4) }
 
 ReturnCondition         : {- empty -}                                   { Nothing }
                         | if Expression                                 { Just $2 }
@@ -397,12 +397,12 @@ ArgumentList            : Expression                                    { [$1] }
                         | ArgumentList ',' Expression                   { $3 : $1 }
 
 Literal                 :: { Literal }
-Literal                 : int                                           { IntLiteral $1 }
-                        | uint                                          { UIntLiteral $1 }
-                        | byte                                          { ByteLiteral $1 }
-                        | string                                        { StringLiteral $1 }
-                        | true                                          { BoolLiteral True }
-                        | false                                         { BoolLiteral False }
+Literal                 : int                                           { let (TokenInt i) = lexemeToken $1 in IntLiteral i (lexemeLoc $1) }
+                        | uint                                          { let (TokenUInt i) = lexemeToken $1 in UIntLiteral i (lexemeLoc $1) }
+                        | byte                                          { let (TokenByte i) = lexemeToken $1 in ByteLiteral i (lexemeLoc $1) }
+                        | string                                        { StringLiteral (lexemeStringLiteral $1) (lexemeLoc $1) }
+                        | true                                          { BoolLiteral True (lexemeLoc $1) }
+                        | false                                         { BoolLiteral False (lexemeLoc $1) }
 
 BodyOpen                : OptEOS '{' OptEOS                             {}
 BodyClose               : OptEOS '}' OptEOS                             {}
@@ -414,6 +414,11 @@ EOS                     : eos                                           {}
                         | EOS eos                                       {}
 
 {
+lexemeStringLiteral :: Lexeme -> String
+lexemeStringLiteral lexeme =
+  case lexemeToken lexeme of
+    TokenString str -> str
+
 parseError :: Lexeme -> Parlex a
 parseError l = Parlex $ const $ Left $ ParserError l
 

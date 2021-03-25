@@ -179,11 +179,11 @@ data Expression
   deriving (Show)
 
 data Literal
-  = IntLiteral Int
-  | UIntLiteral Int
-  | ByteLiteral Int
-  | StringLiteral String
-  | BoolLiteral Bool
+  = IntLiteral {litInt :: Int, litLoc :: SourceLocation}
+  | UIntLiteral {litInt :: Int, litLoc :: SourceLocation}
+  | ByteLiteral {litInt :: Int, litLoc :: SourceLocation}
+  | StringLiteral {litStr :: String, litLoc :: SourceLocation}
+  | BoolLiteral {litBool :: Bool, litLoc :: SourceLocation}
   deriving (Show)
 
 type MatchRules = [MatchRule]

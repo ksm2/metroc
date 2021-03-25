@@ -24,12 +24,12 @@ instance Pretty Expression where
 
 instance Pretty Literal where
   pretty = \case
-    IntLiteral num -> show num
-    UIntLiteral num -> show num ++ "U"
-    ByteLiteral num -> show num ++ "B"
-    StringLiteral str -> "\"" ++ str ++ "\""
-    BoolLiteral True -> "true"
-    BoolLiteral False -> "false"
+    IntLiteral num _ -> show num
+    UIntLiteral num _ -> show num ++ "U"
+    ByteLiteral num _ -> show num ++ "B"
+    StringLiteral str _ -> "\"" ++ str ++ "\""
+    BoolLiteral True _ -> "true"
+    BoolLiteral False _ -> "false"
 
 instance Pretty Type where
   pretty = \case
