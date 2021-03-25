@@ -34,7 +34,7 @@ expr (Metro.VarExpression varName) =
           Just theType -> return $ Value (MetaType theType) $ i32Const 0
           Nothing -> localVarExpr varName
 expr (Metro.LiteralExpression lit) = literal lit
-expr Metro.NullExpression = return $ Value VoidType $ i32Const 0
+expr (Metro.NullExpression _) = return $ Value VoidType $ i32Const 0
 expr (Metro.ThisExpression _) =
   do
     classType <- requireThisContext

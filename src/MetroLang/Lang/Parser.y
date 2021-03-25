@@ -334,7 +334,7 @@ Expression              : '(' Expression ')'                            { ParenE
                         | Literal                                       { LiteralExpression $1 }
                         | id                                            { VarExpression $1 }
                         | this                                          { ThisExpression (lexemeLoc $1) }
-                        | null                                          { NullExpression }
+                        | null                                          { NullExpression (lexemeLoc $1) }
                         | Expression as Type                            { CastExpression $1 $3 }
                         | id Arguments                                  { CallExpression $1 $2 }
                         | Expression Index                              { IndexExpression $1 $2 }

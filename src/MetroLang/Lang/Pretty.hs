@@ -11,7 +11,7 @@ instance Pretty Expression where
     LiteralExpression lit -> pretty lit
     VarExpression i -> i
     ThisExpression _ -> "this"
-    NullExpression -> "null"
+    NullExpression _ -> "null"
     CastExpression left right -> pretty left ++ " as " ++ pretty right
     CallExpression fn args -> fn ++ pretty args
     MethodCallExpression obj method args -> pretty obj ++ "." ++ method ++ pretty args

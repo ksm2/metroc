@@ -166,7 +166,7 @@ data Expression
   | LiteralExpression Literal
   | VarExpression Var
   | ThisExpression {loc :: SourceLocation}
-  | NullExpression
+  | NullExpression {loc :: SourceLocation}
   | CastExpression Expression Type
   | CallExpression Identifier Arguments
   | MethodCallExpression Expression Identifier Arguments
