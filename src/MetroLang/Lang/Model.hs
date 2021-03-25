@@ -1,5 +1,7 @@
 module MetroLang.Lang.Model where
 
+import MetroLang.Location
+
 type Identifier = String
 
 type ModuleName = String
@@ -163,7 +165,7 @@ data Expression
   = ParenExpression Expression
   | LiteralExpression Literal
   | VarExpression Var
-  | ThisExpression
+  | ThisExpression {loc :: SourceLocation}
   | NullExpression
   | CastExpression Expression Type
   | CallExpression Identifier Arguments

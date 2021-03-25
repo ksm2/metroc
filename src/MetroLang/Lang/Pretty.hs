@@ -10,7 +10,7 @@ instance Pretty Expression where
     ParenExpression e -> "(" ++ pretty e ++ ")"
     LiteralExpression lit -> pretty lit
     VarExpression i -> i
-    ThisExpression -> "this"
+    ThisExpression _ -> "this"
     NullExpression -> "null"
     CastExpression left right -> pretty left ++ " as " ++ pretty right
     CallExpression fn args -> fn ++ pretty args

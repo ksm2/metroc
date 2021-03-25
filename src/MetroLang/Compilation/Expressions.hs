@@ -35,7 +35,7 @@ expr (Metro.VarExpression varName) =
           Nothing -> localVarExpr varName
 expr (Metro.LiteralExpression lit) = literal lit
 expr Metro.NullExpression = return $ Value VoidType $ i32Const 0
-expr Metro.ThisExpression =
+expr (Metro.ThisExpression _) =
   do
     classType <- requireThisContext
     return $ Value classType $ getLocal "this"
@@ -321,7 +321,7 @@ assignmentOp op left right =
 
 leftHandSideGetter :: Metro.Expression -> Compiler Value
 leftHandSideGetter (Metro.VarExpression varName) = localVarExpr varName
-leftHandSideGetter (Metro.AccessExpression Metro.ThisExpression fieldName) =
+leftHandSideGetter (Metro.AccessExpression (Metro.ThisExpression _) fieldName) =
   do
     classType <- requireThisContext
     fieldOffset <- getFieldOffset (show classType) fieldName
@@ -330,7 +330,7 @@ leftHandSideGetter _ = error "Not a valid left-hand side assignment expression."
 
 leftHandSideSetter :: Metro.Expression -> Compiler (WASM.Expr -> WASM.Expr)
 leftHandSideSetter (Metro.VarExpression i) = return $ setLocal i
-leftHandSideSetter (Metro.AccessExpression Metro.ThisExpression fieldName) =
+leftHandSideSetter (Metro.AccessExpression (Metro.ThisExpression _) fieldName) =
   do
     classType <- requireThisContext
     fieldOffset <- getFieldOffset (show classType) fieldName

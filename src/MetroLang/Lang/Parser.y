@@ -333,7 +333,7 @@ Expression              :: { Expression }
 Expression              : '(' Expression ')'                            { ParenExpression $2 }
                         | Literal                                       { LiteralExpression $1 }
                         | id                                            { VarExpression $1 }
-                        | this                                          { ThisExpression }
+                        | this                                          { ThisExpression (lexemeLoc $1) }
                         | null                                          { NullExpression }
                         | Expression as Type                            { CastExpression $1 $3 }
                         | id Arguments                                  { CallExpression $1 $2 }
