@@ -159,7 +159,7 @@ tokens :-
   <0,newline> "~"       { mkL (const TokenTilde) `andBegin` 0 }
   <newline>  ()         { mkL (const TokenEOS) `andBegin` 0 }
 
-  <0> @identifier       { mkL TokenIdentifier }
+  <0> @identifier       { mkL (const TokenIdentifier) }
   <0> @decuint          { mkL $ TokenUInt . read . ignoreLast }
   <0> @decbyte          { mkL $ TokenByte . read . ignoreLast }
   <0> @decint           { mkL $ TokenInt . read }

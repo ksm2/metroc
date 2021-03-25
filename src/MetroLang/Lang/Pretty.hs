@@ -9,7 +9,7 @@ instance Pretty Expression where
   pretty = \case
     ParenExpression e -> "(" ++ pretty e ++ ")"
     LiteralExpression lit -> pretty lit
-    VarExpression i -> i
+    VarExpression i _ -> i
     ThisExpression _ -> "this"
     NullExpression _ -> "null"
     CastExpression left right -> pretty left ++ " as " ++ pretty right

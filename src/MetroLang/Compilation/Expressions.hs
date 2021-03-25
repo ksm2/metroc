@@ -21,7 +21,7 @@ falseValue = Value (PrimitiveType TBool) $ i32Const 0
 
 expr :: Metro.Expression -> Compiler Value
 expr (Metro.ParenExpression e) = expr e
-expr (Metro.VarExpression varName) =
+expr (Metro.VarExpression varName _) =
   do
     isConst <- hasConst varName
     if isConst
@@ -320,7 +320,7 @@ assignmentOp op left right =
     return $ Value VoidType $ setterLeft $ wasmExpr $ binaryExprWasm op getterLeft parsedRight
 
 leftHandSideGetter :: Metro.Expression -> Compiler Value
-leftHandSideGetter (Metro.VarExpression varName) = localVarExpr varName
+leftHandSideGetter (Metro.VarExpression varName _) = localVarExpr varName
 leftHandSideGetter (Metro.AccessExpression (Metro.ThisExpression _) fieldName) =
   do
     classType <- requireThisContext
@@ -329,7 +329,7 @@ leftHandSideGetter (Metro.AccessExpression (Metro.ThisExpression _) fieldName) =
 leftHandSideGetter _ = error "Not a valid left-hand side assignment expression."
 
 leftHandSideSetter :: Metro.Expression -> Compiler (WASM.Expr -> WASM.Expr)
-leftHandSideSetter (Metro.VarExpression i) = return $ setLocal i
+leftHandSideSetter (Metro.VarExpression i _) = return $ setLocal i
 leftHandSideSetter (Metro.AccessExpression (Metro.ThisExpression _) fieldName) =
   do
     classType <- requireThisContext
@@ -373,7 +373,7 @@ signedComparingExpr :: String -> Value -> Value -> Value
 signedComparingExpr op (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
   | isSignedType left && isSignedType right = comparingExpr (op ++ "_s") (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
   | isUnsignedType left && isUnsignedType right = comparingExpr (op ++ "_u") (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
-signedComparingExpr op x y = error $ "Cannot perform comparation on mixed signed/unsigned type " ++ show op ++ ", x = " ++ show x ++ " y = " ++ show y
+signedComparingExpr op x y = error "Cannot perform comparison on mixed signed/unsigned type"
 
 comparingExpr :: String -> Value -> Value -> Value
 comparingExpr op (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)

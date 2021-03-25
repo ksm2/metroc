@@ -112,7 +112,7 @@ import MetroLang.Location
       '}'       { L _ TokenRBrace _ }
       '~'       { L _ TokenTilde _ }
 
-      id        { L _ (TokenIdentifier $$) _ }
+      id        { L _ TokenIdentifier _ }
       int       { L _ (TokenInt $$) _ }
       uint      { L _ (TokenUInt $$) _ }
       byte      { L _ (TokenByte $$) _ }
@@ -174,27 +174,27 @@ TestStatement           : it string Block                               { TestSt
 
 HideDeclaration         : hide HideableDeclaration                      { HideDeclaration $2 }
 
-ConstDeclaration        : const id '=' Expression EOS                   { ConstDeclaration $2 $4 }
+ConstDeclaration        : const id '=' Expression EOS                   { ConstDeclaration (lexemeText $2) $4 }
 
 ExternalDeclaration     : external string External EOS                  { ExternalDeclaration $2 $3 }
 External                :: { External }
-External                : fn id Params ReturnType                       { FnExternal $2 $3 $4 }
+External                : fn id Params ReturnType                       { FnExternal (lexemeText $2) $3 $4 }
 
-EnumDeclaration         : enum id TypeArguments EnumBody                { EnumDeclaration $2 $3 $4 }
+EnumDeclaration         : enum id TypeArguments EnumBody                { EnumDeclaration (lexemeText $2) $3 $4 }
 EnumBody                : BodyOpen EnumItems BodyClose                  { reverse $2 }
 EnumItems               : EnumItem                                      { [$1] }
                         | EnumItems EOS EnumItem                        { $3 : $1 }
 
 EnumItem                :: { EnumItem }
-EnumItem                : id OptParams                                  { EnumItem $1 $2 }
+EnumItem                : id OptParams                                  { EnumItem (lexemeText $1) $2 }
 
-InterfaceDeclaration    : interface id TypeArguments InterfaceBody      { InterfaceDeclaration $2 $3 $4 }
+InterfaceDeclaration    : interface id TypeArguments InterfaceBody      { InterfaceDeclaration (lexemeText $2) $3 $4 }
 InterfaceBody           : BodyOpen InterfaceMethods BodyClose           { reverse $2 }
 InterfaceMethods        : {- empty -}                                   { [] }
                         | InterfaceMethod                               { [$1] }
                         | InterfaceMethods InterfaceMethod              { $2 : $1 }
 InterfaceMethod         :: { InterfaceMethod }
-InterfaceMethod         : id Arguments ReturnType EOS                   { InterfaceMethod $1 $2 $3 }
+InterfaceMethod         : id Arguments ReturnType EOS                   { InterfaceMethod (lexemeText $1) $2 $3 }
 
 ImplDeclaration         : impl Type for Type ClassBody                  { ImplDeclaration $2 $4 $5 }
 
@@ -208,16 +208,16 @@ ClassBody               : BodyOpen ClassElements BodyClose              { revers
 ClassElements           : {- empty -}                                   { [] }
                         | ClassElement                                  { [$1] }
                         | ClassElements ClassElement                    { $2 : $1 }
-ClassElement            : static id ':=' Expression EOS                 { StaticField $2 $4 }
+ClassElement            : static id ':=' Expression EOS                 { StaticField (lexemeText $2) $4 }
                         | static MethodSignature Block                  { StaticMethod $2 $3 }
-                        | id ':=' Expression EOS                        { Field $1 $3 }
+                        | id ':=' Expression EOS                        { Field (lexemeText $1) $3 }
                         | MethodSignature Block                         { Method $1 $2 }
 
 MethodSignature         :: { MethodSignature }
-MethodSignature         : id Params ReturnType                          { MethodSignature Safe $1 $2 $3 }
-                        | unsafe id Params ReturnType                   { MethodSignature Unsafe $2 $3 $4 }
+MethodSignature         : id Params ReturnType                          { MethodSignature Safe (lexemeText $1) $2 $3 }
+                        | unsafe id Params ReturnType                   { MethodSignature Unsafe (lexemeText $2) $3 $4 }
 
-FnDeclaration           : Safety fn id Params ReturnType Block          { FnDeclaration $3 $1 $4 $5 $6 }
+FnDeclaration           : Safety fn id Params ReturnType Block          { FnDeclaration (lexemeText $3) $1 $4 $5 $6 }
 Block                   :: { Block }
 Block                   : BodyOpen Statements BodyClose                 { reverse $2 }
 
@@ -228,11 +228,10 @@ Safety                  : unsafe                                        { Unsafe
 Statements              :: { [Statement] }
 Statements              : {- empty -}                                   { [] }
                         | Statement                                     { [$1] }
-                        | Statements                                    { $1 }
                         | Statements Statement                          { $2 : $1 }
 
 Statement               :: { Statement }
-Statement               : id ':=' Expression EOS                        { AssignStatement $1 $3 }
+Statement               : id ':=' Expression EOS                        { AssignStatement (lexemeText $1) $3 }
                         | IfStatement                                   { IfStatement $1 }
                         | while Expression Block                        { WhileStatement $2 $3 }
                         | AssertStatement                               { $1 }
@@ -256,10 +255,6 @@ AssertStatement         : assert Expression EOS                         { Assert
 ReturnCondition         : {- empty -}                                   { Nothing }
                         | if Expression                                 { Just $2 }
 
-VarList                 : Vars                                          { reverse $1 }
-Vars                    : id                                            { [$1] }
-                        | Vars ',' id                                   { $3 : $1 }
-
 OptParams               :: { Params }
 OptParams               : {- empty -}                                   { [] }
                         | '(' ParamList ')'                             { $2 }
@@ -274,7 +269,7 @@ ParamList               : Param                                         { [$1] }
                         | ParamList ',' Param                           { $3 : $1 }
 
 Param                   :: { Param }
-Param                   : id Type                                       { Param $1 $2 }
+Param                   : id Type                                       { Param (lexemeText $1) $2 }
 
 ReturnType              :: { ReturnType }
 ReturnType              : {- empty -}                                   { VoidType }
@@ -294,16 +289,16 @@ TypeArgumentList        : TypeArgument                                  { [$1] }
                         | TypeArgumentList ',' TypeArgument             { $3 : $1 }
 
 TypeArgument            :: { TypeArgument }
-TypeArgument            : id                                            { TypeArgument $1 }
+TypeArgument            : id                                            { TypeArgument (lexemeText $1) }
 
 Type                    :: { Type }
-Type                    : id                                            { RefType $1 }
+Type                    : id                                            { RefType (lexemeText $1) }
                         | PrimitiveType                                 { PrimitiveType $1 }
                         | '[' Type ']'                                  { ArrayType $2 }
                         | Type '<' TypeArgumentList '>'                 { GenericType $1 (reverse $3) }
 
 TypeName                :: { String }
-TypeName                : id                                            { $1 }
+TypeName                : id                                            { lexemeText $1 }
                         | PrimitiveType                                 { tail $ show $1 }
 
 PrimitiveType           :: { PrimitiveType }
@@ -322,24 +317,20 @@ PrimitiveType           : Bool                                          { TBool 
                         | String                                        { TString }
 
 FQN                     :: { FQN }
-FQN                     : id                                            { [$1] }
-                        | FQN '.' id                                    { $3 : $1 }
-
-ExpressionList          :: { Expressions }
-ExpressionList          : Expression                                    { [$1] }
-                        | ExpressionList ',' Expression                 { $3 : $1 }
+FQN                     : id                                            { [lexemeText $1] }
+                        | FQN '.' id                                    { lexemeText $3 : $1 }
 
 Expression              :: { Expression }
 Expression              : '(' Expression ')'                            { ParenExpression $2 }
                         | Literal                                       { LiteralExpression $1 }
-                        | id                                            { VarExpression $1 }
+                        | id                                            { VarExpression (lexemeText $1) (lexemeLoc $1) }
                         | this                                          { ThisExpression (lexemeLoc $1) }
                         | null                                          { NullExpression (lexemeLoc $1) }
                         | Expression as Type                            { CastExpression $1 $3 }
-                        | id Arguments                                  { CallExpression $1 $2 }
+                        | id Arguments                                  { CallExpression (lexemeText $1) $2 }
                         | Expression Index                              { IndexExpression $1 $2 }
-                        | Expression '.' id Arguments                   { MethodCallExpression $1 $3 $4 }
-                        | Expression '.' id                             { AccessExpression $1 $3 }
+                        | Expression '.' id Arguments                   { MethodCallExpression $1 (lexemeText $3) $4 }
+                        | Expression '.' id                             { AccessExpression $1 (lexemeText $3) }
                         | Type                                          { TypeExpression $1 }
                         | MatchExpression                               { $1 }
                         | UnaryExpression                               { $1 }

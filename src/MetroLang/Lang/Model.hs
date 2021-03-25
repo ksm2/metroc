@@ -164,7 +164,7 @@ type Expressions = [Expression]
 data Expression
   = ParenExpression Expression
   | LiteralExpression Literal
-  | VarExpression Var
+  | VarExpression {var :: Var, loc :: SourceLocation}
   | ThisExpression {loc :: SourceLocation}
   | NullExpression {loc :: SourceLocation}
   | CastExpression Expression Type

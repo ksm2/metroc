@@ -92,7 +92,7 @@ data Token
   | TokenRParen
   | TokenTilde
   | TokenUnderscore
-  | TokenIdentifier String -- Literals
+  | TokenIdentifier -- Literals
   | TokenInt Int
   | TokenUInt Int
   | TokenByte Int
