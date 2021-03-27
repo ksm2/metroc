@@ -321,7 +321,7 @@ FQN                     : id                                            { [lexem
                         | FQN '.' id                                    { lexemeText $3 : $1 }
 
 Expression              :: { Expression }
-Expression              : '(' Expression ')'                            { ParenExpression $2 }
+Expression              : '(' Expression ')'                            { ParenExpression $2 ($1 ~> $3) }
                         | Literal                                       { LiteralExpression $1 (loc $1) }
                         | id                                            { VarExpression (lexemeText $1) (loc $1) }
                         | this                                          { ThisExpression (loc $1) }

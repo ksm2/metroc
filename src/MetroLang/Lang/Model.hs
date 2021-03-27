@@ -170,7 +170,7 @@ instance Locatable Arguments where
 type Expressions = [Expression]
 
 data Expression
-  = ParenExpression Expression
+  = ParenExpression {expr :: Expression, exprLoc :: SourceLocation}
   | LiteralExpression {exprLiteral :: Literal, exprLoc :: SourceLocation}
   | VarExpression {var :: Var, exprLoc :: SourceLocation}
   | ThisExpression {exprLoc :: SourceLocation}

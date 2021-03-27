@@ -7,7 +7,7 @@ class Pretty p where
 
 instance Pretty Expression where
   pretty = \case
-    ParenExpression e -> "(" ++ pretty e ++ ")"
+    ParenExpression e _ -> "(" ++ pretty e ++ ")"
     LiteralExpression lit _ -> pretty lit
     VarExpression i _ -> i
     ThisExpression _ -> "this"

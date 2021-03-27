@@ -20,7 +20,7 @@ falseValue :: Value
 falseValue = Value (PrimitiveType TBool) $ i32Const 0
 
 expr :: Metro.Expression -> Compiler Value
-expr (Metro.ParenExpression e) = expr e
+expr (Metro.ParenExpression e _) = expr e
 expr (Metro.VarExpression varName _) =
   do
     isConst <- hasConst varName
