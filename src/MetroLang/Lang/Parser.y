@@ -327,17 +327,14 @@ Expression              : '(' Expression ')'                            { ParenE
                         | this                                          { ThisExpression (lexemeLoc $1) }
                         | null                                          { NullExpression (lexemeLoc $1) }
                         | Expression as Type                            { CastExpression $1 (typeSymbolType $3) (loc $1 ~> typeSymbolLoc $3) }
-                        | id Arguments                                  { CallExpression (lexemeText $1) $2 }
-                        | Expression Index                              { IndexExpression $1 $2 }
-                        | Expression '.' id Arguments                   { MethodCallExpression $1 (lexemeText $3) $4 }
-                        | Expression '.' id                             { AccessExpression $1 (lexemeText $3) }
+                        | id Arguments                                  { CallExpression (lexemeText $1) $2 (lexemeLoc $1 ~> argumentsLoc $2) }
+                        | Expression '[' Expression ']'                 { IndexExpression $1 $3 (loc $1 ~> lexemeLoc $4) }
+                        | Expression '.' id Arguments                   { MethodCallExpression $1 (lexemeText $3) $4 (loc $1 ~> argumentsLoc $4) }
+                        | Expression '.' id                             { AccessExpression $1 (lexemeText $3) (loc $1 ~> lexemeLoc $3) }
                         | Type                                          { TypeExpression (typeSymbolType $1) (typeSymbolLoc $1) }
                         | MatchExpression                               { $1 }
                         | UnaryExpression                               { $1 }
                         | BinaryExpression                              { $1 }
-
-Index                   :: { Expression }
-Index                   : '[' Expression ']'                            { $2 }
 
 MatchExpression         :: { Expression }
 MatchExpression         : match Expression MatchBody                    { MatchExpression $2 $3 }

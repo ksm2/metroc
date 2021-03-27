@@ -13,11 +13,11 @@ instance Pretty Expression where
     ThisExpression _ -> "this"
     NullExpression _ -> "null"
     CastExpression left right _ -> pretty left ++ " as " ++ pretty right
-    CallExpression fn args -> fn ++ pretty args
-    MethodCallExpression obj method args -> pretty obj ++ "." ++ method ++ pretty args
-    AccessExpression left right -> pretty left ++ "." ++ right
+    CallExpression fn args _ -> fn ++ pretty args
+    MethodCallExpression obj method args _ -> pretty obj ++ "." ++ method ++ pretty args
+    AccessExpression left right _ -> pretty left ++ "." ++ right
     TypeExpression typ _ -> pretty typ
-    IndexExpression obj idx -> pretty obj ++ "[" ++ pretty idx ++ "]"
+    IndexExpression obj idx _ -> pretty obj ++ "[" ++ pretty idx ++ "]"
     UnaryExpression unaryOp expr -> pretty unaryOp ++ pretty expr
     BinaryExpression binOp left right -> pretty left ++ " " ++ pretty binOp ++ " " ++ pretty right
     _ -> ""

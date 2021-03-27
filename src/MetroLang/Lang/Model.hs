@@ -170,11 +170,11 @@ data Expression
   | ThisExpression {loc :: SourceLocation}
   | NullExpression {loc :: SourceLocation}
   | CastExpression {expr :: Expression, exprType :: Type, loc :: SourceLocation}
-  | CallExpression Identifier Arguments
-  | MethodCallExpression Expression Identifier Arguments
-  | AccessExpression Expression Identifier
+  | CallExpression {exprCallee :: Identifier, exprArgs :: Arguments, loc :: SourceLocation}
+  | MethodCallExpression {exprObj :: Expression, exprCallee :: Identifier, exprArgs :: Arguments, loc :: SourceLocation}
+  | AccessExpression {exprObj :: Expression, exprField :: Identifier, loc :: SourceLocation}
   | TypeExpression {exprType :: Type, loc :: SourceLocation}
-  | IndexExpression Expression Expression
+  | IndexExpression {exprObj :: Expression, exprIndex :: Expression, loc :: SourceLocation}
   | MatchExpression Expression MatchRules
   | UnaryExpression UnaryOperator Expression
   | BinaryExpression BinaryOperator Expression Expression

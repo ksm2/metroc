@@ -42,21 +42,21 @@ expr (Metro.ThisExpression _) =
 expr (Metro.UnaryExpression op e) = unaryExpr op e
 expr (Metro.BinaryExpression op e1 e2) = binaryExpr op e1 e2
 expr (Metro.CastExpression e1 typ _) = castExpr e1 typ
-expr (Metro.CallExpression callee args) =
+expr (Metro.CallExpression callee args _) =
   do
     a <- arguments args
     isConstructorCall <- classExists callee
     if isConstructorCall
       then return $ Value (RefType callee) $ call callee (map wasmExpr a)
       else functionCall callee a
-expr (Metro.IndexExpression obj key) = listAccessExpr obj key
+expr (Metro.IndexExpression obj key _) = listAccessExpr obj key
 expr (Metro.MatchExpression t body) = matchExpr t body
-expr (Metro.MethodCallExpression obj methodName args) =
+expr (Metro.MethodCallExpression obj methodName args _) =
   do
     objValue <- expr obj
     argValues <- arguments args
     methodCall objValue methodName argValues
-expr (Metro.AccessExpression obj fieldName) =
+expr (Metro.AccessExpression obj fieldName _) =
   do
     objValue <- expr obj
     fieldAccess objValue fieldName
@@ -321,7 +321,7 @@ assignmentOp op left right =
 
 leftHandSideGetter :: Metro.Expression -> Compiler Value
 leftHandSideGetter (Metro.VarExpression varName _) = localVarExpr varName
-leftHandSideGetter (Metro.AccessExpression (Metro.ThisExpression _) fieldName) =
+leftHandSideGetter (Metro.AccessExpression (Metro.ThisExpression _) fieldName _) =
   do
     classType <- requireThisContext
     fieldOffset <- getFieldOffset (show classType) fieldName
@@ -330,7 +330,7 @@ leftHandSideGetter _ = error "Not a valid left-hand side assignment expression."
 
 leftHandSideSetter :: Metro.Expression -> Compiler (WASM.Expr -> WASM.Expr)
 leftHandSideSetter (Metro.VarExpression i _) = return $ setLocal i
-leftHandSideSetter (Metro.AccessExpression (Metro.ThisExpression _) fieldName) =
+leftHandSideSetter (Metro.AccessExpression (Metro.ThisExpression _) fieldName _) =
   do
     classType <- requireThisContext
     fieldOffset <- getFieldOffset (show classType) fieldName
