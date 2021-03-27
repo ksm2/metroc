@@ -6,6 +6,9 @@ import Data.String
 
 newtype Source = Source String deriving (IsString, Eq, Show, Ord)
 
+class Locatable a where
+  loc :: a -> SourceLocation
+
 data SourceLocation = SourceLocation
   { source :: Source,
     start :: Position,
@@ -25,5 +28,8 @@ mkSourceLocation p@(Position line col) source len = SourceLocation source p (Pos
 startPos :: Position
 startPos = Position 1 1
 
-(~>) :: SourceLocation -> SourceLocation -> SourceLocation
-a ~> b = SourceLocation (source a) (start a) (end b)
+(~>) :: Locatable a => Locatable b => a -> b -> SourceLocation
+a ~> b =
+  let locA = loc a
+      locB = loc b
+   in SourceLocation (source locA) (start locA) (end locB)

@@ -98,6 +98,9 @@ type Types = [Type]
 
 data TypeSymbol = TypeSymbol {typeSymbolType :: Type, typeSymbolLoc :: SourceLocation} deriving (Show)
 
+instance Locatable TypeSymbol where
+  loc = typeSymbolLoc
+
 data Type
   = VoidType
   | RefType Identifier
@@ -161,38 +164,50 @@ type FQN = [Identifier]
 
 data Arguments = Arguments {argumentsExpressions :: [Expression], argumentsLoc :: SourceLocation} deriving (Show)
 
+instance Locatable Arguments where
+  loc = argumentsLoc
+
 type Expressions = [Expression]
 
 data Expression
   = ParenExpression Expression
-  | LiteralExpression {exprLiteral :: Literal, loc :: SourceLocation}
-  | VarExpression {var :: Var, loc :: SourceLocation}
-  | ThisExpression {loc :: SourceLocation}
-  | NullExpression {loc :: SourceLocation}
-  | CastExpression {expr :: Expression, exprType :: Type, loc :: SourceLocation}
-  | CallExpression {exprCallee :: Identifier, exprArgs :: Arguments, loc :: SourceLocation}
-  | MethodCallExpression {exprObj :: Expression, exprCallee :: Identifier, exprArgs :: Arguments, loc :: SourceLocation}
-  | AccessExpression {exprObj :: Expression, exprField :: Identifier, loc :: SourceLocation}
-  | TypeExpression {exprType :: Type, loc :: SourceLocation}
-  | IndexExpression {exprObj :: Expression, exprIndex :: Expression, loc :: SourceLocation}
-  | MatchExpression {matchTarget :: Expression, matchBody :: MatchBody, loc :: SourceLocation}
-  | UnaryExpression {unop :: UnaryOperator, expr :: Expression, loc :: SourceLocation}
-  | BinaryExpression {binop :: BinaryOperator, left :: Expression, right :: Expression, loc :: SourceLocation}
+  | LiteralExpression {exprLiteral :: Literal, exprLoc :: SourceLocation}
+  | VarExpression {var :: Var, exprLoc :: SourceLocation}
+  | ThisExpression {exprLoc :: SourceLocation}
+  | NullExpression {exprLoc :: SourceLocation}
+  | CastExpression {expr :: Expression, exprType :: Type, exprLoc :: SourceLocation}
+  | CallExpression {exprCallee :: Identifier, exprArgs :: Arguments, exprLoc :: SourceLocation}
+  | MethodCallExpression {exprObj :: Expression, exprCallee :: Identifier, exprArgs :: Arguments, exprLoc :: SourceLocation}
+  | AccessExpression {exprObj :: Expression, exprField :: Identifier, exprLoc :: SourceLocation}
+  | TypeExpression {exprType :: Type, exprLoc :: SourceLocation}
+  | IndexExpression {exprObj :: Expression, exprIndex :: Expression, exprLoc :: SourceLocation}
+  | MatchExpression {matchTarget :: Expression, matchBody :: MatchBody, exprLoc :: SourceLocation}
+  | UnaryExpression {unop :: UnaryOperator, expr :: Expression, exprLoc :: SourceLocation}
+  | BinaryExpression {binop :: BinaryOperator, left :: Expression, right :: Expression, exprLoc :: SourceLocation}
   deriving (Show)
 
+instance Locatable Expression where
+  loc = exprLoc
+
 data Literal
-  = IntLiteral {litInt :: Int, litLoc :: SourceLocation}
-  | UIntLiteral {litInt :: Int, litLoc :: SourceLocation}
-  | ByteLiteral {litInt :: Int, litLoc :: SourceLocation}
-  | StringLiteral {litStr :: String, litLoc :: SourceLocation}
-  | BoolLiteral {litBool :: Bool, litLoc :: SourceLocation}
+  = IntLiteral {litInt :: Int, literalLoc :: SourceLocation}
+  | UIntLiteral {litInt :: Int, literalLoc :: SourceLocation}
+  | ByteLiteral {litInt :: Int, literalLoc :: SourceLocation}
+  | StringLiteral {litStr :: String, literalLoc :: SourceLocation}
+  | BoolLiteral {litBool :: Bool, literalLoc :: SourceLocation}
   deriving (Show)
+
+instance Locatable Literal where
+  loc = literalLoc
 
 data MatchBody = MatchBody
   { matchBodyRules :: [MatchRule],
     matchBodyLoc :: SourceLocation
   }
   deriving (Show)
+
+instance Locatable MatchBody where
+  loc = matchBodyLoc
 
 data MatchRule = MatchRule
   { matchRuleCond :: MatchCondition,
@@ -201,10 +216,16 @@ data MatchRule = MatchRule
   }
   deriving (Show)
 
+instance Locatable MatchRule where
+  loc = matchRuleLoc
+
 data MatchCondition
   = MatchWildcard {matchConditionLoc :: SourceLocation}
   | MatchPattern {matchConditionLit :: Literal, matchConditionLoc :: SourceLocation}
   deriving (Show)
+
+instance Locatable MatchCondition where
+  loc = matchConditionLoc
 
 data UnaryOperator
   = Neg
