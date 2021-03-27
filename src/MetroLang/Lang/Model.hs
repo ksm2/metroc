@@ -175,7 +175,7 @@ data Expression
   | AccessExpression {exprObj :: Expression, exprField :: Identifier, loc :: SourceLocation}
   | TypeExpression {exprType :: Type, loc :: SourceLocation}
   | IndexExpression {exprObj :: Expression, exprIndex :: Expression, loc :: SourceLocation}
-  | MatchExpression Expression MatchRules
+  | MatchExpression {matchTarget :: Expression, matchBody :: MatchBody, loc :: SourceLocation}
   | UnaryExpression UnaryOperator Expression
   | BinaryExpression BinaryOperator Expression Expression
   deriving (Show)
@@ -188,15 +188,22 @@ data Literal
   | BoolLiteral {litBool :: Bool, litLoc :: SourceLocation}
   deriving (Show)
 
-type MatchRules = [MatchRule]
+data MatchBody = MatchBody
+  { matchBodyRules :: [MatchRule],
+    matchBodyLoc :: SourceLocation
+  }
+  deriving (Show)
 
-data MatchRule
-  = MatchRule MatchCondition Expression
+data MatchRule = MatchRule
+  { matchRuleCond :: MatchCondition,
+    matchRuleBinding :: Expression,
+    matchRuleLoc :: SourceLocation
+  }
   deriving (Show)
 
 data MatchCondition
-  = MatchWildcard
-  | MatchPattern Literal
+  = MatchWildcard {matchConditionLoc :: SourceLocation}
+  | MatchPattern {matchConditionLit :: Literal, matchConditionLoc :: SourceLocation}
   deriving (Show)
 
 data UnaryOperator

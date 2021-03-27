@@ -337,13 +337,17 @@ Expression              : '(' Expression ')'                            { ParenE
                         | BinaryExpression                              { $1 }
 
 MatchExpression         :: { Expression }
-MatchExpression         : match Expression MatchBody                    { MatchExpression $2 $3 }
-MatchBody               : BodyOpen MatchRules BodyClose                 { reverse $2 }
+MatchExpression         : match Expression MatchBody                    { MatchExpression $2 $3 (lexemeLoc $1 ~> matchBodyLoc $3) }
+MatchBody               :: { MatchBody }
+MatchBody               : BodyOpen MatchRules BodyClose                 { MatchBody (reverse $2) (lexemeLoc $1 ~> lexemeLoc $3) }
+MatchRules              :: { [MatchRule] }
 MatchRules              : MatchRule                                     { [$1] }
                         | MatchRules EOS MatchRule                      { $3 : $1 }
-MatchRule               : MatchCondition '=>' Expression                { MatchRule $1 $3 }
-MatchCondition          : '_'                                           { MatchWildcard }
-                        | Literal                                       { MatchPattern $1 }
+MatchRule               :: { MatchRule }
+MatchRule               : MatchCondition '=>' Expression                { MatchRule $1 $3 (matchConditionLoc $1 ~> loc $3) }
+MatchCondition          :: { MatchCondition }
+MatchCondition          : '_'                                           { MatchWildcard (lexemeLoc $1) }
+                        | Literal                                       { MatchPattern $1 (litLoc $1) }
 
 UnaryExpression         :: { Expression }
 UnaryExpression         : '-' Expression %prec NEG                      { UnaryExpression Neg $2 }
@@ -402,8 +406,8 @@ Literal                 : int                                           { let (T
                         | true                                          { BoolLiteral True (lexemeLoc $1) }
                         | false                                         { BoolLiteral False (lexemeLoc $1) }
 
-BodyOpen                : OptEOS '{' OptEOS                             {}
-BodyClose               : OptEOS '}' OptEOS                             {}
+BodyOpen                : OptEOS '{' OptEOS                             { $2 }
+BodyClose               : OptEOS '}' OptEOS                             { $2 }
 
 OptEOS                  : {- empty -}                                   {}
                         | EOS                                           {}

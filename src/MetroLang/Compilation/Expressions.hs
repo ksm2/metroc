@@ -50,7 +50,7 @@ expr (Metro.CallExpression callee args _) =
       then return $ Value (RefType callee) $ call callee (map wasmExpr a)
       else functionCall callee a
 expr (Metro.IndexExpression obj key _) = listAccessExpr obj key
-expr (Metro.MatchExpression t body) = matchExpr t body
+expr (Metro.MatchExpression t body _) = matchExpr t body
 expr (Metro.MethodCallExpression obj methodName args _) =
   do
     objValue <- expr obj
@@ -253,19 +253,19 @@ listAccessExpr obj key =
           ArrayType listType -> return $ load listType $ i32Add (i32Const 4) $ i32Add objExpr $ i32Mul keyExpr $ i32Const $ toInteger (sizeOf listType)
           _ -> error "Can only access lists by index."
 
-matchExpr :: Metro.Expression -> Metro.MatchRules -> Compiler Value
-matchExpr target rules = matchRules rules target
+matchExpr :: Metro.Expression -> Metro.MatchBody -> Compiler Value
+matchExpr target (Metro.MatchBody rules _) = matchRules rules target
 
-matchRules :: Metro.MatchRules -> Metro.Expression -> Compiler Value
+matchRules :: [Metro.MatchRule] -> Metro.Expression -> Compiler Value
 matchRules [] _ = error "There must be at least one rule in a match block."
-matchRules [Metro.MatchRule Metro.MatchWildcard caseVal] _ =
+matchRules [Metro.MatchRule (Metro.MatchWildcard _) caseVal _] _ =
   do
     Value valType valExpr <- expr caseVal
     return $ Value valType valExpr
 matchRules [_] _ = error "Invalid last condition, it must be a wildcard."
 matchRules (c : cs) target =
   do
-    let Metro.MatchRule caseCond caseVal = c
+    let Metro.MatchRule caseCond caseVal _ = c
     Value valType valExpr <- expr caseVal
     Value elseType elseExpr <- matchRules cs target
     if elseType /= valType
@@ -275,8 +275,8 @@ matchRules (c : cs) target =
         return $ Value valType $ WASM.Select valExpr elseExpr cond
 
 makeMatchRuleCond :: Metro.Expression -> Metro.MatchCondition -> Compiler WASM.Expr
-makeMatchRuleCond left Metro.MatchWildcard = wasmExpr <$> expr left
-makeMatchRuleCond left (Metro.MatchPattern lit) =
+makeMatchRuleCond left (Metro.MatchWildcard _) = wasmExpr <$> expr left
+makeMatchRuleCond left (Metro.MatchPattern lit _) =
   do
     Value leftType leftExpr <- expr left
     Value rightType rightExpr <- literal lit
