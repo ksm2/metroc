@@ -160,7 +160,8 @@ newtype Arguments = Arguments [Expression] deriving (Show)
 type Expressions = [Expression]
 
 data Expression
-  = LiteralExpression Literal
+  = ParenExpression Expression
+  | LiteralExpression Literal
   | VarExpression Var
   | ThisExpression
   | NullExpression

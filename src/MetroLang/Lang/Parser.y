@@ -327,7 +327,7 @@ ExpressionList          : Expression                                    { [$1] }
                         | ExpressionList ',' Expression                 { $3 : $1 }
 
 Expression              :: { Expression }
-Expression              : '(' Expression ')'                            { $2 }
+Expression              : '(' Expression ')'                            { ParenExpression $2 }
                         | Literal                                       { LiteralExpression $1 }
                         | id                                            { VarExpression $1 }
                         | this                                          { ThisExpression }
