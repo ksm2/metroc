@@ -265,11 +265,11 @@ addchar n _ _ =
     monadScan
 
 endstring :: MetroAction Lexeme
-endstring (p,_,_,_) _ =
+endstring (Position pl pc,_,_,_) _ =
   do
     src <- metroGetSource
     str <- metroGetString
-    res <- return (L (mkSourceLocation p src (length str)) (TokenString str) str)
+    res <- return (L (mkSourceLocation (Position pl (pc - length str - 1)) src (length str + 2)) (TokenString str) str)
     metroSetString ""
     return res
 
