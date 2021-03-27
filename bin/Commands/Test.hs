@@ -150,8 +150,9 @@ test args =
     let matches = matchGlobs globs contents
     let sources = map Source matches
     inputStrs <- mapM readFile matches
-    let ast = metroToAST True $ zip sources inputStrs
-    let wat = astToWAT True "" ast
+    let inputs = zip sources inputStrs
+    let ast = metroToAST True inputs
+    let wat = astToWAT True "" inputs ast
     let tests = findTests ast
 
     stderrPath <- emptySystemTempFile "metro"

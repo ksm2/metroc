@@ -66,10 +66,10 @@ metroToAST enableAssertions inputs =
         return $ foldl Metro.merge (Module []) (metroStdLib ++ asts)
 
 -- | astToWAT compiles Metro AST to WebAssembly Text Format
-astToWAT :: Bool -> String -> Module -> String
-astToWAT enableAssertions mainMethod metroModule =
+astToWAT :: Bool -> String -> [(Source, String)] -> Module -> String
+astToWAT enableAssertions mainMethod inputs metroModule =
   case go metroModule of
-    Left err -> error $ renderError stdModules err
+    Left err -> error $ renderError (M.union stdModules (M.fromList inputs)) err
     Right a -> a
   where
     wasmStdLib = parseWASM $(embedStringFile "std/std.wat")

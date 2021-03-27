@@ -1,10 +1,13 @@
 module MetroLang.Compilation.Expressions (exprs, expr, strToTypeMaybe) where
 
+import Control.Monad.Except
 import MetroLang.Compilation.Combinators
 import MetroLang.Compilation.Context
 import MetroLang.Compilation.Values
+import MetroLang.Lang.Error
 import MetroLang.Lang.Model as Metro (PrimitiveType (..), Type (..))
 import qualified MetroLang.Lang.Model as Metro
+import MetroLang.Location
 import MetroLang.Types
 import qualified MetroLang.WebAssembly.AST as WASM
 import MetroLang.WebAssembly.MemoryInstr
@@ -85,14 +88,6 @@ castExpr e castType =
   do
     Value _ f <- expr e
     return $ Value castType f
-
-strToType :: String -> Compiler Type
-strToType str =
-  do
-    maybeType <- strToTypeMaybe str
-    case maybeType of
-      Just x -> return x
-      Nothing -> error $ "Not a valid type reference: " ++ str
 
 strToTypeMaybe :: String -> Compiler (Maybe Type)
 strToTypeMaybe str =
@@ -246,12 +241,12 @@ listAccessExpr obj key =
   do
     Value keyType keyExpr <- expr key
     if keyType /= PrimitiveType TUInt
-      then error "List access needs to be of type UInt."
+      then throwCompilationError key "List access needs to be of type UInt"
       else do
         Value objType objExpr <- expr obj
         case objType of
           ArrayType listType -> return $ load listType $ i32Add (i32Const 4) $ i32Add objExpr $ i32Mul keyExpr $ i32Const $ toInteger (sizeOf listType)
-          _ -> error "Can only access lists by index."
+          _ -> throwCompilationError obj "Only lists can be accessed by index"
 
 matchExpr :: Metro.Expression -> Metro.MatchBody -> Compiler Value
 matchExpr target (Metro.MatchBody rules _) = matchRules rules target
@@ -426,3 +421,6 @@ convertToExpr src dest
 
 arguments :: Metro.Arguments -> Compiler [Value]
 arguments (Metro.Arguments e _) = exprs e
+
+throwCompilationError :: Locatable a => a -> String -> Compiler b
+throwCompilationError l msg = throwError $ CompilationError (loc l) msg

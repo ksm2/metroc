@@ -13,6 +13,7 @@ renderError :: M.Map Source String -> MetroError -> String
 renderError sources = \case
   LexerError l@(SourceLocation source start end) ch -> theRenderError ("Unexpected char \"" ++ ch : "\"") (sources ! source) l
   ParserError (L l@(SourceLocation source start end) t _) -> theRenderError ("Unexpected " ++ describeToken t) (sources ! source) l
+  CompilationError l@(SourceLocation source start end) msg -> theRenderError msg (sources ! source) l
 
 theRenderError :: String -> String -> SourceLocation -> String
 theRenderError reason content (SourceLocation (Source source) (Position line column) (Position _ end)) =

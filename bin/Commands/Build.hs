@@ -40,7 +40,7 @@ build args =
     inputStr <- readFile inputFile
 
     let ast = metroToAST enableAssertions [(Source inputFile, inputStr)]
-    let wat = astToWAT enableAssertions "main" ast
+    let wat = astToWAT enableAssertions "main" [(Source inputFile, inputStr)] ast
     writeFile outWatFile wat
 
     wasm <- watToWasm wat
@@ -53,5 +53,5 @@ run args =
 
     inputStr <- readFile inputFile
     let ast = metroToAST enableAssertions [(Source inputFile, inputStr)]
-    let wat = astToWAT enableAssertions "" ast
+    let wat = astToWAT enableAssertions "" [(Source inputFile, inputStr)] ast
     runWAT wat
