@@ -33,7 +33,7 @@ expr (Metro.VarExpression varName _) =
         case refType of
           Just theType -> return $ Value (MetaType theType) $ i32Const 0
           Nothing -> localVarExpr varName
-expr (Metro.LiteralExpression lit) = literal lit
+expr (Metro.LiteralExpression lit _) = literal lit
 expr (Metro.NullExpression _) = return $ Value VoidType $ i32Const 0
 expr (Metro.ThisExpression _) =
   do

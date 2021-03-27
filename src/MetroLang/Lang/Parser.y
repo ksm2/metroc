@@ -322,7 +322,7 @@ FQN                     : id                                            { [lexem
 
 Expression              :: { Expression }
 Expression              : '(' Expression ')'                            { ParenExpression $2 }
-                        | Literal                                       { LiteralExpression $1 }
+                        | Literal                                       { LiteralExpression $1 (litLoc $1) }
                         | id                                            { VarExpression (lexemeText $1) (lexemeLoc $1) }
                         | this                                          { ThisExpression (lexemeLoc $1) }
                         | null                                          { NullExpression (lexemeLoc $1) }
