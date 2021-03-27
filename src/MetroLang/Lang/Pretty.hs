@@ -18,8 +18,8 @@ instance Pretty Expression where
     AccessExpression left right _ -> pretty left ++ "." ++ right
     TypeExpression typ _ -> pretty typ
     IndexExpression obj idx _ -> pretty obj ++ "[" ++ pretty idx ++ "]"
-    UnaryExpression unaryOp expr -> pretty unaryOp ++ pretty expr
-    BinaryExpression binOp left right -> pretty left ++ " " ++ pretty binOp ++ " " ++ pretty right
+    UnaryExpression unaryOp expr _ -> pretty unaryOp ++ pretty expr
+    BinaryExpression binOp left right _ -> pretty left ++ " " ++ pretty binOp ++ " " ++ pretty right
     _ -> ""
 
 instance Pretty Literal where

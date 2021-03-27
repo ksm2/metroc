@@ -39,8 +39,8 @@ expr (Metro.ThisExpression _) =
   do
     classType <- requireThisContext
     return $ Value classType $ getLocal "this"
-expr (Metro.UnaryExpression op e) = unaryExpr op e
-expr (Metro.BinaryExpression op e1 e2) = binaryExpr op e1 e2
+expr (Metro.UnaryExpression op e _) = unaryExpr op e
+expr (Metro.BinaryExpression op e1 e2 _) = binaryExpr op e1 e2
 expr (Metro.CastExpression e1 typ _) = castExpr e1 typ
 expr (Metro.CallExpression callee args _) =
   do

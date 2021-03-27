@@ -350,45 +350,45 @@ MatchCondition          : '_'                                           { MatchW
                         | Literal                                       { MatchPattern $1 (litLoc $1) }
 
 UnaryExpression         :: { Expression }
-UnaryExpression         : '-' Expression %prec NEG                      { UnaryExpression Neg $2 }
-                        | not Expression %prec LNOT                     { UnaryExpression LogicalNot $2 }
-                        | '~' Expression %prec BNOT                     { UnaryExpression BitwiseNot $2 }
+UnaryExpression         : '-' Expression %prec NEG                      { UnaryExpression Neg $2 (lexemeLoc $1 ~> loc $2) }
+                        | not Expression %prec LNOT                     { UnaryExpression LogicalNot $2 (lexemeLoc $1 ~> loc $2) }
+                        | '~' Expression %prec BNOT                     { UnaryExpression BitwiseNot $2 (lexemeLoc $1 ~> loc $2) }
 
 BinaryExpression        :: { Expression }
-BinaryExpression        : Expression '*'   OptEOS Expression            { BinaryExpression Multiply $1 $4 }
-                        | Expression '/'   OptEOS Expression            { BinaryExpression Divide $1 $4 }
-                        | Expression '%'   OptEOS Expression            { BinaryExpression Modulo $1 $4 }
-                        | Expression '+'   OptEOS Expression            { BinaryExpression Add $1 $4 }
-                        | Expression '-'   OptEOS Expression            { BinaryExpression Subtract $1 $4 }
-                        | Expression '>>'  OptEOS Expression            { BinaryExpression ShiftRight $1 $4 }
-                        | Expression '<<'  OptEOS Expression            { BinaryExpression ShiftLeft $1 $4 }
-                        | Expression '%>'  OptEOS Expression            { BinaryExpression RotateRight $1 $4 }
-                        | Expression '<%'  OptEOS Expression            { BinaryExpression RotateLeft $1 $4 }
-                        | Expression '<'   OptEOS Expression            { BinaryExpression LessThan $1 $4 }
-                        | Expression '<='  OptEOS Expression            { BinaryExpression LessThanOrEqual $1 $4 }
-                        | Expression '>'   OptEOS Expression            { BinaryExpression GreaterThan $1 $4 }
-                        | Expression '>='  OptEOS Expression            { BinaryExpression GreaterThanOrEqual $1 $4 }
-                        | Expression '=='  OptEOS Expression            { BinaryExpression Equal $1 $4 }
-                        | Expression '!='  OptEOS Expression            { BinaryExpression Unequal $1 $4 }
-                        | Expression is    OptEOS Expression            { BinaryExpression Is $1 $4 }
-                        | Expression '&'   OptEOS Expression            { BinaryExpression BitwiseAnd $1 $4 }
-                        | Expression '^'   OptEOS Expression            { BinaryExpression BitwiseXor $1 $4 }
-                        | Expression '|'   OptEOS Expression            { BinaryExpression BitwiseOr $1 $4 }
-                        | Expression and   OptEOS Expression            { BinaryExpression LogicalAnd $1 $4 }
-                        | Expression or    OptEOS Expression            { BinaryExpression LogicalOr $1 $4 }
-                        | Expression '*='  OptEOS Expression            { BinaryExpression AssignMultiply $1 $4 }
-                        | Expression '/='  OptEOS Expression            { BinaryExpression AssignDivide $1 $4 }
-                        | Expression '%='  OptEOS Expression            { BinaryExpression AssignModulo $1 $4 }
-                        | Expression '+='  OptEOS Expression            { BinaryExpression AssignAdd $1 $4 }
-                        | Expression '-='  OptEOS Expression            { BinaryExpression AssignSubtract $1 $4 }
-                        | Expression '>>=' OptEOS Expression            { BinaryExpression AssignShiftRight $1 $4 }
-                        | Expression '<<=' OptEOS Expression            { BinaryExpression AssignShiftLeft $1 $4 }
-                        | Expression '%>=' OptEOS Expression            { BinaryExpression AssignRotateRight $1 $4 }
-                        | Expression '<%=' OptEOS Expression            { BinaryExpression AssignRotateLeft $1 $4 }
-                        | Expression '&='  OptEOS Expression            { BinaryExpression AssignBitwiseAnd $1 $4 }
-                        | Expression '^='  OptEOS Expression            { BinaryExpression AssignBitwiseXor $1 $4 }
-                        | Expression '|='  OptEOS Expression            { BinaryExpression AssignBitwiseOr $1 $4 }
-                        | Expression '='   OptEOS Expression            { BinaryExpression Assignment $1 $4 }
+BinaryExpression        : Expression '*'   OptEOS Expression            { BinaryExpression Multiply $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '/'   OptEOS Expression            { BinaryExpression Divide $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '%'   OptEOS Expression            { BinaryExpression Modulo $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '+'   OptEOS Expression            { BinaryExpression Add $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '-'   OptEOS Expression            { BinaryExpression Subtract $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '>>'  OptEOS Expression            { BinaryExpression ShiftRight $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '<<'  OptEOS Expression            { BinaryExpression ShiftLeft $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '%>'  OptEOS Expression            { BinaryExpression RotateRight $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '<%'  OptEOS Expression            { BinaryExpression RotateLeft $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '<'   OptEOS Expression            { BinaryExpression LessThan $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '<='  OptEOS Expression            { BinaryExpression LessThanOrEqual $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '>'   OptEOS Expression            { BinaryExpression GreaterThan $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '>='  OptEOS Expression            { BinaryExpression GreaterThanOrEqual $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '=='  OptEOS Expression            { BinaryExpression Equal $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '!='  OptEOS Expression            { BinaryExpression Unequal $1 $4 (loc $1 ~> loc $4) }
+                        | Expression is    OptEOS Expression            { BinaryExpression Is $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '&'   OptEOS Expression            { BinaryExpression BitwiseAnd $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '^'   OptEOS Expression            { BinaryExpression BitwiseXor $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '|'   OptEOS Expression            { BinaryExpression BitwiseOr $1 $4 (loc $1 ~> loc $4) }
+                        | Expression and   OptEOS Expression            { BinaryExpression LogicalAnd $1 $4 (loc $1 ~> loc $4) }
+                        | Expression or    OptEOS Expression            { BinaryExpression LogicalOr $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '*='  OptEOS Expression            { BinaryExpression AssignMultiply $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '/='  OptEOS Expression            { BinaryExpression AssignDivide $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '%='  OptEOS Expression            { BinaryExpression AssignModulo $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '+='  OptEOS Expression            { BinaryExpression AssignAdd $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '-='  OptEOS Expression            { BinaryExpression AssignSubtract $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '>>=' OptEOS Expression            { BinaryExpression AssignShiftRight $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '<<=' OptEOS Expression            { BinaryExpression AssignShiftLeft $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '%>=' OptEOS Expression            { BinaryExpression AssignRotateRight $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '<%=' OptEOS Expression            { BinaryExpression AssignRotateLeft $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '&='  OptEOS Expression            { BinaryExpression AssignBitwiseAnd $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '^='  OptEOS Expression            { BinaryExpression AssignBitwiseXor $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '|='  OptEOS Expression            { BinaryExpression AssignBitwiseOr $1 $4 (loc $1 ~> loc $4) }
+                        | Expression '='   OptEOS Expression            { BinaryExpression Assignment $1 $4 (loc $1 ~> loc $4) }
 
 Arguments               :: { Arguments }
 Arguments               : '(' ')'                                       { Arguments [] (lexemeLoc $1 ~> lexemeLoc $2) }

@@ -176,8 +176,8 @@ data Expression
   | TypeExpression {exprType :: Type, loc :: SourceLocation}
   | IndexExpression {exprObj :: Expression, exprIndex :: Expression, loc :: SourceLocation}
   | MatchExpression {matchTarget :: Expression, matchBody :: MatchBody, loc :: SourceLocation}
-  | UnaryExpression UnaryOperator Expression
-  | BinaryExpression BinaryOperator Expression Expression
+  | UnaryExpression {unop :: UnaryOperator, expr :: Expression, loc :: SourceLocation}
+  | BinaryExpression {binop :: BinaryOperator, left :: Expression, right :: Expression, loc :: SourceLocation}
   deriving (Show)
 
 data Literal
