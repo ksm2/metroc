@@ -196,7 +196,7 @@ InterfaceMethods        : {- empty -}                                   { [] }
 InterfaceMethod         :: { InterfaceMethod }
 InterfaceMethod         : id Arguments ReturnType EOS                   { InterfaceMethod (lexemeText $1) $2 $3 }
 
-ImplDeclaration         : impl Type for Type ClassBody                  { ImplDeclaration $2 $4 $5 }
+ImplDeclaration         : impl Type for Type ClassBody                  { ImplDeclaration (typeSymbolType $2) (typeSymbolType $4) $5 }
 
 ClassDeclaration        : class TypeName TypeArguments OptParams ClassExtension ClassImplementation ClassBody { ClassDeclaration $2 $3 $4 $5 $6 $7 }
 ClassExtension          : {- empty -}                                   { [] }
@@ -269,16 +269,16 @@ ParamList               : Param                                         { [$1] }
                         | ParamList ',' Param                           { $3 : $1 }
 
 Param                   :: { Param }
-Param                   : id Type                                       { Param (lexemeText $1) $2 }
+Param                   : id Type                                       { Param (lexemeText $1) (typeSymbolType $2) }
 
 ReturnType              :: { ReturnType }
 ReturnType              : {- empty -}                                   { VoidType }
-                        | Type                                          { $1 }
+                        | Type                                          { typeSymbolType $1 }
 
 TypeList                :: { [Type] }
-TypeList                : Type                                          { [$1] }
+TypeList                : Type                                          { [typeSymbolType $1] }
                         | TypeList ','                                  { $1 }
-                        | TypeList ',' Type                             { $3 : $1 }
+                        | TypeList ',' Type                             { typeSymbolType $3 : $1 }
 
 TypeArguments           :: { TypeArguments }
 TypeArguments           : {- empty -}                                   { [] }
@@ -291,30 +291,30 @@ TypeArgumentList        : TypeArgument                                  { [$1] }
 TypeArgument            :: { TypeArgument }
 TypeArgument            : id                                            { TypeArgument (lexemeText $1) }
 
-Type                    :: { Type }
-Type                    : id                                            { RefType (lexemeText $1) }
-                        | PrimitiveType                                 { PrimitiveType $1 }
-                        | '[' Type ']'                                  { ArrayType $2 }
-                        | Type '<' TypeArgumentList '>'                 { GenericType $1 (reverse $3) }
+Type                    :: { TypeSymbol }
+Type                    : id                                            { TypeSymbol (RefType (lexemeText $1)) (lexemeLoc $1) }
+                        | PrimitiveType                                 { $1 }
+                        | '[' Type ']'                                  { TypeSymbol (ArrayType (typeSymbolType $2)) (lexemeLoc $1 ~> lexemeLoc $3) }
+                        | Type '<' TypeArgumentList '>'                 { TypeSymbol (GenericType (typeSymbolType $1) (reverse $3)) (typeSymbolLoc $1 ~> lexemeLoc $4) }
 
 TypeName                :: { String }
 TypeName                : id                                            { lexemeText $1 }
-                        | PrimitiveType                                 { tail $ show $1 }
+                        | PrimitiveType                                 { show (typeSymbolType $1) }
 
-PrimitiveType           :: { PrimitiveType }
-PrimitiveType           : Bool                                          { TBool }
-                        | IntXS                                         { TIntXS }
-                        | Byte                                          { TByte }
-                        | IntS                                          { TIntS }
-                        | Word                                          { TWord }
-                        | Int                                           { TInt }
-                        | UInt                                          { TUInt }
-                        | IntL                                          { TIntL }
-                        | UIntL                                         { TUIntL }
-                        | Float                                         { TFloat }
-                        | FloatL                                        { TFloatL }
-                        | Char                                          { TChar }
-                        | String                                        { TString }
+PrimitiveType           :: { TypeSymbol }
+PrimitiveType           : Bool                                          { TypeSymbol (PrimitiveType TBool) (lexemeLoc $1) }
+                        | IntXS                                         { TypeSymbol (PrimitiveType TIntXS) (lexemeLoc $1) }
+                        | Byte                                          { TypeSymbol (PrimitiveType TByte) (lexemeLoc $1) }
+                        | IntS                                          { TypeSymbol (PrimitiveType TIntS) (lexemeLoc $1) }
+                        | Word                                          { TypeSymbol (PrimitiveType TWord) (lexemeLoc $1) }
+                        | Int                                           { TypeSymbol (PrimitiveType TInt) (lexemeLoc $1) }
+                        | UInt                                          { TypeSymbol (PrimitiveType TUInt) (lexemeLoc $1) }
+                        | IntL                                          { TypeSymbol (PrimitiveType TIntL) (lexemeLoc $1) }
+                        | UIntL                                         { TypeSymbol (PrimitiveType TUIntL) (lexemeLoc $1) }
+                        | Float                                         { TypeSymbol (PrimitiveType TFloat) (lexemeLoc $1) }
+                        | FloatL                                        { TypeSymbol (PrimitiveType TFloatL) (lexemeLoc $1) }
+                        | Char                                          { TypeSymbol (PrimitiveType TChar) (lexemeLoc $1) }
+                        | String                                        { TypeSymbol (PrimitiveType TString) (lexemeLoc $1) }
 
 FQN                     :: { FQN }
 FQN                     : id                                            { [lexemeText $1] }
@@ -326,12 +326,12 @@ Expression              : '(' Expression ')'                            { ParenE
                         | id                                            { VarExpression (lexemeText $1) (lexemeLoc $1) }
                         | this                                          { ThisExpression (lexemeLoc $1) }
                         | null                                          { NullExpression (lexemeLoc $1) }
-                        | Expression as Type                            { CastExpression $1 $3 }
+                        | Expression as Type                            { CastExpression $1 (typeSymbolType $3) (loc $1 ~> typeSymbolLoc $3) }
                         | id Arguments                                  { CallExpression (lexemeText $1) $2 }
                         | Expression Index                              { IndexExpression $1 $2 }
                         | Expression '.' id Arguments                   { MethodCallExpression $1 (lexemeText $3) $4 }
                         | Expression '.' id                             { AccessExpression $1 (lexemeText $3) }
-                        | Type                                          { TypeExpression $1 }
+                        | Type                                          { TypeExpression (typeSymbolType $1) (typeSymbolLoc $1) }
                         | MatchExpression                               { $1 }
                         | UnaryExpression                               { $1 }
                         | BinaryExpression                              { $1 }

@@ -41,7 +41,7 @@ expr (Metro.ThisExpression _) =
     return $ Value classType $ getLocal "this"
 expr (Metro.UnaryExpression op e) = unaryExpr op e
 expr (Metro.BinaryExpression op e1 e2) = binaryExpr op e1 e2
-expr (Metro.CastExpression e1 typ) = castExpr e1 typ
+expr (Metro.CastExpression e1 typ _) = castExpr e1 typ
 expr (Metro.CallExpression callee args) =
   do
     a <- arguments args
@@ -60,7 +60,7 @@ expr (Metro.AccessExpression obj fieldName) =
   do
     objValue <- expr obj
     fieldAccess objValue fieldName
-expr (Metro.TypeExpression t) = return $ Value (MetaType t) $ i32Const 0 -- TODO: Use meaningful const
+expr (Metro.TypeExpression t _) = return $ Value (MetaType t) $ i32Const 0 -- TODO: Use meaningful const
 
 literal :: Metro.Literal -> Compiler Value
 literal (Metro.BoolLiteral True _) = return trueValue

@@ -96,6 +96,8 @@ type ReturnType = Type
 
 type Types = [Type]
 
+data TypeSymbol = TypeSymbol {typeSymbolType :: Type, typeSymbolLoc :: SourceLocation} deriving (Show)
+
 data Type
   = VoidType
   | RefType Identifier
@@ -167,11 +169,11 @@ data Expression
   | VarExpression {var :: Var, loc :: SourceLocation}
   | ThisExpression {loc :: SourceLocation}
   | NullExpression {loc :: SourceLocation}
-  | CastExpression Expression Type
+  | CastExpression {expr :: Expression, exprType :: Type, loc :: SourceLocation}
   | CallExpression Identifier Arguments
   | MethodCallExpression Expression Identifier Arguments
   | AccessExpression Expression Identifier
-  | TypeExpression Type
+  | TypeExpression {exprType :: Type, loc :: SourceLocation}
   | IndexExpression Expression Expression
   | MatchExpression Expression MatchRules
   | UnaryExpression UnaryOperator Expression
