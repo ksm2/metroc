@@ -157,7 +157,7 @@ instance Ord PrimitiveType where
 
 type FQN = [Identifier]
 
-newtype Arguments = Arguments [Expression] deriving (Show)
+data Arguments = Arguments {argumentsExpressions :: [Expression], argumentsLoc :: SourceLocation} deriving (Show)
 
 type Expressions = [Expression]
 

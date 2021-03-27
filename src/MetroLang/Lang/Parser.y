@@ -390,8 +390,9 @@ BinaryExpression        : Expression '*'   OptEOS Expression            { Binary
                         | Expression '='   OptEOS Expression            { BinaryExpression Assignment $1 $4 }
 
 Arguments               :: { Arguments }
-Arguments               : '(' ')'                                       { Arguments [] }
-                        | '(' ArgumentList ')'                          { Arguments (reverse $2) }
+Arguments               : '(' ')'                                       { Arguments [] (lexemeLoc $1 ~> lexemeLoc $2) }
+                        | '(' ArgumentList ')'                          { Arguments (reverse $2) (lexemeLoc $1 ~> lexemeLoc $3) }
+ArgumentList            :: { [Expression] }
 ArgumentList            : Expression                                    { [$1] }
                         | ArgumentList ','                              { $1 }
                         | ArgumentList ',' Expression                   { $3 : $1 }

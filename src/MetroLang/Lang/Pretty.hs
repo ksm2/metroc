@@ -41,7 +41,7 @@ instance Pretty PrimitiveType where
   pretty = tail . show
 
 instance Pretty Arguments where
-  pretty (Arguments ee) = "(" ++ prettyArgs ee ++ ")"
+  pretty (Arguments ee _) = "(" ++ prettyArgs ee ++ ")"
 
 prettyArgs :: (Pretty a) => [a] -> String
 prettyArgs [] = ""

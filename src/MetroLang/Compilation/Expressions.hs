@@ -425,5 +425,4 @@ convertToExpr src dest
   | otherwise = error $ "Cannot convert " ++ show src ++ " to " ++ show dest
 
 arguments :: Metro.Arguments -> Compiler [Value]
-arguments = \case
-  Metro.Arguments e -> exprs e
+arguments (Metro.Arguments e _) = exprs e

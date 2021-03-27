@@ -24,3 +24,6 @@ mkSourceLocation p@(Position line col) source len = SourceLocation source p (Pos
 
 startPos :: Position
 startPos = Position 1 1
+
+(~>) :: SourceLocation -> SourceLocation -> SourceLocation
+a ~> b = SourceLocation (source a) (start a) (end b)
