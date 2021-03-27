@@ -20,6 +20,7 @@ falseValue :: Value
 falseValue = Value (PrimitiveType TBool) $ i32Const 0
 
 expr :: Metro.Expression -> Compiler Value
+expr (Metro.ParenExpression e) = expr e
 expr (Metro.VarExpression varName) =
   do
     isConst <- hasConst varName
@@ -424,4 +425,5 @@ convertToExpr src dest
   | otherwise = error $ "Cannot convert " ++ show src ++ " to " ++ show dest
 
 arguments :: Metro.Arguments -> Compiler [Value]
-arguments = exprs
+arguments = \case
+  Metro.Arguments e -> exprs e

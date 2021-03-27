@@ -54,6 +54,7 @@ library
     MetroLang.Lang.Lexer
     MetroLang.Lang.Model
     MetroLang.Lang.Parser
+    MetroLang.Lang.Pretty
     MetroLang.Lang.Token
     MetroLang.Types
     MetroLang.Utils

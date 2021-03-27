@@ -4,6 +4,7 @@ module MetroLang.Lang.Parser (parse, merge) where
 import MetroLang.Lang.Error
 import MetroLang.Lang.Lexer
 import MetroLang.Lang.Model
+import MetroLang.Lang.Pretty
 import MetroLang.Lang.Token
 }
 
@@ -246,7 +247,7 @@ ElseStatement           : else IfStatement                              { ElseIf
                         | else Block                                    { Else $2 }
 
 AssertStatement         :: { Statement }
-AssertStatement         : assert Expression EOS                         { AssertStatement $2 (show $2) }
+AssertStatement         : assert Expression EOS                         { AssertStatement $2 (pretty $2) }
                         | assert Expression ':' string EOS              { AssertStatement $2 $4 }
 
 ReturnCondition         : {- empty -}                                   { Nothing }
@@ -326,7 +327,7 @@ ExpressionList          : Expression                                    { [$1] }
                         | ExpressionList ',' Expression                 { $3 : $1 }
 
 Expression              :: { Expression }
-Expression              : '(' Expression ')'                            { $2 }
+Expression              : '(' Expression ')'                            { ParenExpression $2 }
                         | Literal                                       { LiteralExpression $1 }
                         | id                                            { VarExpression $1 }
                         | this                                          { ThisExpression }
@@ -395,8 +396,8 @@ BinaryExpression        : Expression '*'   OptEOS Expression            { Binary
                         | Expression '='   OptEOS Expression            { BinaryExpression Assignment $1 $4 }
 
 Arguments               :: { Arguments }
-Arguments               : '(' ')'                                       { [] }
-                        | '(' ArgumentList ')'                          { reverse $2 }
+Arguments               : '(' ')'                                       { Arguments [] }
+                        | '(' ArgumentList ')'                          { Arguments (reverse $2) }
 ArgumentList            : Expression                                    { [$1] }
                         | ArgumentList ','                              { $1 }
                         | ArgumentList ',' Expression                   { $3 : $1 }
