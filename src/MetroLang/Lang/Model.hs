@@ -155,7 +155,7 @@ instance Ord PrimitiveType where
 
 type FQN = [Identifier]
 
-type Arguments = [Expression]
+newtype Arguments = Arguments [Expression] deriving (Show)
 
 type Expressions = [Expression]
 
@@ -222,7 +222,6 @@ data BinaryOperator
   | Unequal
   | Equal
   | Is
-  | As
   | LessThan
   | LessThanOrEqual
   | GreaterThan
