@@ -43,7 +43,7 @@ expr (Metro.ThisExpression _) =
     classType <- requireThisContext
     return $ Value classType $ getLocal "this"
 expr e@(Metro.UnaryExpression op e1 _) = unaryExpr e op e1
-expr (Metro.BinaryExpression op e1 e2 _) = binaryExpr op e1 e2
+expr e@(Metro.BinaryExpression op e1 e2 _) = binaryExpr e op e1 e2
 expr (Metro.CastExpression e1 typ _) = castExpr e1 typ
 expr (Metro.CallExpression callee args _) =
   do
@@ -148,25 +148,25 @@ unaryExprWasm e Metro.BitwiseNot v@(Value (PrimitiveType p) _)
   | p == TUIntL || p == TIntL = return $ vmap (i64Xor (i64Const 0xFFFFFFFFFFFFFFFF)) v
 unaryExprWasm e Metro.BitwiseNot (Value t _) = throwCompilationError e $ "Cannot apply '~' on value of type " ++ show t
 
-binaryExpr :: Metro.BinaryOperator -> Metro.Expression -> Metro.Expression -> Compiler Value
-binaryExpr Metro.Assignment e1 e2 = assignment e1 e2
-binaryExpr Metro.AssignBitwiseOr e1 e2 = assignmentOp Metro.BitwiseOr e1 e2
-binaryExpr Metro.AssignBitwiseXor e1 e2 = assignmentOp Metro.BitwiseXor e1 e2
-binaryExpr Metro.AssignBitwiseAnd e1 e2 = assignmentOp Metro.BitwiseAnd e1 e2
-binaryExpr Metro.AssignRotateLeft e1 e2 = assignmentOp Metro.RotateLeft e1 e2
-binaryExpr Metro.AssignRotateRight e1 e2 = assignmentOp Metro.RotateRight e1 e2
-binaryExpr Metro.AssignShiftLeft e1 e2 = assignmentOp Metro.ShiftLeft e1 e2
-binaryExpr Metro.AssignShiftRight e1 e2 = assignmentOp Metro.ShiftRight e1 e2
-binaryExpr Metro.AssignSubtract e1 e2 = assignmentOp Metro.Subtract e1 e2
-binaryExpr Metro.AssignAdd e1 e2 = assignmentOp Metro.Add e1 e2
-binaryExpr Metro.AssignModulo e1 e2 = assignmentOp Metro.Modulo e1 e2
-binaryExpr Metro.AssignDivide e1 e2 = assignmentOp Metro.Divide e1 e2
-binaryExpr Metro.AssignMultiply e1 e2 = assignmentOp Metro.Multiply e1 e2
-binaryExpr op e1 e2 =
-  do
+binaryExpr :: Metro.Expression -> Metro.BinaryOperator -> Metro.Expression -> Metro.Expression -> Compiler Value
+binaryExpr e op e1 e2 = case op of
+  Metro.Assignment -> assignment e1 e2
+  Metro.AssignBitwiseOr -> assignmentOp e Metro.BitwiseOr e1 e2
+  Metro.AssignBitwiseXor -> assignmentOp e Metro.BitwiseXor e1 e2
+  Metro.AssignBitwiseAnd -> assignmentOp e Metro.BitwiseAnd e1 e2
+  Metro.AssignRotateLeft -> assignmentOp e Metro.RotateLeft e1 e2
+  Metro.AssignRotateRight -> assignmentOp e Metro.RotateRight e1 e2
+  Metro.AssignShiftLeft -> assignmentOp e Metro.ShiftLeft e1 e2
+  Metro.AssignShiftRight -> assignmentOp e Metro.ShiftRight e1 e2
+  Metro.AssignSubtract -> assignmentOp e Metro.Subtract e1 e2
+  Metro.AssignAdd -> assignmentOp e Metro.Add e1 e2
+  Metro.AssignModulo -> assignmentOp e Metro.Modulo e1 e2
+  Metro.AssignDivide -> assignmentOp e Metro.Divide e1 e2
+  Metro.AssignMultiply -> assignmentOp e Metro.Multiply e1 e2
+  _ -> do
     f1 <- expr e1
     f2 <- expr e2
-    return $ binaryExprWasm op f1 f2
+    binaryExprWasm e op f1 f2
 
 fieldAccess :: Value -> String -> Compiler Value
 fieldAccess (Value (MetaType (PrimitiveType TInt)) _) "MIN_VALUE" = return $ Value (PrimitiveType TInt) $ i32Const $ negate 2147483648
@@ -308,13 +308,14 @@ assignment left right =
     parsedRight <- expr right
     return $ Value VoidType $ parsedLeft (wasmExpr parsedRight)
 
-assignmentOp :: Metro.BinaryOperator -> Metro.Expression -> Metro.Expression -> Compiler Value
-assignmentOp op left right =
+assignmentOp :: Metro.Expression -> Metro.BinaryOperator -> Metro.Expression -> Metro.Expression -> Compiler Value
+assignmentOp e op left right =
   do
     setterLeft <- leftHandSideSetter left
     getterLeft <- leftHandSideGetter left
     parsedRight <- expr right
-    return $ Value VoidType $ setterLeft $ wasmExpr $ binaryExprWasm op getterLeft parsedRight
+    resultValue <- binaryExprWasm e op getterLeft parsedRight
+    return $ Value VoidType $ setterLeft $ wasmExpr resultValue
 
 leftHandSideGetter :: Metro.Expression -> Compiler Value
 leftHandSideGetter (Metro.VarExpression varName _) = localVarExpr varName
@@ -323,7 +324,7 @@ leftHandSideGetter (Metro.AccessExpression (Metro.ThisExpression _) fieldName _)
     classType <- requireThisContext
     fieldOffset <- getFieldOffset (show classType) fieldName
     return $ Value (PrimitiveType TInt) $ loadInstr TInt fieldOffset (getLocal "this")
-leftHandSideGetter _ = error "Not a valid left-hand side assignment expression."
+leftHandSideGetter e = throwCompilationError e "Not a valid left-hand side assignment expression"
 
 leftHandSideSetter :: Metro.Expression -> Compiler (WASM.Expr -> WASM.Expr)
 leftHandSideSetter (Metro.VarExpression i _) = return $ setLocal i
@@ -332,65 +333,66 @@ leftHandSideSetter (Metro.AccessExpression (Metro.ThisExpression _) fieldName _)
     classType <- requireThisContext
     fieldOffset <- getFieldOffset (show classType) fieldName
     return $ storeInstr TInt fieldOffset (getLocal "this")
-leftHandSideSetter _ = error "Not a valid left-hand side assignment expression."
+leftHandSideSetter e = throwCompilationError e "Not a valid left-hand side assignment expression"
 
-binaryExprWasm :: Metro.BinaryOperator -> Value -> Value -> Value
-binaryExprWasm Metro.LogicalOr v1 v2 = boolExpr "or" v1 v2
-binaryExprWasm Metro.LogicalAnd v1 v2 = boolExpr "and" v1 v2
-binaryExprWasm Metro.BitwiseOr v1 v2 = arithmeticExpr "or" v1 v2
-binaryExprWasm Metro.BitwiseXor v1 v2 = arithmeticExpr "xor" v1 v2
-binaryExprWasm Metro.BitwiseAnd v1 v2 = arithmeticExpr "and" v1 v2
-binaryExprWasm Metro.Is _e1 _e2 = falseValue -- TODO!
-binaryExprWasm Metro.Unequal (Value _ e1) (Value _ e2) = Value (PrimitiveType TBool) $ i32Eqz (i32Eq e1 e2)
-binaryExprWasm Metro.Equal (Value _ e1) (Value _ e2) = Value (PrimitiveType TBool) $ i32Eq e1 e2
-binaryExprWasm Metro.Add (Value (PrimitiveType TString) e1) (Value (PrimitiveType TString) e2) = Value (PrimitiveType TString) $ call "__concat" [e1, e2]
-binaryExprWasm Metro.LessThan v1 v2 = signedComparingExpr "lt" v1 v2
-binaryExprWasm Metro.LessThanOrEqual v1 v2 = signedComparingExpr "le" v1 v2
-binaryExprWasm Metro.GreaterThan v1 v2 = signedComparingExpr "gt" v1 v2
-binaryExprWasm Metro.GreaterThanOrEqual v1 v2 = signedComparingExpr "ge" v1 v2
-binaryExprWasm Metro.RotateLeft v1 v2 = arithmeticExpr "rotl" v1 v2
-binaryExprWasm Metro.RotateRight v1 v2 = arithmeticExpr "rotr" v1 v2
-binaryExprWasm Metro.ShiftLeft v1 v2 = arithmeticExpr "shl" v1 v2
-binaryExprWasm Metro.ShiftRight v1 v2 = signedArithmeticExpr "shr" v1 v2
-binaryExprWasm Metro.Subtract v1 v2 = arithmeticExpr "sub" v1 v2
-binaryExprWasm Metro.Add v1 v2 = arithmeticExpr "add" v1 v2
-binaryExprWasm Metro.Modulo v1 v2 = signedArithmeticExpr "rem" v1 v2
-binaryExprWasm Metro.Divide v1 v2 = signedArithmeticExpr "div" v1 v2
-binaryExprWasm Metro.Multiply v1 v2 = arithmeticExpr "mul" v1 v2
-binaryExprWasm op _ _ = error $ show op ++ " not implemented yet"
+binaryExprWasm :: Metro.Expression -> Metro.BinaryOperator -> Value -> Value -> Compiler Value
+binaryExprWasm e op v1 v2 = case op of
+  Metro.LogicalOr -> boolExpr e "or" v1 v2
+  Metro.LogicalAnd -> boolExpr e "and" v1 v2
+  Metro.BitwiseOr -> arithmeticExpr e "or" v1 v2
+  Metro.BitwiseXor -> arithmeticExpr e "xor" v1 v2
+  Metro.BitwiseAnd -> arithmeticExpr e "and" v1 v2
+  Metro.Is -> return falseValue -- TODO!
+  Metro.Unequal -> return $ Value (PrimitiveType TBool) $ i32Eqz (i32Eq (wasmExpr v1) (wasmExpr v2))
+  Metro.Equal -> return $ Value (PrimitiveType TBool) $ i32Eq (wasmExpr v1) (wasmExpr v2)
+  Metro.LessThan -> signedComparingExpr e "lt" v1 v2
+  Metro.LessThanOrEqual -> signedComparingExpr e "le" v1 v2
+  Metro.GreaterThan -> signedComparingExpr e "gt" v1 v2
+  Metro.GreaterThanOrEqual -> signedComparingExpr e "ge" v1 v2
+  Metro.RotateLeft -> arithmeticExpr e "rotl" v1 v2
+  Metro.RotateRight -> arithmeticExpr e "rotr" v1 v2
+  Metro.ShiftLeft -> arithmeticExpr e "shl" v1 v2
+  Metro.ShiftRight -> signedArithmeticExpr e "shr" v1 v2
+  Metro.Subtract -> arithmeticExpr e "sub" v1 v2
+  Metro.Add | dataType v1 == PrimitiveType TString && dataType v2 == PrimitiveType TString -> return $ Value (PrimitiveType TString) $ call "__concat" [wasmExpr v1, wasmExpr v2]
+  Metro.Add -> arithmeticExpr e "add" v1 v2
+  Metro.Modulo -> signedArithmeticExpr e "rem" v1 v2
+  Metro.Divide -> signedArithmeticExpr e "div" v1 v2
+  Metro.Multiply -> arithmeticExpr e "mul" v1 v2
+  _ -> throwCompilationError e $ show op ++ " not implemented yet"
 
 --binaryExpr Metro.OptChain e1 e2 = TODO!
 --binaryExpr Metro.Chain e1 e2 = TODO!
 
-boolExpr :: String -> Value -> Value -> Value
-boolExpr op (Value (PrimitiveType TBool) e1) (Value (PrimitiveType TBool) e2) = Value (PrimitiveType TBool) $ WASM.Method op WASM.I32 [e1, e2]
-boolExpr op _ _ = error $ "Can only apply '" ++ op ++ "' on two Bools."
+boolExpr :: Metro.Expression -> String -> Value -> Value -> Compiler Value
+boolExpr _ op (Value (PrimitiveType TBool) e1) (Value (PrimitiveType TBool) e2) = return $ Value (PrimitiveType TBool) $ WASM.Method op WASM.I32 [e1, e2]
+boolExpr e op v1 e2 = throwCompilationError e $ "Cannot apply '" ++ op ++ "' on " ++ vtype v1 ++ " and " ++ vtype e2
 
-signedComparingExpr :: String -> Value -> Value -> Value
-signedComparingExpr op (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
-  | isSignedType left && isSignedType right = comparingExpr (op ++ "_s") (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
-  | isUnsignedType left && isUnsignedType right = comparingExpr (op ++ "_u") (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
-signedComparingExpr op x y = error "Cannot perform comparison on mixed signed/unsigned type"
+signedComparingExpr :: Metro.Expression -> String -> Value -> Value -> Compiler Value
+signedComparingExpr e op (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
+  | isSignedType left && isSignedType right = comparingExpr e (op ++ "_s") (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
+  | isUnsignedType left && isUnsignedType right = comparingExpr e (op ++ "_u") (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
+signedComparingExpr e op v1 v2 = throwCompilationError e $ "Cannot compare " ++ vtype v1 ++ " and " ++ vtype v2
 
-comparingExpr :: String -> Value -> Value -> Value
-comparingExpr op (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
-  | left == right = Value (PrimitiveType TBool) $ WASM.Method op (dataTypeToValtype (PrimitiveType right)) [e1, e2]
-  | left < right = Value (PrimitiveType TBool) $ WASM.Method op (dataTypeToValtype (PrimitiveType right)) [convertToExpr left right e1, e2]
-  | left > right = Value (PrimitiveType TBool) $ WASM.Method op (dataTypeToValtype (PrimitiveType left)) [e1, convertToExpr right left e2]
-comparingExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ show left ++ " and " ++ show right ++ "."
+comparingExpr :: Metro.Expression -> String -> Value -> Value -> Compiler Value
+comparingExpr e op (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
+  | left == right = return $ Value (PrimitiveType TBool) $ WASM.Method op (dataTypeToValtype (PrimitiveType right)) [e1, e2]
+  | left < right = return $ Value (PrimitiveType TBool) $ WASM.Method op (dataTypeToValtype (PrimitiveType right)) [convertToExpr left right e1, e2]
+  | left > right = return $ Value (PrimitiveType TBool) $ WASM.Method op (dataTypeToValtype (PrimitiveType left)) [e1, convertToExpr right left e2]
+comparingExpr e op v1 v2 = throwCompilationError e $ "Cannot apply " ++ op ++ " on " ++ vtype v1 ++ " and " ++ vtype v2
 
-arithmeticExpr :: String -> Value -> Value -> Value
-arithmeticExpr op (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
-  | left == right = maskTo right $ WASM.Method op (dataTypeToValtype (PrimitiveType right)) [e1, e2]
-  | left < right = maskTo right $ WASM.Method op (dataTypeToValtype (PrimitiveType right)) [convertToExpr left right e1, e2]
-  | left > right = maskTo left $ WASM.Method op (dataTypeToValtype (PrimitiveType left)) [e1, convertToExpr right left e2]
-arithmeticExpr op (Value left _) (Value right _) = error $ "Cannot apply " ++ op ++ " on " ++ show left ++ " and " ++ show right ++ "."
+arithmeticExpr :: Metro.Expression -> String -> Value -> Value -> Compiler Value
+arithmeticExpr e op (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
+  | left == right = return $ maskTo right $ WASM.Method op (dataTypeToValtype (PrimitiveType right)) [e1, e2]
+  | left < right = return $ maskTo right $ WASM.Method op (dataTypeToValtype (PrimitiveType right)) [convertToExpr left right e1, e2]
+  | left > right = return $ maskTo left $ WASM.Method op (dataTypeToValtype (PrimitiveType left)) [e1, convertToExpr right left e2]
+arithmeticExpr e op v1 v2 = throwCompilationError e $ "Cannot apply " ++ op ++ " on " ++ vtype v1 ++ " and " ++ vtype v2
 
-signedArithmeticExpr :: String -> Value -> Value -> Value
-signedArithmeticExpr op (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
-  | isSignedType left && isSignedType right = arithmeticExpr (op ++ "_s") (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
-  | isUnsignedType left && isUnsignedType right = arithmeticExpr (op ++ "_u") (Value (PrimitiveType left) e1) (Value (PrimitiveType right) e2)
-signedArithmeticExpr _ _ _ = error "Cannot perform arithmetics on mixed signed/unsigned type"
+signedArithmeticExpr :: Metro.Expression -> String -> Value -> Value -> Compiler Value
+signedArithmeticExpr e op v1@(Value (PrimitiveType left) e1) v2@(Value (PrimitiveType right) e2)
+  | isSignedType left && isSignedType right = arithmeticExpr e (op ++ "_s") v1 v2
+  | isUnsignedType left && isUnsignedType right = arithmeticExpr e (op ++ "_u") v1 v2
+signedArithmeticExpr e _ _ _ = throwCompilationError e "Cannot perform arithmetics on mixed signed/unsigned type"
 
 maskTo :: Metro.PrimitiveType -> WASM.Expr -> Value
 maskTo dest = Value (PrimitiveType dest) . maskToExpr dest
