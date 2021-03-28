@@ -59,10 +59,10 @@ expr (Metro.MethodCallExpression obj methodName args _) =
     objValue <- expr obj
     argValues <- arguments args
     methodCall objValue methodName argValues
-expr (Metro.AccessExpression obj fieldName _) =
+expr e@(Metro.AccessExpression obj fieldName _) =
   do
     objValue <- expr obj
-    fieldAccess objValue fieldName
+    fieldAccess e objValue fieldName
 expr (Metro.TypeExpression t _) = return $ Value (MetaType t) $ i32Const 0 -- TODO: Use meaningful const
 
 literal :: Metro.Literal -> Compiler Value
@@ -168,20 +168,20 @@ binaryExpr e op e1 e2 = case op of
     f2 <- expr e2
     binaryExprWasm e op f1 f2
 
-fieldAccess :: Value -> String -> Compiler Value
-fieldAccess (Value (MetaType (PrimitiveType TInt)) _) "MIN_VALUE" = return $ Value (PrimitiveType TInt) $ i32Const $ negate 2147483648
-fieldAccess (Value (MetaType (PrimitiveType TInt)) _) "MAX_VALUE" = return $ Value (PrimitiveType TInt) $ i32Const 2147483647
-fieldAccess (Value (PrimitiveType TUInt) obj) "lowWord" = return $ convertTo TUInt TWord obj
-fieldAccess (Value (PrimitiveType TUInt) obj) "highWord" = return $ Value (PrimitiveType TWord) $ i32Shru obj $ i32Const 16
-fieldAccess (Value (PrimitiveType TString) obj) "length" = return $ Value (PrimitiveType TInt) $ loadInstr TInt 0 obj
-fieldAccess (Value (ArrayType _) obj) "length" = return $ Value (PrimitiveType TUInt) $ loadInstr TUInt 0 obj
-fieldAccess (Value (GenericType g _) objExpr) fieldName = fieldAccess (Value g objExpr) fieldName
-fieldAccess (Value (RefType className) objExpr) fieldName =
+fieldAccess :: Metro.Expression -> Value -> String -> Compiler Value
+fieldAccess e (Value (MetaType (PrimitiveType TInt)) _) "MIN_VALUE" = return $ Value (PrimitiveType TInt) $ i32Const $ negate 2147483648
+fieldAccess e (Value (MetaType (PrimitiveType TInt)) _) "MAX_VALUE" = return $ Value (PrimitiveType TInt) $ i32Const 2147483647
+fieldAccess e (Value (PrimitiveType TUInt) obj) "lowWord" = return $ convertTo TUInt TWord obj
+fieldAccess e (Value (PrimitiveType TUInt) obj) "highWord" = return $ Value (PrimitiveType TWord) $ i32Shru obj $ i32Const 16
+fieldAccess e (Value (PrimitiveType TString) obj) "length" = return $ Value (PrimitiveType TInt) $ loadInstr TInt 0 obj
+fieldAccess e (Value (ArrayType _) obj) "length" = return $ Value (PrimitiveType TUInt) $ loadInstr TUInt 0 obj
+fieldAccess e (Value (GenericType g _) objExpr) fieldName = fieldAccess e (Value g objExpr) fieldName
+fieldAccess e (Value (RefType className) objExpr) fieldName =
   do
     fieldOffset <- getFieldOffset className fieldName
     return $ Value (PrimitiveType TInt) $ loadInstr TInt fieldOffset objExpr
 -- TODO: can only load Int
-fieldAccess (Value objType _) methodName = error $ "Unknown field " ++ methodName ++ " on primitive type " ++ show objType
+fieldAccess e (Value objType _) methodName = throwCompilationError e $ "Unknown field " ++ methodName ++ " on primitive type " ++ show objType
 
 methodCall :: Value -> String -> [Value] -> Compiler Value
 methodCall (Value (PrimitiveType p) obj) "toIntXS" [] = return $ convertTo p TIntXS obj
