@@ -157,7 +157,7 @@ tokens :-
   <0,newline> "|="      { mkL (const TokenBarEq) `andBegin` 0 }
   <0,newline> "|"       { mkL (const TokenBar) `andBegin` 0 }
   <0,newline> "~"       { mkL (const TokenTilde) `andBegin` 0 }
-  <0,newline> "_" / [^_] { mkL (const TokenUnderscore) `andBegin` 0 }
+  <0> "_" / [^_]        { mkL (const TokenUnderscore) `andBegin` 0 }
   <newline>  ()         { mkL (const TokenEOS) `andBegin` 0 }
 
   <0> @identifier       { mkL (const TokenIdentifier) }

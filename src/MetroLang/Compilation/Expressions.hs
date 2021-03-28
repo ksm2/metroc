@@ -259,26 +259,26 @@ matchRules [Metro.MatchRule (Metro.MatchWildcard _) caseVal _] _ =
   do
     Value valType valExpr <- expr caseVal
     return $ Value valType valExpr
-matchRules [_] _ = error "Invalid last condition, it must be a wildcard."
+matchRules [rule] _ = throwCompilationError rule "Invalid last condition, it must be a wildcard"
 matchRules (c : cs) target =
   do
     let Metro.MatchRule caseCond caseVal _ = c
     Value valType valExpr <- expr caseVal
     Value elseType elseExpr <- matchRules cs target
     if elseType /= valType
-      then error "Return types of all match rules must be consistent."
+      then throwCompilationError c "Return types of all match rules must be consistent"
       else do
         cond <- makeMatchRuleCond target caseCond
         return $ Value valType $ WASM.Select valExpr elseExpr cond
 
 makeMatchRuleCond :: Metro.Expression -> Metro.MatchCondition -> Compiler WASM.Expr
 makeMatchRuleCond left (Metro.MatchWildcard _) = wasmExpr <$> expr left
-makeMatchRuleCond left (Metro.MatchPattern lit _) =
+makeMatchRuleCond left right@(Metro.MatchPattern lit _) =
   do
     Value leftType leftExpr <- expr left
     Value rightType rightExpr <- literal lit
     if leftType /= rightType
-      then error $ "Match rule condition type " ++ show rightType ++ " does not match type of value to match " ++ show leftType
+      then throwCompilationError right $ "Match rule condition type " ++ show rightType ++ " does not match type of value to match " ++ show leftType
       else return $ i32Eq leftExpr rightExpr
 
 load :: Type -> WASM.Expr -> Value
