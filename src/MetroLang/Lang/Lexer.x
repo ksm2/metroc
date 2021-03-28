@@ -1,11 +1,16 @@
 {
-module MetroLang.Lang.Lexer (Alex, AlexPosn(..), Lexeme(..), alexRenderError, getInputContent, getInputFile, lexer, runLexer) where
+module MetroLang.Lang.Lexer (lexer, runLexer) where
 
-import MetroLang.Lang.ErrorRenderer
+import qualified Data.Bits
+import Data.Char (ord)
+import Data.Word (Word8)
+import MetroLang.Lang.Error
+import MetroLang.Lang.Lexeme
+import MetroLang.Lang.Parlex
 import MetroLang.Lang.Token
+import MetroLang.Location
+import MetroLang.Utils.Int
 }
-
-%wrapper "monadUserState"
 
 $white      = [\ \t\f\v]
 $newline    = [\r\n]
@@ -21,7 +26,7 @@ $octdig     = [0-7]
 $hexdig     = [0-9A-Fa-f]
 
 $idchar     = [$alpha $digit]
-@identifier = $alpha $idchar*
+@identifier = \_? $alpha $idchar*
 @decint     = $nonzerodigit $digit* | 0
 @decuint    = @decint U
 @decbyte    = @decint B
@@ -36,8 +41,8 @@ $idchar     = [$alpha $digit]
 @binbyte    = @binint B
 
 tokens :-
-  <0,newline> $white+		{ metroSkip }
-  <0> $newline          { metroBegin newline }
+  <0,newline> $white+		{ skip }
+  <0> $newline          { begin newline }
 
   <0> and               { mkL $ \s -> TokenAnd }
   <0> as                { mkL $ \s -> TokenAs }
@@ -86,16 +91,16 @@ tokens :-
   <0> Char              { mkL $ \s -> TokenTChar }
   <0> String            { mkL $ \s -> TokenTString }
 
-  <0> "/*"                    { metroBegin multilinecomment }
-  <multilinecomment> "*/"     { metroBegin 0 }
-  <multilinecomment> .        { metroSkip }
-  <multilinecomment> $newline { metroSkip }
+  <0> "/*"                    { begin multilinecomment }
+  <multilinecomment> "*/"     { begin 0 }
+  <multilinecomment> .        { skip }
+  <multilinecomment> $newline { skip }
 
-  <0> "//"                      { metroBegin singlelinecomment }
-  <singlelinecomment> $newline  { metroBegin 0 }
-  <singlelinecomment> [^]       { metroSkip }
+  <0> "//"                      { begin singlelinecomment }
+  <singlelinecomment> $newline  { begin 0 }
+  <singlelinecomment> [^]       { skip }
 
-  <0> \"                { metroBegin string }
+  <0> \"                { begin string }
   <string> "\t"         { addchar "\t" }
   <string> "\n"         { addchar "\n" }
   <string> "\f"         { addchar "\f" }
@@ -152,9 +157,10 @@ tokens :-
   <0,newline> "|="      { mkL (const TokenBarEq) `andBegin` 0 }
   <0,newline> "|"       { mkL (const TokenBar) `andBegin` 0 }
   <0,newline> "~"       { mkL (const TokenTilde) `andBegin` 0 }
+  <0> "_" / [^_]        { mkL (const TokenUnderscore) `andBegin` 0 }
   <newline>  ()         { mkL (const TokenEOS) `andBegin` 0 }
 
-  <0> @identifier       { mkL TokenIdentifier }
+  <0> @identifier       { mkL (const TokenIdentifier) }
   <0> @decuint          { mkL $ TokenUInt . read . ignoreLast }
   <0> @decbyte          { mkL $ TokenByte . read . ignoreLast }
   <0> @decint           { mkL $ TokenInt . read }
@@ -168,122 +174,156 @@ tokens :-
   <0> @binbyte          { mkL $ TokenByte . parseBin . ignoreLast . (drop 2) }
   <0> @binint           { mkL $ TokenInt . parseBin . (drop 2) }
 
-<0> $white+			{ metroSkip }
+  <0> $white+			      { skip }
 {
-data AlexUserState =
-  AlexUserState { inputFile    :: String
-                , inputContent :: String
-                , stringStack  :: String
-                }
+utf8Encode' :: Char -> (Word8, [Word8])
+utf8Encode' c = case go (ord c) of
+                  (x, xs) -> (fromIntegral x, map fromIntegral xs)
+ where
+  go oc
+   | oc <= 0x7f       = ( oc
+                        , [
+                        ])
 
-getInputFile :: Alex String
-getInputFile = inputFile <$> alexGetUserState
+   | oc <= 0x7ff      = ( 0xc0 + (oc `Data.Bits.shiftR` 6)
+                        , [0x80 + oc Data.Bits..&. 0x3f
+                        ])
 
-getInputContent :: Alex String
-getInputContent = inputContent <$> alexGetUserState
+   | oc <= 0xffff     = ( 0xe0 + (oc `Data.Bits.shiftR` 12)
+                        , [0x80 + ((oc `Data.Bits.shiftR` 6) Data.Bits..&. 0x3f)
+                        , 0x80 + oc Data.Bits..&. 0x3f
+                        ])
+   | otherwise        = ( 0xf0 + (oc `Data.Bits.shiftR` 18)
+                        , [0x80 + ((oc `Data.Bits.shiftR` 12) Data.Bits..&. 0x3f)
+                        , 0x80 + ((oc `Data.Bits.shiftR` 6) Data.Bits..&. 0x3f)
+                        , 0x80 + oc Data.Bits..&. 0x3f
+                        ])
 
-alexEOF :: Alex Lexeme
-alexEOF = return (L undefined TokenEOF "")
-alexInitUserState :: AlexUserState
-alexInitUserState = AlexUserState "" "" ""
+ignorePendingBytes :: AlexInput -> AlexInput
+ignorePendingBytes (p,c,_ps,s) = (p,c,[],s)
 
-data Lexeme = L AlexPosn Token String
+alexGetByte :: AlexInput -> Maybe (Byte,AlexInput)
+alexGetByte (p,c,(b:bs),s) = Just (b,(p,c,bs,s))
+alexGetByte (_,_,[],[]) = Nothing
+alexGetByte (p,_,[],(c:s))  = let p' = alexMove p c
+                              in case utf8Encode' c of
+                                   (b, bs) -> p' `seq`  Just (b, (p', c, bs, s))
 
-mkL :: (String -> Token) -> AlexInput -> Int -> Alex Lexeme
+alexMove :: Position -> Char -> Position
+alexMove (Position l c) '\t' = Position  l     (c+alex_tab_size-((c-1) `mod` alex_tab_size))
+alexMove (Position l _) '\n' = Position (l+1)   1
+alexMove (Position l c) _    = Position  l     (c+1)
+
+type AlexInput = (Position,     -- current position,
+                  Char,         -- previous char
+                  [Byte],       -- rest of the bytes for the current char
+                  String)       -- current input string
+
+alexInputPrevChar :: AlexInput -> Char
+alexInputPrevChar (_,c,_,_) = c
+
+metroGetInput :: Parlex AlexInput
+metroGetInput
+ = Parlex $ \s@ParlexState{alex_pos=pos,alex_chr=c,alex_bytes=bs,alex_inp=inp__} ->
+        Right (s, (pos,c,bs,inp__))
+
+metroSetInput :: AlexInput -> Parlex ()
+metroSetInput (pos,c,bs,inp__)
+ = Parlex $ \s -> case s{alex_pos=pos,alex_chr=c,alex_bytes=bs,alex_inp=inp__} of
+                  state__@(ParlexState{}) -> Right (state__, ())
+
+metroGetStartCode :: Parlex Int
+metroGetStartCode = Parlex $ \s@ParlexState{alex_scd=sc} -> Right (s, sc)
+
+metroSetStartCode :: Int -> Parlex ()
+metroSetStartCode sc = Parlex $ \s -> Right (s{alex_scd=sc}, ())
+
+metroGetSource :: Parlex Source
+metroGetSource = Parlex $ \s@ParlexState{alex_source=ust} -> Right (s,ust)
+
+metroSetSource :: Source -> Parlex ()
+metroSetSource source = Parlex $ \s -> Right (s{alex_source=source}, ())
+
+metroGetString :: Parlex String
+metroGetString = Parlex $ \s@ParlexState{alex_string=ust} -> Right (s,ust)
+
+metroSetString :: String -> Parlex ()
+metroSetString str = Parlex $ \s -> Right (s{alex_string=str}, ())
+
+mkL :: (String -> Token) -> MetroAction Lexeme
 mkL t (p,_,_,rest) len =
-  return (L p (t str) str)
-  where str = (take len rest)
+  do
+    s <- metroGetSource
+    return (L (mkSourceLocation p s len) (t str) str)
+    where str = (take len rest)
 
-stringchar :: AlexInput -> Int -> Alex Lexeme
+stringchar :: MetroAction Lexeme
 stringchar p@(_,_,_,rest) len =
   addchar (take len rest) p len
 
-addchar :: String -> AlexInput -> Int -> Alex Lexeme
+addchar :: String -> MetroAction Lexeme
 addchar n _ _ =
   do
-    s <- alexGetUserState
-    alexSetUserState s{stringStack = stringStack s ++ n}
-    metroMonadScan
+    s <- metroGetString
+    metroSetString $ s ++ n
+    monadScan
 
-endstring :: AlexInput -> Int -> Alex Lexeme
-endstring (p,_,_,_) _ =
+endstring :: MetroAction Lexeme
+endstring (Position pl pc,_,_,_) _ =
   do
-    s <- alexGetUserState
-    let str = stringStack s
-    res <- return (L p (TokenString str) str)
-    alexSetUserState s{stringStack = ""}
+    src <- metroGetSource
+    str <- metroGetString
+    res <- return (L (mkSourceLocation (Position pl (pc - length str - 1)) src (length str + 2)) (TokenString str) str)
+    metroSetString ""
     return res
 
-alexRenderError :: AlexPosn -> String -> String -> Alex a
-alexRenderError (AlexPn _ line col) msg str =
-  do
-    input <- getInputFile
-    content <- getInputContent
-    alexError $
-      renderError msg input content line col (length str)
-
-metroMonadScan :: Alex Lexeme
-metroMonadScan = do
-  inp__ <- alexGetInput
-  sc <- alexGetStartCode
+monadScan :: Parlex Lexeme
+monadScan = do
+  inp__ <- metroGetInput
+  sc <- metroGetStartCode
   case alexScan inp__ sc of
-    AlexEOF -> alexEOF
-    AlexError (p,_,_,s) -> alexRenderError p ("Lexical error, unexpected " ++ head s : "") [head s]
+    AlexEOF -> return (L undefined TokenEOF "")
+    AlexError (p,_,_,s) -> do
+        source <- metroGetSource
+        Parlex $ const $ Left $ LexerError (mkSourceLocation p source 1) (head s)
     AlexSkip  inp__' _len -> do
-        alexSetInput inp__'
-        metroMonadScan
+        metroSetInput inp__'
+        monadScan
     AlexToken inp__' len action -> do
-        alexSetInput inp__'
+        metroSetInput inp__'
         action (ignorePendingBytes inp__) len
 
-metroSkip _input _len = metroMonadScan
+skip :: MetroAction Lexeme
+skip _input _len = monadScan
 
-metroBegin code _input _len = do alexSetStartCode code; metroMonadScan
+begin :: Int -> MetroAction Lexeme
+begin code _input _len = do
+  metroSetStartCode code
+  monadScan
 
-parseHex = parseInt 16
-parseOct = parseInt 8
-parseBin = parseInt 2
+type MetroAction result = AlexInput -> Int -> Parlex result
 
-parseInt :: Int -> String -> Int
-parseInt _  "" = 0
-parseInt _  "0" = 0
-parseInt _  [c] = parseIntChar c
-parseInt base cs = parseIntChar (last cs) + base * parseInt base (init cs)
-
-parseIntChar :: Char -> Int
-parseIntChar '0' = 0
-parseIntChar '1' = 1
-parseIntChar '2' = 2
-parseIntChar '3' = 3
-parseIntChar '4' = 4
-parseIntChar '5' = 5
-parseIntChar '6' = 6
-parseIntChar '7' = 7
-parseIntChar '8' = 8
-parseIntChar '9' = 9
-parseIntChar 'a' = 10
-parseIntChar 'A' = 10
-parseIntChar 'b' = 11
-parseIntChar 'B' = 11
-parseIntChar 'c' = 12
-parseIntChar 'C' = 12
-parseIntChar 'd' = 13
-parseIntChar 'D' = 13
-parseIntChar 'e' = 14
-parseIntChar 'E' = 14
-parseIntChar 'f' = 15
-parseIntChar 'F' = 15
-parseIntChar x = error $ "Illegal int char: " ++ [x]
+andBegin :: MetroAction result -> Int -> MetroAction result
+(action `andBegin` code) input__ len = do
+  metroSetStartCode code
+  action input__ len
 
 ignoreLast :: String -> String
 ignoreLast [] = []
 ignoreLast [_] = []
 ignoreLast (c:cs) = c : ignoreLast cs
 
-lexer :: (Lexeme -> Alex a) -> Alex a
-lexer = (metroMonadScan >>=)
+lexer :: (Lexeme -> Parlex a) -> Parlex a
+lexer = (monadScan >>=)
 
-runLexer :: String -> String -> Alex a -> Either String a
-runLexer fileInput contents calc = runAlex contents $
-  alexSetUserState (AlexUserState fileInput contents "") >> calc
+runLexer :: Source -> String -> Parlex a -> Either MetroError a
+runLexer source contents (Parlex f)
+   = case f (ParlexState {alex_bytes = [],
+                          alex_pos = startPos,
+                          alex_inp = contents,
+                          alex_chr = '\n',
+                          alex_source = source,
+                          alex_string = "",
+                          alex_scd = 0}) of Left err -> Left err
+                                            Right ( _, a ) -> Right a
 }

@@ -7,6 +7,7 @@ import Builder.Runtime (withRuntime)
 import Chalk
 import Control.Monad
 import MetroLang.Lang.Model as MetroAST
+import MetroLang.Location
 import MetroLang.Utils
 import System.Directory
 import System.IO
@@ -147,9 +148,11 @@ test args =
     cwd <- getCurrentDirectory
     contents <- listDirectoryRecursive cwd
     let matches = matchGlobs globs contents
+    let sources = map Source matches
     inputStrs <- mapM readFile matches
-    let ast = metroToAST True $ zip matches inputStrs
-    let wat = astToWAT True "" ast
+    let inputs = zip sources inputStrs
+    let ast = metroToAST True inputs
+    let wat = astToWAT True "" inputs ast
     let tests = findTests ast
 
     stderrPath <- emptySystemTempFile "metro"

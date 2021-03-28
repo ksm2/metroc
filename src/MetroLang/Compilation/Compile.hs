@@ -6,6 +6,7 @@ import MetroLang.Compilation.Combinators
 import MetroLang.Compilation.Context
 import MetroLang.Compilation.Expressions
 import MetroLang.Compilation.Values
+import MetroLang.Lang.Error
 import MetroLang.Lang.Model (PrimitiveType (..), Type (..))
 import qualified MetroLang.Lang.Model as Metro
 import MetroLang.Types
@@ -265,11 +266,11 @@ makeLocalStatements = map makeLocalStatement
 makeLocalStatement :: (Metro.Identifier, Metro.Type) -> WASM.Expr
 makeLocalStatement (i, dt) = WASM.Local i $ dataTypeToValtype dt
 
-compiling :: (a -> Compiler WASM.Module) -> Bool -> String -> a -> WASM.Module
+compiling :: (a -> Compiler WASM.Module) -> Bool -> String -> a -> Either MetroError WASM.Module
 compiling cab enableAssertions mainMethod a =
   let cb = cab a
       (b, cs) = runCompiler enableAssertions cb
-   in injectStart mainMethod $ injectStrings (toAscList (strings cs)) b
+   in fmap (injectStart mainMethod . injectStrings (toAscList (strings cs))) b
 
 injectStart :: String -> WASM.Module -> WASM.Module
 injectStart "" m = m
@@ -279,5 +280,5 @@ injectStrings :: [(String, Int)] -> WASM.Module -> WASM.Module
 injectStrings [] m = m
 injectStrings ((str, pos) : xs) m = injectStrings xs $ injectData pos str m
 
-compile :: Bool -> String -> Metro.Module -> WASM.Module
+compile :: Bool -> String -> Metro.Module -> Either MetroError WASM.Module
 compile = compiling compileModule

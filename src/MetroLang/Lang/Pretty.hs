@@ -7,29 +7,29 @@ class Pretty p where
 
 instance Pretty Expression where
   pretty = \case
-    ParenExpression e -> "(" ++ pretty e ++ ")"
-    LiteralExpression lit -> pretty lit
-    VarExpression i -> i
-    ThisExpression -> "this"
-    NullExpression -> "null"
-    CastExpression left right -> pretty left ++ " as " ++ pretty right
-    CallExpression fn args -> fn ++ pretty args
-    MethodCallExpression obj method args -> pretty obj ++ "." ++ method ++ pretty args
-    AccessExpression left right -> pretty left ++ "." ++ right
-    TypeExpression typ -> pretty typ
-    IndexExpression obj idx -> pretty obj ++ "[" ++ pretty idx ++ "]"
-    UnaryExpression unaryOp expr -> pretty unaryOp ++ pretty expr
-    BinaryExpression binOp left right -> pretty left ++ " " ++ pretty binOp ++ " " ++ pretty right
+    ParenExpression e _ -> "(" ++ pretty e ++ ")"
+    LiteralExpression lit _ -> pretty lit
+    VarExpression i _ -> i
+    ThisExpression _ -> "this"
+    NullExpression _ -> "null"
+    CastExpression left right _ -> pretty left ++ " as " ++ pretty right
+    CallExpression fn args _ -> fn ++ pretty args
+    MethodCallExpression obj method args _ -> pretty obj ++ "." ++ method ++ pretty args
+    AccessExpression left right _ -> pretty left ++ "." ++ right
+    TypeExpression typ _ -> pretty typ
+    IndexExpression obj idx _ -> pretty obj ++ "[" ++ pretty idx ++ "]"
+    UnaryExpression unaryOp expr _ -> pretty unaryOp ++ pretty expr
+    BinaryExpression binOp left right _ -> pretty left ++ " " ++ pretty binOp ++ " " ++ pretty right
     _ -> ""
 
 instance Pretty Literal where
   pretty = \case
-    IntLiteral num -> show num
-    UIntLiteral num -> show num ++ "U"
-    ByteLiteral num -> show num ++ "B"
-    StringLiteral str -> "\"" ++ str ++ "\""
-    BoolLiteral True -> "true"
-    BoolLiteral False -> "false"
+    IntLiteral num _ -> show num
+    UIntLiteral num _ -> show num ++ "U"
+    ByteLiteral num _ -> show num ++ "B"
+    StringLiteral str _ -> "\"" ++ str ++ "\""
+    BoolLiteral True _ -> "true"
+    BoolLiteral False _ -> "false"
 
 instance Pretty Type where
   pretty = \case
@@ -41,7 +41,7 @@ instance Pretty PrimitiveType where
   pretty = tail . show
 
 instance Pretty Arguments where
-  pretty (Arguments ee) = "(" ++ prettyArgs ee ++ ")"
+  pretty (Arguments ee _) = "(" ++ prettyArgs ee ++ ")"
 
 prettyArgs :: (Pretty a) => [a] -> String
 prettyArgs [] = ""

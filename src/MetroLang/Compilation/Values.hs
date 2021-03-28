@@ -9,6 +9,13 @@ data Value = Value
   }
   deriving (Show)
 
+vmap :: (Expr -> Expr) -> Value -> Value
+vmap f v = case v of
+  Value dt ex -> Value dt (f ex)
+
+vtype :: Value -> String
+vtype = show . dataType
+
 dataTypeToValtype :: Type -> Valtype
 dataTypeToValtype (PrimitiveType TFloatL) = F64
 dataTypeToValtype (PrimitiveType TFloat) = F32

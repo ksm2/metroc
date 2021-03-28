@@ -2,15 +2,18 @@
 module MetroLang.Lang.Parser (parse, merge) where
 
 import MetroLang.Lang.Error
+import MetroLang.Lang.Lexeme
 import MetroLang.Lang.Lexer
 import MetroLang.Lang.Model
+import MetroLang.Lang.Parlex
 import MetroLang.Lang.Pretty
 import MetroLang.Lang.Token
+import MetroLang.Location
 }
 
 %name calc
 %tokentype { Lexeme }
-%monad { Alex }
+%monad { Parlex }
 %lexer { lexer } { L _ TokenEOF _ }
 %error { parseError }
 
@@ -109,11 +112,11 @@ import MetroLang.Lang.Token
       '}'       { L _ TokenRBrace _ }
       '~'       { L _ TokenTilde _ }
 
-      id        { L _ (TokenIdentifier $$) _ }
-      int       { L _ (TokenInt $$) _ }
-      uint      { L _ (TokenUInt $$) _ }
-      byte      { L _ (TokenByte $$) _ }
-      string    { L _ (TokenString $$) _ }
+      id        { L _ TokenIdentifier _ }
+      int       { L _ (TokenInt _) _ }
+      uint      { L _ (TokenUInt _) _ }
+      byte      { L _ (TokenByte _) _ }
+      string    { L _ (TokenString _) _ }
 
       eos       { L _ TokenEOS _ }
 
@@ -167,33 +170,33 @@ TestStatements          : {- empty -}                                   { [] }
                         | TestStatement                                 { [$1] }
                         | TestStatements TestStatement                  { $2 : $1 }
 TestStatement           :: { TestStatement }
-TestStatement           : it string Block                               { TestStatement $2 $3 }
+TestStatement           : it string Block                               { TestStatement (lexemeStringLiteral $2) $3 }
 
 HideDeclaration         : hide HideableDeclaration                      { HideDeclaration $2 }
 
-ConstDeclaration        : const id '=' Expression EOS                   { ConstDeclaration $2 $4 }
+ConstDeclaration        : const id '=' Expression EOS                   { ConstDeclaration (lexemeText $2) $4 }
 
-ExternalDeclaration     : external string External EOS                  { ExternalDeclaration $2 $3 }
+ExternalDeclaration     : external string External EOS                  { ExternalDeclaration (lexemeStringLiteral $2) $3 }
 External                :: { External }
-External                : fn id Params ReturnType                       { FnExternal $2 $3 $4 }
+External                : fn id Params ReturnType                       { FnExternal (lexemeText $2) $3 $4 }
 
-EnumDeclaration         : enum id TypeArguments EnumBody                { EnumDeclaration $2 $3 $4 }
+EnumDeclaration         : enum id TypeArguments EnumBody                { EnumDeclaration (lexemeText $2) $3 $4 }
 EnumBody                : BodyOpen EnumItems BodyClose                  { reverse $2 }
 EnumItems               : EnumItem                                      { [$1] }
                         | EnumItems EOS EnumItem                        { $3 : $1 }
 
 EnumItem                :: { EnumItem }
-EnumItem                : id OptParams                                  { EnumItem $1 $2 }
+EnumItem                : id OptParams                                  { EnumItem (lexemeText $1) $2 }
 
-InterfaceDeclaration    : interface id TypeArguments InterfaceBody      { InterfaceDeclaration $2 $3 $4 }
+InterfaceDeclaration    : interface id TypeArguments InterfaceBody      { InterfaceDeclaration (lexemeText $2) $3 $4 }
 InterfaceBody           : BodyOpen InterfaceMethods BodyClose           { reverse $2 }
 InterfaceMethods        : {- empty -}                                   { [] }
                         | InterfaceMethod                               { [$1] }
                         | InterfaceMethods InterfaceMethod              { $2 : $1 }
 InterfaceMethod         :: { InterfaceMethod }
-InterfaceMethod         : id Arguments ReturnType EOS                   { InterfaceMethod $1 $2 $3 }
+InterfaceMethod         : id Arguments ReturnType EOS                   { InterfaceMethod (lexemeText $1) $2 $3 }
 
-ImplDeclaration         : impl Type for Type ClassBody                  { ImplDeclaration $2 $4 $5 }
+ImplDeclaration         : impl Type for Type ClassBody                  { ImplDeclaration (typeSymbolType $2) (typeSymbolType $4) $5 }
 
 ClassDeclaration        : class TypeName TypeArguments OptParams ClassExtension ClassImplementation ClassBody { ClassDeclaration $2 $3 $4 $5 $6 $7 }
 ClassExtension          : {- empty -}                                   { [] }
@@ -205,16 +208,16 @@ ClassBody               : BodyOpen ClassElements BodyClose              { revers
 ClassElements           : {- empty -}                                   { [] }
                         | ClassElement                                  { [$1] }
                         | ClassElements ClassElement                    { $2 : $1 }
-ClassElement            : static id ':=' Expression EOS                 { StaticField $2 $4 }
+ClassElement            : static id ':=' Expression EOS                 { StaticField (lexemeText $2) $4 }
                         | static MethodSignature Block                  { StaticMethod $2 $3 }
-                        | id ':=' Expression EOS                        { Field $1 $3 }
+                        | id ':=' Expression EOS                        { Field (lexemeText $1) $3 }
                         | MethodSignature Block                         { Method $1 $2 }
 
 MethodSignature         :: { MethodSignature }
-MethodSignature         : id Params ReturnType                          { MethodSignature Safe $1 $2 $3 }
-                        | unsafe id Params ReturnType                   { MethodSignature Unsafe $2 $3 $4 }
+MethodSignature         : id Params ReturnType                          { MethodSignature Safe (lexemeText $1) $2 $3 }
+                        | unsafe id Params ReturnType                   { MethodSignature Unsafe (lexemeText $2) $3 $4 }
 
-FnDeclaration           : Safety fn id Params ReturnType Block          { FnDeclaration $3 $1 $4 $5 $6 }
+FnDeclaration           : Safety fn id Params ReturnType Block          { FnDeclaration (lexemeText $3) $1 $4 $5 $6 }
 Block                   :: { Block }
 Block                   : BodyOpen Statements BodyClose                 { reverse $2 }
 
@@ -225,11 +228,10 @@ Safety                  : unsafe                                        { Unsafe
 Statements              :: { [Statement] }
 Statements              : {- empty -}                                   { [] }
                         | Statement                                     { [$1] }
-                        | Statements                                    { $1 }
                         | Statements Statement                          { $2 : $1 }
 
 Statement               :: { Statement }
-Statement               : id ':=' Expression EOS                        { AssignStatement $1 $3 }
+Statement               : id ':=' Expression EOS                        { AssignStatement (lexemeText $1) $3 }
                         | IfStatement                                   { IfStatement $1 }
                         | while Expression Block                        { WhileStatement $2 $3 }
                         | AssertStatement                               { $1 }
@@ -248,14 +250,10 @@ ElseStatement           : else IfStatement                              { ElseIf
 
 AssertStatement         :: { Statement }
 AssertStatement         : assert Expression EOS                         { AssertStatement $2 (pretty $2) }
-                        | assert Expression ':' string EOS              { AssertStatement $2 $4 }
+                        | assert Expression ':' string EOS              { AssertStatement $2 (lexemeStringLiteral $4) }
 
 ReturnCondition         : {- empty -}                                   { Nothing }
                         | if Expression                                 { Just $2 }
-
-VarList                 : Vars                                          { reverse $1 }
-Vars                    : id                                            { [$1] }
-                        | Vars ',' id                                   { $3 : $1 }
 
 OptParams               :: { Params }
 OptParams               : {- empty -}                                   { [] }
@@ -271,16 +269,16 @@ ParamList               : Param                                         { [$1] }
                         | ParamList ',' Param                           { $3 : $1 }
 
 Param                   :: { Param }
-Param                   : id Type                                       { Param $1 $2 }
+Param                   : id Type                                       { Param (lexemeText $1) (typeSymbolType $2) }
 
 ReturnType              :: { ReturnType }
 ReturnType              : {- empty -}                                   { VoidType }
-                        | Type                                          { $1 }
+                        | Type                                          { typeSymbolType $1 }
 
 TypeList                :: { [Type] }
-TypeList                : Type                                          { [$1] }
+TypeList                : Type                                          { [typeSymbolType $1] }
                         | TypeList ','                                  { $1 }
-                        | TypeList ',' Type                             { $3 : $1 }
+                        | TypeList ',' Type                             { typeSymbolType $3 : $1 }
 
 TypeArguments           :: { TypeArguments }
 TypeArguments           : {- empty -}                                   { [] }
@@ -291,127 +289,127 @@ TypeArgumentList        : TypeArgument                                  { [$1] }
                         | TypeArgumentList ',' TypeArgument             { $3 : $1 }
 
 TypeArgument            :: { TypeArgument }
-TypeArgument            : id                                            { TypeArgument $1 }
+TypeArgument            : id                                            { TypeArgument (lexemeText $1) }
 
-Type                    :: { Type }
-Type                    : id                                            { RefType $1 }
-                        | PrimitiveType                                 { PrimitiveType $1 }
-                        | '[' Type ']'                                  { ArrayType $2 }
-                        | Type '<' TypeArgumentList '>'                 { GenericType $1 (reverse $3) }
+Type                    :: { TypeSymbol }
+Type                    : id                                            { TypeSymbol (RefType (lexemeText $1)) (loc $1) }
+                        | PrimitiveType                                 { $1 }
+                        | '[' Type ']'                                  { TypeSymbol (ArrayType (typeSymbolType $2)) ($1 ~> $3) }
+                        | Type '<' TypeArgumentList '>'                 { TypeSymbol (GenericType (typeSymbolType $1) (reverse $3)) ($1 ~> $4) }
 
 TypeName                :: { String }
-TypeName                : id                                            { $1 }
-                        | PrimitiveType                                 { tail $ show $1 }
+TypeName                : id                                            { lexemeText $1 }
+                        | PrimitiveType                                 { show (typeSymbolType $1) }
 
-PrimitiveType           :: { PrimitiveType }
-PrimitiveType           : Bool                                          { TBool }
-                        | IntXS                                         { TIntXS }
-                        | Byte                                          { TByte }
-                        | IntS                                          { TIntS }
-                        | Word                                          { TWord }
-                        | Int                                           { TInt }
-                        | UInt                                          { TUInt }
-                        | IntL                                          { TIntL }
-                        | UIntL                                         { TUIntL }
-                        | Float                                         { TFloat }
-                        | FloatL                                        { TFloatL }
-                        | Char                                          { TChar }
-                        | String                                        { TString }
+PrimitiveType           :: { TypeSymbol }
+PrimitiveType           : Bool                                          { TypeSymbol (PrimitiveType TBool) (loc $1) }
+                        | IntXS                                         { TypeSymbol (PrimitiveType TIntXS) (loc $1) }
+                        | Byte                                          { TypeSymbol (PrimitiveType TByte) (loc $1) }
+                        | IntS                                          { TypeSymbol (PrimitiveType TIntS) (loc $1) }
+                        | Word                                          { TypeSymbol (PrimitiveType TWord) (loc $1) }
+                        | Int                                           { TypeSymbol (PrimitiveType TInt) (loc $1) }
+                        | UInt                                          { TypeSymbol (PrimitiveType TUInt) (loc $1) }
+                        | IntL                                          { TypeSymbol (PrimitiveType TIntL) (loc $1) }
+                        | UIntL                                         { TypeSymbol (PrimitiveType TUIntL) (loc $1) }
+                        | Float                                         { TypeSymbol (PrimitiveType TFloat) (loc $1) }
+                        | FloatL                                        { TypeSymbol (PrimitiveType TFloatL) (loc $1) }
+                        | Char                                          { TypeSymbol (PrimitiveType TChar) (loc $1) }
+                        | String                                        { TypeSymbol (PrimitiveType TString) (loc $1) }
 
 FQN                     :: { FQN }
-FQN                     : id                                            { [$1] }
-                        | FQN '.' id                                    { $3 : $1 }
-
-ExpressionList          :: { Expressions }
-ExpressionList          : Expression                                    { [$1] }
-                        | ExpressionList ',' Expression                 { $3 : $1 }
+FQN                     : id                                            { [lexemeText $1] }
+                        | FQN '.' id                                    { lexemeText $3 : $1 }
 
 Expression              :: { Expression }
-Expression              : '(' Expression ')'                            { ParenExpression $2 }
-                        | Literal                                       { LiteralExpression $1 }
-                        | id                                            { VarExpression $1 }
-                        | this                                          { ThisExpression }
-                        | null                                          { NullExpression }
-                        | Expression as Type                            { CastExpression $1 $3 }
-                        | id Arguments                                  { CallExpression $1 $2 }
-                        | Expression Index                              { IndexExpression $1 $2 }
-                        | Expression '.' id Arguments                   { MethodCallExpression $1 $3 $4 }
-                        | Expression '.' id                             { AccessExpression $1 $3 }
-                        | Type                                          { TypeExpression $1 }
+Expression              : '(' Expression ')'                            { ParenExpression $2 ($1 ~> $3) }
+                        | Literal                                       { LiteralExpression $1 (loc $1) }
+                        | id                                            { VarExpression (lexemeText $1) (loc $1) }
+                        | this                                          { ThisExpression (loc $1) }
+                        | null                                          { NullExpression (loc $1) }
+                        | Expression as Type                            { CastExpression $1 (typeSymbolType $3) ($1 ~> $3) }
+                        | id Arguments                                  { CallExpression (lexemeText $1) $2 ($1 ~> $2) }
+                        | Expression '[' Expression ']'                 { IndexExpression $1 $3 ($1 ~> $4) }
+                        | Expression '.' id Arguments                   { MethodCallExpression $1 (lexemeText $3) $4 ($1 ~> $4) }
+                        | Expression '.' id                             { AccessExpression $1 (lexemeText $3) ($1 ~> $3) }
+                        | Type                                          { TypeExpression (typeSymbolType $1) (loc $1) }
                         | MatchExpression                               { $1 }
                         | UnaryExpression                               { $1 }
                         | BinaryExpression                              { $1 }
 
-Index                   :: { Expression }
-Index                   : '[' Expression ']'                            { $2 }
-
 MatchExpression         :: { Expression }
-MatchExpression         : match Expression MatchBody                    { MatchExpression $2 $3 }
-MatchBody               : BodyOpen MatchRules BodyClose                 { reverse $2 }
-MatchRules              : MatchRule                                     { [$1] }
+MatchExpression         : match Expression MatchBody                    { MatchExpression $2 $3 ($1 ~> $3) }
+MatchBody               :: { MatchBody }
+MatchBody               : BodyOpen MatchRules BodyClose2                { MatchBody (reverse $2) ($1 ~> $3) }
+MatchRules              :: { [MatchRule] }
+MatchRules              : {- empty -}                                   { [] }
+                        | MatchRule                                     { [$1] }
                         | MatchRules EOS MatchRule                      { $3 : $1 }
-MatchRule               : MatchCondition '=>' Expression                { MatchRule $1 $3 }
-MatchCondition          : '_'                                           { MatchWildcard }
-                        | Literal                                       { MatchPattern $1 }
+MatchRule               :: { MatchRule }
+MatchRule               : MatchCondition '=>' Expression                { MatchRule $1 $3 ($1 ~> $3) }
+MatchCondition          :: { MatchCondition }
+MatchCondition          : '_'                                           { MatchWildcard (loc $1) }
+                        | Literal                                       { MatchPattern $1 (loc $1) }
 
 UnaryExpression         :: { Expression }
-UnaryExpression         : '-' Expression %prec NEG                      { UnaryExpression Neg $2 }
-                        | not Expression %prec LNOT                     { UnaryExpression LogicalNot $2 }
-                        | '~' Expression %prec BNOT                     { UnaryExpression BitwiseNot $2 }
+UnaryExpression         : '-' Expression %prec NEG                      { UnaryExpression Neg $2 ($1 ~> $2) }
+                        | not Expression %prec LNOT                     { UnaryExpression LogicalNot $2 ($1 ~> $2) }
+                        | '~' Expression %prec BNOT                     { UnaryExpression BitwiseNot $2 ($1 ~> $2) }
 
 BinaryExpression        :: { Expression }
-BinaryExpression        : Expression '*'   OptEOS Expression            { BinaryExpression Multiply $1 $4 }
-                        | Expression '/'   OptEOS Expression            { BinaryExpression Divide $1 $4 }
-                        | Expression '%'   OptEOS Expression            { BinaryExpression Modulo $1 $4 }
-                        | Expression '+'   OptEOS Expression            { BinaryExpression Add $1 $4 }
-                        | Expression '-'   OptEOS Expression            { BinaryExpression Subtract $1 $4 }
-                        | Expression '>>'  OptEOS Expression            { BinaryExpression ShiftRight $1 $4 }
-                        | Expression '<<'  OptEOS Expression            { BinaryExpression ShiftLeft $1 $4 }
-                        | Expression '%>'  OptEOS Expression            { BinaryExpression RotateRight $1 $4 }
-                        | Expression '<%'  OptEOS Expression            { BinaryExpression RotateLeft $1 $4 }
-                        | Expression '<'   OptEOS Expression            { BinaryExpression LessThan $1 $4 }
-                        | Expression '<='  OptEOS Expression            { BinaryExpression LessThanOrEqual $1 $4 }
-                        | Expression '>'   OptEOS Expression            { BinaryExpression GreaterThan $1 $4 }
-                        | Expression '>='  OptEOS Expression            { BinaryExpression GreaterThanOrEqual $1 $4 }
-                        | Expression '=='  OptEOS Expression            { BinaryExpression Equal $1 $4 }
-                        | Expression '!='  OptEOS Expression            { BinaryExpression Unequal $1 $4 }
-                        | Expression is    OptEOS Expression            { BinaryExpression Is $1 $4 }
-                        | Expression '&'   OptEOS Expression            { BinaryExpression BitwiseAnd $1 $4 }
-                        | Expression '^'   OptEOS Expression            { BinaryExpression BitwiseXor $1 $4 }
-                        | Expression '|'   OptEOS Expression            { BinaryExpression BitwiseOr $1 $4 }
-                        | Expression and   OptEOS Expression            { BinaryExpression LogicalAnd $1 $4 }
-                        | Expression or    OptEOS Expression            { BinaryExpression LogicalOr $1 $4 }
-                        | Expression '*='  OptEOS Expression            { BinaryExpression AssignMultiply $1 $4 }
-                        | Expression '/='  OptEOS Expression            { BinaryExpression AssignDivide $1 $4 }
-                        | Expression '%='  OptEOS Expression            { BinaryExpression AssignModulo $1 $4 }
-                        | Expression '+='  OptEOS Expression            { BinaryExpression AssignAdd $1 $4 }
-                        | Expression '-='  OptEOS Expression            { BinaryExpression AssignSubtract $1 $4 }
-                        | Expression '>>=' OptEOS Expression            { BinaryExpression AssignShiftRight $1 $4 }
-                        | Expression '<<=' OptEOS Expression            { BinaryExpression AssignShiftLeft $1 $4 }
-                        | Expression '%>=' OptEOS Expression            { BinaryExpression AssignRotateRight $1 $4 }
-                        | Expression '<%=' OptEOS Expression            { BinaryExpression AssignRotateLeft $1 $4 }
-                        | Expression '&='  OptEOS Expression            { BinaryExpression AssignBitwiseAnd $1 $4 }
-                        | Expression '^='  OptEOS Expression            { BinaryExpression AssignBitwiseXor $1 $4 }
-                        | Expression '|='  OptEOS Expression            { BinaryExpression AssignBitwiseOr $1 $4 }
-                        | Expression '='   OptEOS Expression            { BinaryExpression Assignment $1 $4 }
+BinaryExpression        : Expression '*'   OptEOS Expression            { BinaryExpression Multiply $1 $4 ($1 ~> $4) }
+                        | Expression '/'   OptEOS Expression            { BinaryExpression Divide $1 $4 ($1 ~> $4) }
+                        | Expression '%'   OptEOS Expression            { BinaryExpression Modulo $1 $4 ($1 ~> $4) }
+                        | Expression '+'   OptEOS Expression            { BinaryExpression Add $1 $4 ($1 ~> $4) }
+                        | Expression '-'   OptEOS Expression            { BinaryExpression Subtract $1 $4 ($1 ~> $4) }
+                        | Expression '>>'  OptEOS Expression            { BinaryExpression ShiftRight $1 $4 ($1 ~> $4) }
+                        | Expression '<<'  OptEOS Expression            { BinaryExpression ShiftLeft $1 $4 ($1 ~> $4) }
+                        | Expression '%>'  OptEOS Expression            { BinaryExpression RotateRight $1 $4 ($1 ~> $4) }
+                        | Expression '<%'  OptEOS Expression            { BinaryExpression RotateLeft $1 $4 ($1 ~> $4) }
+                        | Expression '<'   OptEOS Expression            { BinaryExpression LessThan $1 $4 ($1 ~> $4) }
+                        | Expression '<='  OptEOS Expression            { BinaryExpression LessThanOrEqual $1 $4 ($1 ~> $4) }
+                        | Expression '>'   OptEOS Expression            { BinaryExpression GreaterThan $1 $4 ($1 ~> $4) }
+                        | Expression '>='  OptEOS Expression            { BinaryExpression GreaterThanOrEqual $1 $4 ($1 ~> $4) }
+                        | Expression '=='  OptEOS Expression            { BinaryExpression Equal $1 $4 ($1 ~> $4) }
+                        | Expression '!='  OptEOS Expression            { BinaryExpression Unequal $1 $4 ($1 ~> $4) }
+                        | Expression is    OptEOS Expression            { BinaryExpression Is $1 $4 ($1 ~> $4) }
+                        | Expression '&'   OptEOS Expression            { BinaryExpression BitwiseAnd $1 $4 ($1 ~> $4) }
+                        | Expression '^'   OptEOS Expression            { BinaryExpression BitwiseXor $1 $4 ($1 ~> $4) }
+                        | Expression '|'   OptEOS Expression            { BinaryExpression BitwiseOr $1 $4 ($1 ~> $4) }
+                        | Expression and   OptEOS Expression            { BinaryExpression LogicalAnd $1 $4 ($1 ~> $4) }
+                        | Expression or    OptEOS Expression            { BinaryExpression LogicalOr $1 $4 ($1 ~> $4) }
+                        | Expression '*='  OptEOS Expression            { BinaryExpression AssignMultiply $1 $4 ($1 ~> $4) }
+                        | Expression '/='  OptEOS Expression            { BinaryExpression AssignDivide $1 $4 ($1 ~> $4) }
+                        | Expression '%='  OptEOS Expression            { BinaryExpression AssignModulo $1 $4 ($1 ~> $4) }
+                        | Expression '+='  OptEOS Expression            { BinaryExpression AssignAdd $1 $4 ($1 ~> $4) }
+                        | Expression '-='  OptEOS Expression            { BinaryExpression AssignSubtract $1 $4 ($1 ~> $4) }
+                        | Expression '>>=' OptEOS Expression            { BinaryExpression AssignShiftRight $1 $4 ($1 ~> $4) }
+                        | Expression '<<=' OptEOS Expression            { BinaryExpression AssignShiftLeft $1 $4 ($1 ~> $4) }
+                        | Expression '%>=' OptEOS Expression            { BinaryExpression AssignRotateRight $1 $4 ($1 ~> $4) }
+                        | Expression '<%=' OptEOS Expression            { BinaryExpression AssignRotateLeft $1 $4 ($1 ~> $4) }
+                        | Expression '&='  OptEOS Expression            { BinaryExpression AssignBitwiseAnd $1 $4 ($1 ~> $4) }
+                        | Expression '^='  OptEOS Expression            { BinaryExpression AssignBitwiseXor $1 $4 ($1 ~> $4) }
+                        | Expression '|='  OptEOS Expression            { BinaryExpression AssignBitwiseOr $1 $4 ($1 ~> $4) }
+                        | Expression '='   OptEOS Expression            { BinaryExpression Assignment $1 $4 ($1 ~> $4) }
 
 Arguments               :: { Arguments }
-Arguments               : '(' ')'                                       { Arguments [] }
-                        | '(' ArgumentList ')'                          { Arguments (reverse $2) }
+Arguments               : '(' ')'                                       { Arguments [] ($1 ~> $2) }
+                        | '(' ArgumentList ')'                          { Arguments (reverse $2) ($1 ~> $3) }
+ArgumentList            :: { [Expression] }
 ArgumentList            : Expression                                    { [$1] }
                         | ArgumentList ','                              { $1 }
                         | ArgumentList ',' Expression                   { $3 : $1 }
 
 Literal                 :: { Literal }
-Literal                 : int                                           { IntLiteral $1 }
-                        | uint                                          { UIntLiteral $1 }
-                        | byte                                          { ByteLiteral $1 }
-                        | string                                        { StringLiteral $1 }
-                        | true                                          { BoolLiteral True }
-                        | false                                         { BoolLiteral False }
+Literal                 : int                                           { let (TokenInt i) = lexemeToken $1 in IntLiteral i (loc $1) }
+                        | uint                                          { let (TokenUInt i) = lexemeToken $1 in UIntLiteral i (loc $1) }
+                        | byte                                          { let (TokenByte i) = lexemeToken $1 in ByteLiteral i (loc $1) }
+                        | string                                        { StringLiteral (lexemeStringLiteral $1) (loc $1) }
+                        | true                                          { BoolLiteral True (loc $1) }
+                        | false                                         { BoolLiteral False (loc $1) }
 
-BodyOpen                : OptEOS '{' OptEOS                             {}
-BodyClose               : OptEOS '}' OptEOS                             {}
+BodyOpen                : OptEOS '{' OptEOS                             { $2 }
+BodyClose               : OptEOS '}' OptEOS                             { $2 }
+BodyClose2              : OptEOS '}'                                    { $2 }
 
 OptEOS                  : {- empty -}                                   {}
                         | EOS                                           {}
@@ -420,12 +418,16 @@ EOS                     : eos                                           {}
                         | EOS eos                                       {}
 
 {
-parse :: String -> String -> Module
-parse filePath contents =
-  let result = runLexer filePath contents calc
-  in case result of
-    Right a     -> a
-    Left e      -> error e
+lexemeStringLiteral :: Lexeme -> String
+lexemeStringLiteral lexeme =
+  case lexemeToken lexeme of
+    TokenString str -> str
+
+parseError :: Lexeme -> Parlex a
+parseError l = Parlex $ const $ Left $ ParserError l
+
+parse :: Source -> String -> Either MetroError Module
+parse source content = runLexer source content calc
 
 merge :: Module -> Module -> Module
 merge (Module m1) (Module m2) = Module (m1 ++ m2)

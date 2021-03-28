@@ -1,5 +1,7 @@
 module MetroLang.Lang.Model where
 
+import MetroLang.Location
+
 type Identifier = String
 
 type ModuleName = String
@@ -94,6 +96,11 @@ type ReturnType = Type
 
 type Types = [Type]
 
+data TypeSymbol = TypeSymbol {typeSymbolType :: Type, typeSymbolLoc :: SourceLocation} deriving (Show)
+
+instance Locatable TypeSymbol where
+  loc = typeSymbolLoc
+
 data Type
   = VoidType
   | RefType Identifier
@@ -155,45 +162,70 @@ instance Ord PrimitiveType where
 
 type FQN = [Identifier]
 
-newtype Arguments = Arguments [Expression] deriving (Show)
+data Arguments = Arguments {argumentsExpressions :: [Expression], argumentsLoc :: SourceLocation} deriving (Show)
+
+instance Locatable Arguments where
+  loc = argumentsLoc
 
 type Expressions = [Expression]
 
 data Expression
-  = ParenExpression Expression
-  | LiteralExpression Literal
-  | VarExpression Var
-  | ThisExpression
-  | NullExpression
-  | CastExpression Expression Type
-  | CallExpression Identifier Arguments
-  | MethodCallExpression Expression Identifier Arguments
-  | AccessExpression Expression Identifier
-  | TypeExpression Type
-  | IndexExpression Expression Expression
-  | MatchExpression Expression MatchRules
-  | UnaryExpression UnaryOperator Expression
-  | BinaryExpression BinaryOperator Expression Expression
+  = ParenExpression {expr :: Expression, exprLoc :: SourceLocation}
+  | LiteralExpression {exprLiteral :: Literal, exprLoc :: SourceLocation}
+  | VarExpression {var :: Var, exprLoc :: SourceLocation}
+  | ThisExpression {exprLoc :: SourceLocation}
+  | NullExpression {exprLoc :: SourceLocation}
+  | CastExpression {expr :: Expression, exprType :: Type, exprLoc :: SourceLocation}
+  | CallExpression {exprCallee :: Identifier, exprArgs :: Arguments, exprLoc :: SourceLocation}
+  | MethodCallExpression {exprObj :: Expression, exprCallee :: Identifier, exprArgs :: Arguments, exprLoc :: SourceLocation}
+  | AccessExpression {exprObj :: Expression, exprField :: Identifier, exprLoc :: SourceLocation}
+  | TypeExpression {exprType :: Type, exprLoc :: SourceLocation}
+  | IndexExpression {exprObj :: Expression, exprIndex :: Expression, exprLoc :: SourceLocation}
+  | MatchExpression {matchTarget :: Expression, matchBody :: MatchBody, exprLoc :: SourceLocation}
+  | UnaryExpression {unop :: UnaryOperator, expr :: Expression, exprLoc :: SourceLocation}
+  | BinaryExpression {binop :: BinaryOperator, left :: Expression, right :: Expression, exprLoc :: SourceLocation}
   deriving (Show)
+
+instance Locatable Expression where
+  loc = exprLoc
 
 data Literal
-  = IntLiteral Int
-  | UIntLiteral Int
-  | ByteLiteral Int
-  | StringLiteral String
-  | BoolLiteral Bool
+  = IntLiteral {litInt :: Int, literalLoc :: SourceLocation}
+  | UIntLiteral {litInt :: Int, literalLoc :: SourceLocation}
+  | ByteLiteral {litInt :: Int, literalLoc :: SourceLocation}
+  | StringLiteral {litStr :: String, literalLoc :: SourceLocation}
+  | BoolLiteral {litBool :: Bool, literalLoc :: SourceLocation}
   deriving (Show)
 
-type MatchRules = [MatchRule]
+instance Locatable Literal where
+  loc = literalLoc
 
-data MatchRule
-  = MatchRule MatchCondition Expression
+data MatchBody = MatchBody
+  { matchBodyRules :: [MatchRule],
+    matchBodyLoc :: SourceLocation
+  }
   deriving (Show)
+
+instance Locatable MatchBody where
+  loc = matchBodyLoc
+
+data MatchRule = MatchRule
+  { matchRuleCond :: MatchCondition,
+    matchRuleBinding :: Expression,
+    matchRuleLoc :: SourceLocation
+  }
+  deriving (Show)
+
+instance Locatable MatchRule where
+  loc = matchRuleLoc
 
 data MatchCondition
-  = MatchWildcard
-  | MatchPattern Literal
+  = MatchWildcard {matchConditionLoc :: SourceLocation}
+  | MatchPattern {matchConditionLit :: Literal, matchConditionLoc :: SourceLocation}
   deriving (Show)
+
+instance Locatable MatchCondition where
+  loc = matchConditionLoc
 
 data UnaryOperator
   = Neg
