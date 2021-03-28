@@ -252,7 +252,7 @@ matchExpr :: Metro.Expression -> Metro.MatchBody -> Compiler Value
 matchExpr target (Metro.MatchBody rules _) = matchRules rules target
 
 matchRules :: [Metro.MatchRule] -> Metro.Expression -> Compiler Value
-matchRules [] _ = error "There must be at least one rule in a match block."
+matchRules [] e = throwCompilationError e "There must be at least one rule in a match block"
 matchRules [Metro.MatchRule (Metro.MatchWildcard _) caseVal _] _ =
   do
     Value valType valExpr <- expr caseVal

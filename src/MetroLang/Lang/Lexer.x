@@ -26,7 +26,7 @@ $octdig     = [0-7]
 $hexdig     = [0-9A-Fa-f]
 
 $idchar     = [$alpha $digit]
-@identifier = $alpha $idchar*
+@identifier = \_? $alpha $idchar*
 @decint     = $nonzerodigit $digit* | 0
 @decuint    = @decint U
 @decbyte    = @decint B
@@ -157,6 +157,7 @@ tokens :-
   <0,newline> "|="      { mkL (const TokenBarEq) `andBegin` 0 }
   <0,newline> "|"       { mkL (const TokenBar) `andBegin` 0 }
   <0,newline> "~"       { mkL (const TokenTilde) `andBegin` 0 }
+  <0,newline> "_" / [^_] { mkL (const TokenUnderscore) `andBegin` 0 }
   <newline>  ()         { mkL (const TokenEOS) `andBegin` 0 }
 
   <0> @identifier       { mkL (const TokenIdentifier) }
@@ -217,6 +218,9 @@ type AlexInput = (Position,     -- current position,
                   Char,         -- previous char
                   [Byte],       -- rest of the bytes for the current char
                   String)       -- current input string
+
+alexInputPrevChar :: AlexInput -> Char
+alexInputPrevChar (_,c,_,_) = c
 
 metroGetInput :: Parlex AlexInput
 metroGetInput

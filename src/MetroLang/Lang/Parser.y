@@ -339,9 +339,10 @@ Expression              : '(' Expression ')'                            { ParenE
 MatchExpression         :: { Expression }
 MatchExpression         : match Expression MatchBody                    { MatchExpression $2 $3 ($1 ~> $3) }
 MatchBody               :: { MatchBody }
-MatchBody               : BodyOpen MatchRules BodyClose                 { MatchBody (reverse $2) ($1 ~> $3) }
+MatchBody               : BodyOpen MatchRules BodyClose2                { MatchBody (reverse $2) ($1 ~> $3) }
 MatchRules              :: { [MatchRule] }
-MatchRules              : MatchRule                                     { [$1] }
+MatchRules              : {- empty -}                                   { [] }
+                        | MatchRule                                     { [$1] }
                         | MatchRules EOS MatchRule                      { $3 : $1 }
 MatchRule               :: { MatchRule }
 MatchRule               : MatchCondition '=>' Expression                { MatchRule $1 $3 ($1 ~> $3) }
@@ -408,6 +409,7 @@ Literal                 : int                                           { let (T
 
 BodyOpen                : OptEOS '{' OptEOS                             { $2 }
 BodyClose               : OptEOS '}' OptEOS                             { $2 }
+BodyClose2              : OptEOS '}'                                    { $2 }
 
 OptEOS                  : {- empty -}                                   {}
                         | EOS                                           {}
