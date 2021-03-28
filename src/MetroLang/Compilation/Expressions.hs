@@ -42,7 +42,7 @@ expr (Metro.ThisExpression _) =
   do
     classType <- requireThisContext
     return $ Value classType $ getLocal "this"
-expr (Metro.UnaryExpression op e _) = unaryExpr op e
+expr e@(Metro.UnaryExpression op e1 _) = unaryExpr e op e1
 expr (Metro.BinaryExpression op e1 e2 _) = binaryExpr op e1 e2
 expr (Metro.CastExpression e1 typ _) = castExpr e1 typ
 expr (Metro.CallExpression callee args _) =
@@ -131,20 +131,22 @@ localVarExpr varName =
     varType <- lookupVariableType varName
     return $ Value varType $ getLocal varName
 
-unaryExpr :: Metro.UnaryOperator -> Metro.Expression -> Compiler Value
-unaryExpr op e = expr e >>= \value -> return $ unaryExprWasm op value
+unaryExpr :: Metro.Expression -> Metro.UnaryOperator -> Metro.Expression -> Compiler Value
+unaryExpr e op e1 = expr e1 >>= unaryExprWasm e op
 
-unaryExprWasm :: Metro.UnaryOperator -> Value -> Value
-unaryExprWasm Metro.Neg (Value (PrimitiveType TInt) e) = Value (PrimitiveType TInt) $ i32Sub (i32Const 0) e
-unaryExprWasm Metro.Neg _ = error "Cannot negate the given value."
-unaryExprWasm Metro.LogicalNot (Value (PrimitiveType TBool) e) = Value (PrimitiveType TBool) $ i32Eqz e
-unaryExprWasm Metro.LogicalNot _ = error "Can only apply 'not' on a Bool."
-unaryExprWasm Metro.BitwiseNot (Value (PrimitiveType p) e)
-  | p == TByte || p == TIntXS = Value (PrimitiveType p) $ i32Xor (i32Const 0xFF) e
-  | p == TWord || p == TIntS = Value (PrimitiveType p) $ i32Xor (i32Const 0xFFFF) e
-  | p == TUInt || p == TInt = Value (PrimitiveType p) $ i32Xor (i32Const 0xFFFFFFFF) e
-  | p == TUIntL || p == TIntL = Value (PrimitiveType p) $ i64Xor (i64Const 0xFFFFFFFFFFFFFFFF) e
-unaryExprWasm Metro.BitwiseNot (Value t _) = error $ "Cannot apply '~' on " ++ show t
+unaryExprWasm :: Metro.Expression -> Metro.UnaryOperator -> Value -> Compiler Value
+unaryExprWasm e Metro.Neg v@(Value t _) = case t of
+  PrimitiveType TInt -> return $ vmap (i32Sub (i32Const 0)) v
+  _ -> throwCompilationError e $ "Cannot negate value of type " ++ show t
+unaryExprWasm e Metro.LogicalNot v@(Value t _) = case t of
+  PrimitiveType TBool -> return $ vmap i32Eqz v
+  _ -> throwCompilationError e $ "Cannot apply 'not' on value of type " ++ show t
+unaryExprWasm e Metro.BitwiseNot v@(Value (PrimitiveType p) _)
+  | p == TByte || p == TIntXS = return $ vmap (i32Xor (i32Const 0xFF)) v
+  | p == TWord || p == TIntS = return $ vmap (i32Xor (i32Const 0xFFFF)) v
+  | p == TUInt || p == TInt = return $ vmap (i32Xor (i32Const 0xFFFFFFFF)) v
+  | p == TUIntL || p == TIntL = return $ vmap (i64Xor (i64Const 0xFFFFFFFFFFFFFFFF)) v
+unaryExprWasm e Metro.BitwiseNot (Value t _) = throwCompilationError e $ "Cannot apply '~' on value of type " ++ show t
 
 binaryExpr :: Metro.BinaryOperator -> Metro.Expression -> Metro.Expression -> Compiler Value
 binaryExpr Metro.Assignment e1 e2 = assignment e1 e2
