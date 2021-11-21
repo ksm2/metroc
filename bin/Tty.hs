@@ -1,12 +1,20 @@
+{-# LANGUAGE CPP #-}
+
 module Tty where
 
 import Control.Monad
+#if !defined(mingw32_HOST_OS) || defined(__MINGW32__)
 import System.Posix.IO (stdOutput)
 import System.Posix.Terminal (queryTerminal)
+#endif
 
 -- | isTty returns whether stdout is a TTY
 isTty :: IO Bool
+#if defined(mingw32_HOST_OS) || defined(__MINGW32__)
+isTty = return False
+#else
 isTty = queryTerminal stdOutput
+#endif
 
 -- | withTty transforms the given text using a callback if stdout is a TTY
 withTty :: a -> a -> IO a
