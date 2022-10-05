@@ -2,8 +2,6 @@ module Commands.Test (test) where
 
 import Builder.AST
 import Builder.IOUtils
-import Builder.Instance (Instance, callFuncErr, withInstance)
-import Builder.Runtime (withRuntime)
 import Chalk
 import Control.Monad
 import MetroLang.Lang.Model as MetroAST
@@ -13,6 +11,7 @@ import System.Directory
 import System.IO
 import System.IO.Temp
 import Tty
+import Wasmtime
 
 data TestResult = Pass | Fail String deriving (Show)
 
@@ -107,13 +106,13 @@ readWhileNotEOF stderrHandle =
         next <- readWhileNotEOF stderrHandle
         return $ line ++ "\n" ++ next
 
-runTestSuites :: Instance -> Handle -> [(MetroAST.Identifier, [MetroAST.TestStatement])] -> IO [TestSuiteResult]
-runTestSuites inst stderrHandle = mapM $ runTestSuite inst stderrHandle
+runTestSuites :: Linker -> Handle -> [(MetroAST.Identifier, [MetroAST.TestStatement])] -> IO [TestSuiteResult]
+runTestSuites linker stderrHandle = mapM $ runTestSuite linker stderrHandle
 
-runTestSuite :: Instance -> Handle -> (MetroAST.Identifier, [MetroAST.TestStatement]) -> IO TestSuiteResult
-runTestSuite inst stderrHandle (suiteName, stmts) =
+runTestSuite :: Linker -> Handle -> (MetroAST.Identifier, [MetroAST.TestStatement]) -> IO TestSuiteResult
+runTestSuite linker stderrHandle (suiteName, stmts) =
   do
-    passedCases <- runTestCases inst stmts
+    passedCases <- runTestCases linker stmts
     let totalCases = length stmts
     let isSuitePassed = passedCases == totalCases
     stderrText <- readWhileNotEOF stderrHandle
@@ -121,8 +120,8 @@ runTestSuite inst stderrHandle (suiteName, stmts) =
     if isSuitePassed then printTestPassed suiteName else printTestFailed suiteName stderrText
     return $ TestSuiteResult {suiteName, passedCases, totalCases}
 
-runTestCases :: Instance -> [MetroAST.TestStatement] -> IO Int
-runTestCases inst = foldM (combineResult (runTestCase inst)) 0
+runTestCases :: Linker -> [MetroAST.TestStatement] -> IO Int
+runTestCases linker = foldM (combineResult (runTestCase linker)) 0
 
 combineResult :: (MetroAST.TestStatement -> IO TestResult) -> Int -> MetroAST.TestStatement -> IO Int
 combineResult cb passedSoFar stmt =
@@ -132,10 +131,10 @@ combineResult cb passedSoFar stmt =
       Pass -> return $ passedSoFar + 1
       Fail _ -> return passedSoFar
 
-runTestCase :: Instance -> MetroAST.TestStatement -> IO TestResult
-runTestCase inst (MetroAST.TestStatement testCase _) =
+runTestCase :: Linker -> MetroAST.TestStatement -> IO TestResult
+runTestCase linker (MetroAST.TestStatement testCase _) =
   do
-    maybeError <- callFuncErr inst testCase
+    maybeError <- callFuncErr linker testCase
     case maybeError of
       Just err -> return $ Fail err
       Nothing -> return Pass
@@ -162,11 +161,34 @@ test args =
       printRuns tests
       moveUp (length tests)
 
-    testSuiteResults <- withRuntime $ \runtime ->
-      withInstance runtime stderrPath wat $ \wasmInstance ->
-        runTestSuites wasmInstance stderrHandle tests
+    engine <- newEngine
+    store <- newStore engine
+    linker <- newLinker engine
+
+    -- Configure WASI
+    wasiConfig <- newWasiConfig
+    wasiConfigInheritArgv wasiConfig
+    wasiConfigInheritEnv wasiConfig
+    wasiConfigInheritStdin wasiConfig
+    wasiConfigInheritStdout wasiConfig
+    wasiConfigInheritStderr wasiConfig
+    linkerConfigureWasi linker wasiConfig
+
+    -- Compile Tests
+    wasm <- wat2wasm wat
+    wasmModule <- newModule engine wasm
+
+    -- Call default function
+    linkerModule linker "test-module" wasmModule
+
+    testSuiteResults <- runTestSuites linker stderrHandle tests
 
     removeFile stderrPath
 
     putStrLn ""
     printStatistics testSuiteResults
+
+callFuncErr :: Linker -> String -> IO (Maybe String)
+callFuncErr linker fnName = do
+  func <- linkerGet linker "test-module" fnName
+  funcCall func
