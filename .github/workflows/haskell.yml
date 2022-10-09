@@ -14,11 +14,9 @@ jobs:
     name: Build Executable
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-haskell@v1
-      with:
-        ghc-version: '8.10.2'
-        cabal-version: '3.4'
+    - uses: actions/checkout@v3
+    - uses: haskell/actions/setup@v2
+    - uses: haskell/actions/hlint-setup@v2
     - name: Cache
       uses: actions/cache@v1
       env:
@@ -34,13 +32,14 @@ jobs:
       run: |
         curl -L ${{ env.WASMTIME_URL }} | tar xJ
         sudo mv wasmtime-v1.0.1-x86_64-linux-c-api/lib/* /usr/lib
+    - name: Update Local Hackage Database
+      run: cabal update
     - name: Build
-      run: make
+      run: make build
     - name: Lint
-      run: |
-        wget https://github.com/ndmitchell/hlint/releases/download/v3.3/hlint-3.3-x86_64-linux.tar.gz -O hlint.tar.gz
-        tar xzf hlint.tar.gz
-        ./hlint-3.3/hlint src bin metroc-wasmtime/src
+      uses: haskell/actions/hlint-run@v2
+      with:
+        fail-on: warning
     - name: Install
       run: make destdir=. install
     - name: Upload Executable

@@ -4,7 +4,7 @@ ghc_version := $(shell ghc --numeric-version)
 builddir := dist
 destdir := /usr/bin
 
-all: clean update build
+all: clean build
 
 clean:
 	cabal clean --builddir ${builddir}
