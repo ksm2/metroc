@@ -14,8 +14,9 @@ jobs:
     name: Build Executable
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-haskell@v1
+    - uses: actions/checkout@v3
+    - uses: haskell/actions/setup@v2
+    - uses: haskell/actions/hlint-setup@v2
     - name: Cache
       uses: actions/cache@v1
       env:
@@ -36,9 +37,9 @@ jobs:
     - name: Build
       run: make build
     - name: Lint
-      run: |
-        cabal install hlint
-        hlint .
+      uses: haskell/actions/hlint-run@v2
+      with:
+        fail-on: warning
     - name: Install
       run: make destdir=. install
     - name: Upload Executable
