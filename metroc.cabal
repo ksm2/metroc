@@ -32,9 +32,9 @@ source-repository head
   type: git
   location: https://github.com/ksm2/metroc.git
 
-library
-  import: deps
-  hs-source-dirs:     src
+library metroc-compiler
+  import:             deps
+  hs-source-dirs:     metroc-compiler/src
   build-tool-depends: alex:alex, happy:happy
   exposed-modules:
     MetroLang.Bytes
@@ -108,7 +108,7 @@ executable metroc
     filepattern   >= 0.1.2,
     temporary     >= 1.3,
     utf8-string   >= 1.0.1  && < 2,
-    metroc,
+    metroc-compiler,
     metroc-wasmtime
 
   if !os(windows)
