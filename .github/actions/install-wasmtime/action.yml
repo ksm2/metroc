@@ -1,0 +1,13 @@
+name: "Install Wasmtime"
+description: "Installs the Wasmtime C Library"
+inputs:
+  version:
+    description: "The version to install"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - run: curl -L https://github.com/bytecodealliance/wasmtime/releases/download/v${{ inputs.version }}/wasmtime-v${{ inputs.version }}-x86_64-linux-c-api.tar.xz | tar xJ
+      shell: bash
+    - run: sudo mv wasmtime-v${{ inputs.version }}-x86_64-linux-c-api/lib/* /usr/lib
+      shell: bash
