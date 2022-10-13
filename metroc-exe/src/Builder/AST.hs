@@ -9,9 +9,9 @@ import qualified Data.Map as M
 import MetroLang.Compilation.Compile
 import MetroLang.Lang.Error
 import MetroLang.Lang.ErrorRenderer
-import MetroLang.Lang.Model
 import qualified MetroLang.Lang.Parser as Metro
 import MetroLang.Location
+import MetroLang.Model
 import qualified MetroLang.WebAssembly.AST
 import MetroLang.WebAssembly.Generator
 import qualified MetroLang.WebAssembly.Parser

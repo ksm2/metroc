@@ -1,6 +1,6 @@
 module MetroLang.Types (sizeOf, calculateSizeOfClass) where
 
-import MetroLang.Lang.Model
+import MetroLang.Model
 
 sizeOf :: Type -> Int
 sizeOf (PrimitiveType TBool) = 1

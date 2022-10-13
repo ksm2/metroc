@@ -1,6 +1,6 @@
 module MetroLang.Compilation.Values where
 
-import MetroLang.Lang.Model
+import MetroLang.Model
 import MetroLang.WebAssembly.AST
 
 data Value = Value

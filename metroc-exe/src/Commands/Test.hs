@@ -4,7 +4,7 @@ import Builder.AST
 import Builder.IOUtils
 import Chalk
 import Control.Monad
-import MetroLang.Lang.Model as MetroAST
+import MetroLang.Model as MetroAST
 import MetroLang.Location
 import MetroLang.Utils
 import System.Directory

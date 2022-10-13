@@ -4,11 +4,11 @@ module MetroLang.Lang.Parser (parse, merge) where
 import MetroLang.Lang.Error
 import MetroLang.Lang.Lexeme
 import MetroLang.Lang.Lexer
-import MetroLang.Lang.Model
 import MetroLang.Lang.Parlex
 import MetroLang.Lang.Pretty
 import MetroLang.Lang.Token
 import MetroLang.Location
+import MetroLang.Model
 }
 
 %name calc

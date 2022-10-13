@@ -1,6 +1,6 @@
 module MetroLang.Lang.Pretty where
 
-import MetroLang.Lang.Model
+import MetroLang.Model
 
 class Pretty p where
   pretty :: p -> String

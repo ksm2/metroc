@@ -1,4 +1,4 @@
-module MetroLang.Lang.Model where
+module MetroLang.Model where
 
 import MetroLang.Location
 

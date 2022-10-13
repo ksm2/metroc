@@ -7,8 +7,7 @@ import MetroLang.Compilation.Context
 import MetroLang.Compilation.Expressions
 import MetroLang.Compilation.Values
 import MetroLang.Lang.Error
-import MetroLang.Lang.Model (PrimitiveType (..), Type (..))
-import qualified MetroLang.Lang.Model as Metro
+import qualified MetroLang.Model as Metro
 import MetroLang.Types
 import qualified MetroLang.WebAssembly.AST as WASM
 import MetroLang.WebAssembly.MemoryInstr
@@ -36,7 +35,7 @@ declaration (Metro.InterfaceDeclaration _name _typeArgs _) = return []
 declaration (Metro.ClassDeclaration name _typeArgs pars _ _ body) =
   do
     maybeType <- strToTypeMaybe name
-    let thisCtx = fromMaybe (RefType name) maybeType
+    let thisCtx = fromMaybe (Metro.RefType name) maybeType
     setThisContext thisCtx
     declareClass name (createClassInfo pars body)
     parsedBody <- classBody body
@@ -87,7 +86,7 @@ assignField (Metro.Param fieldName _) =
   do
     className <- requireThisContext
     fieldOffset <- getFieldOffset (show className) fieldName
-    return $ storeInstr TInt fieldOffset (getLocal "___ptr") (getLocal fieldName)
+    return $ storeInstr Metro.TInt fieldOffset (getLocal "___ptr") (getLocal fieldName)
 
 -- Classes
 classBody :: Metro.ClassBody -> Compiler [WASM.Declaration]
@@ -165,7 +164,7 @@ stmt (Metro.IfStatement i) = ifStatement i
 stmt (Metro.WhileStatement cond whileBlock) =
   do
     Value condType condExpr <- expr cond
-    if condType /= Metro.PrimitiveType TBool
+    if condType /= Metro.PrimitiveType Metro.TBool
       then error "The while condition must be of type Bool."
       else do
         whileLabel <- label "while"
@@ -196,7 +195,7 @@ stmt (Metro.ExpressionStatement e) =
   do
     value <- expr e
     let wasmEx = wasmExpr value
-    if dataType value /= VoidType
+    if dataType value /= Metro.VoidType
       then return [dropInstr wasmEx]
       else return [wasmEx]
 stmt (Metro.AssignStatement e1 e2) = definitionExpr e1 e2
@@ -235,7 +234,7 @@ ifCond i cond =
   do
     value <- expr cond
     case value of
-      Value (Metro.PrimitiveType TBool) wasmCond -> return $ brIf i $ i32Eqz wasmCond
+      Value (Metro.PrimitiveType Metro.TBool) wasmCond -> return $ brIf i $ i32Eqz wasmCond
       _ -> error "The if condition must be of type Bool."
 
 assertion :: Metro.Expression -> String -> Compiler [WASM.Expr]
@@ -243,7 +242,7 @@ assertion cond message =
   do
     l <- label "assert"
     Value condType condExpr <- expr cond
-    if condType /= PrimitiveType TBool
+    if condType /= Metro.PrimitiveType Metro.TBool
       then error "Assertion condition must be a Bool."
       else do
         let assertCond = brIf l condExpr
@@ -257,7 +256,7 @@ param :: Metro.Param -> Compiler WASM.Param
 param (Metro.Param i t) = return $ WASM.Par i $ dataTypeToValtype t
 
 returnType :: Metro.ReturnType -> Compiler WASM.ReturnType
-returnType VoidType = return Nothing
+returnType Metro.VoidType = return Nothing
 returnType rt = return $ Just $ WASM.Res $ dataTypeToValtype rt
 
 makeLocalStatements :: [(Metro.Identifier, Metro.Type)] -> [WASM.Expr]

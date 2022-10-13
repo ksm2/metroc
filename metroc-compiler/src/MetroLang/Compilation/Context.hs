@@ -5,7 +5,7 @@ import Control.Monad.State (State, get, put, runState)
 import Data.Map (Map, adjust, empty, fromList, insert, member, union, (!))
 import MetroLang.Bytes (utf8Length)
 import MetroLang.Lang.Error
-import MetroLang.Lang.Model
+import MetroLang.Model
 import MetroLang.Types
 
 data CompileContext = CompileContext

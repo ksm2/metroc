@@ -5,8 +5,8 @@ import MetroLang.Compilation.Combinators
 import MetroLang.Compilation.Context
 import MetroLang.Compilation.Values
 import MetroLang.Lang.Error
-import MetroLang.Lang.Model as Metro (PrimitiveType (..), Type (..))
-import qualified MetroLang.Lang.Model as Metro
+import MetroLang.Model as Metro (PrimitiveType (..), Type (..))
+import qualified MetroLang.Model as Metro
 import MetroLang.Location
 import MetroLang.Types
 import qualified MetroLang.WebAssembly.AST as WASM

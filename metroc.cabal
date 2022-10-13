@@ -32,6 +32,15 @@ source-repository head
   type: git
   location: https://github.com/ksm2/metroc.git
 
+library metroc-model
+  import:              deps
+  hs-source-dirs:      metroc-model/src
+  exposed-modules:
+    MetroLang.Location
+    MetroLang.Model
+  build-depends:
+    base          >= 4.14   && < 5
+
 library metroc-compiler
   import:             deps
   hs-source-dirs:     metroc-compiler/src
@@ -53,12 +62,10 @@ library metroc-compiler
     MetroLang.Lang.Highlight
     MetroLang.Lang.Lexer
     MetroLang.Lang.Lexeme
-    MetroLang.Lang.Model
     MetroLang.Lang.Parlex
     MetroLang.Lang.Parser
     MetroLang.Lang.Pretty
     MetroLang.Lang.Token
-    MetroLang.Location
     MetroLang.Types
     MetroLang.Utils
     MetroLang.Utils.Int
@@ -70,7 +77,8 @@ library metroc-compiler
     parsec        >= 3.1.14 && < 3.2,
     mtl           >= 2.2.2  && < 3,
     utf8-string   >= 1.0.1  && < 2,
-    containers    >= 0.6
+    containers    >= 0.6,
+    metroc-model
 
 library metroc-wasmtime
   import:              deps
@@ -108,6 +116,7 @@ executable metroc
     filepattern   >= 0.1.2,
     temporary     >= 1.3,
     utf8-string   >= 1.0.1  && < 2,
+    metroc-model,
     metroc-compiler,
     metroc-wasmtime
 
