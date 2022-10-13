@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 env:
-  WASMTIME_URL: https://github.com/bytecodealliance/wasmtime/releases/download/v1.0.1/wasmtime-v1.0.1-x86_64-linux-c-api.tar.xz
+  WASMTIME_VERSION: "1.0.1"
 
 jobs:
   build:
@@ -18,20 +18,15 @@ jobs:
     - uses: haskell/actions/setup@v2
     - uses: haskell/actions/hlint-setup@v2
     - name: Cache
-      uses: actions/cache@v1
-      env:
-        cache-name: cache-cabal
+      uses: actions/cache@v3
       with:
         path: ~/.cabal
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}
-        restore-keys: |
-          ${{ runner.os }}-build-${{ env.cache-name }}-
-          ${{ runner.os }}-build-
-          ${{ runner.os }}-
-    - name: Install Wasmtime 1.0.1
-      run: |
-        curl -L ${{ env.WASMTIME_URL }} | tar xJ
-        sudo mv wasmtime-v1.0.1-x86_64-linux-c-api/lib/* /usr/lib
+        key: ${{ runner.os }}-build-${{ hashFiles('**/*.cabal') }}
+        restore-keys: ${{ runner.os }}-build-
+    - name: Install Wasmtime ${{ env.WASMTIME_VERSION }}
+      uses: ./.github/actions/install-wasmtime
+      with:
+        version: ${{ env.WASMTIME_VERSION }}
     - name: Update Local Hackage Database
       run: cabal update
     - name: Build
